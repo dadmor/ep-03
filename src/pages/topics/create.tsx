@@ -31,7 +31,7 @@ export const TopicsCreate = () => {
     formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: {
-      course_id: courseId,
+      course_id: courseId ? parseInt(courseId) : undefined,
       is_published: false,
       position: 1,
     }
@@ -61,6 +61,8 @@ export const TopicsCreate = () => {
         </CardHeader>
         <CardContent>
           <Form onSubmit={handleSubmit(onFinish)}>
+            <input type="hidden" {...register("course_id")} />
+            
             <FormControl
               label="Tytuł tematu"
               htmlFor="title"

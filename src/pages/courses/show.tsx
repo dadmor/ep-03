@@ -5,11 +5,12 @@ import { Button, Badge } from "@/components/ui";
 import { FlexBox, GridBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
 import { SubPage } from "@/components/layout";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 
 export const CoursesShow = () => {
   const { list, edit, create } = useNavigation();
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const { data: courseData, isLoading: courseLoading } = useOne({
     resource: "courses",
@@ -130,7 +131,7 @@ export const CoursesShow = () => {
             <CardTitle>Tematy kursu</CardTitle>
             <Button
               size="sm"
-              onClick={() => create("topics", { course_id: id })}
+              onClick={() => navigate(`/topics/create?course_id=${id}`)}
             >
               <Plus className="w-4 h-4 mr-2" />
               Dodaj temat
@@ -182,7 +183,7 @@ export const CoursesShow = () => {
               <p>Brak tematów w tym kursie</p>
               <Button
                 className="mt-4"
-                onClick={() => create("topics", { course_id: id })}
+                onClick={() => navigate(`/topics/create?course_id=${id}`)}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Dodaj pierwszy temat

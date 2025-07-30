@@ -1,4 +1,5 @@
 import { Route } from "react-router";
+import { FileText } from "lucide-react";
 import { ReportsOverview } from "./overview";
 
 export { ReportsOverview } from "./overview";
@@ -8,7 +9,7 @@ export const reportsResource = {
   list: "/reports",
   meta: {
     label: "Raporty",
-    icon: "FileText",
+    icon: <FileText className="h-4 w-4" />,
   },
 };
 

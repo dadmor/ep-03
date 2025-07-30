@@ -1,4 +1,5 @@
 import { Route } from "react-router";
+import { Users } from "lucide-react";
 import { UsersList } from "./list";
 import { UsersCreate } from "./create";
 import { UsersEdit } from "./edit";
@@ -17,7 +18,7 @@ export const usersResource = {
   show: "/users/show/:id",
   meta: {
     label: "Użytkownicy",
-    icon: "Users",
+    icon: <Users className="h-4 w-4" />,
   },
 };
 

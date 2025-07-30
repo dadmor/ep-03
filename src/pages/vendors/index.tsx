@@ -1,4 +1,5 @@
 import { Route } from "react-router";
+import { Building } from "lucide-react";
 import { VendorsList } from "./list";
 
 export { VendorsList } from "./list";
@@ -8,7 +9,7 @@ export const vendorsResource = {
   list: "/vendors",
   meta: {
     label: "Organizacje",
-    icon: "Building",
+    icon: <Building className="h-4 w-4" />,
   },
 };
 

@@ -1,4 +1,5 @@
 import { Route } from "react-router";
+import { BookOpen } from "lucide-react";
 import { CoursesList } from "./list";
 import { CoursesCreate } from "./create";
 import { CoursesEdit } from "./edit";
@@ -17,7 +18,7 @@ export const coursesResource = {
   show: "/courses/show/:id",
   meta: {
     label: "Kursy",
-    icon: "BookOpen",
+    icon: <BookOpen className="h-4 w-4" />,
   },
 };
 

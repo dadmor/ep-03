@@ -1,4 +1,4 @@
-import { useOne, useNavigation, useList } from "@refinedev/core";
+import { useOne, useNavigation, useList, useInvalidate } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowLeft,
@@ -15,11 +15,14 @@ import { FlexBox, GridBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
 import { SubPage } from "@/components/layout";
 import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { supabaseClient } from "@/utility/supabaseClient";
 
 export const GroupsShow = () => {
   const { list, edit } = useNavigation();
   const { id } = useParams();
   const navigate = useNavigate();
+  const invalidate = useInvalidate();
 
   const { data: groupData, isLoading: groupLoading } = useOne({
     resource: "groups",
@@ -62,6 +65,58 @@ export const GroupsShow = () => {
     },
     liveMode: "off",
   });
+
+  const handleRemoveCourse = async (courseId: number, courseTitle: string) => {
+    if (confirm(`Czy na pewno chcesz odpiąć kurs "${courseTitle}" od tej grupy?`)) {
+      try {
+        const { error } = await supabaseClient
+          .from("course_access")
+          .delete()
+          .eq("course_id", courseId)
+          .eq("group_id", parseInt(id as string));
+        
+        if (error) {
+          throw error;
+        }
+        
+        toast.success("Kurs został odpięty od grupy");
+        // Odśwież listę kursów
+        invalidate({
+          resource: "course_access",
+          invalidates: ["list"],
+        });
+      } catch (error) {
+        console.error("Error removing course:", error);
+        toast.error("Błąd podczas odpinania kursu");
+      }
+    }
+  };
+
+  const handleRemoveMember = async (userId: string, userName: string) => {
+    if (confirm(`Czy na pewno chcesz usunąć "${userName}" z tej grupy?`)) {
+      try {
+        const { error } = await supabaseClient
+          .from("group_members")
+          .delete()
+          .eq("user_id", userId)
+          .eq("group_id", parseInt(id as string));
+        
+        if (error) {
+          throw error;
+        }
+        
+        toast.success("Uczeń został usunięty z grupy");
+        // Odśwież listę członków
+        invalidate({
+          resource: "group_members",
+          invalidates: ["list"],
+        });
+      } catch (error) {
+        console.error("Error removing member:", error);
+        toast.error("Błąd podczas usuwania ucznia z grupy");
+      }
+    }
+  };
 
   if (groupLoading) {
     return (
@@ -165,7 +220,11 @@ export const GroupsShow = () => {
                       </p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handleRemoveMember(member.user_id, member.users?.full_name)}
+                  >
                     <Trash2 className="h-4 w-4 text-red-600" />
                   </Button>
                 </div>
@@ -220,7 +279,11 @@ export const GroupsShow = () => {
                       </p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => handleRemoveCourse(access.course_id, access.courses?.title)}
+                  >
                     <Trash2 className="h-4 w-4 text-red-600" />
                   </Button>
                 </div>

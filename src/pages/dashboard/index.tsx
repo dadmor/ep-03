@@ -1,4 +1,5 @@
 import { Route } from "react-router";
+import { LayoutDashboard } from "lucide-react";
 import { DashboardOverview } from "./overview";
 
 export { DashboardOverview } from "./overview";
@@ -8,7 +9,7 @@ export const dashboardResource = {
   list: "/dashboard/overview",
   meta: {
     label: "Dashboard",
-    icon: "LayoutDashboard",
+    icon: <LayoutDashboard className="h-4 w-4" />,
   },
 };
 

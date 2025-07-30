@@ -16,6 +16,7 @@ export const TopicsEdit = () => {
   const { data, isLoading } = useOne({
     resource: "topics",
     id: id as string,
+    liveMode: "off", // Wyłącz live mode
   });
 
   const {
@@ -29,6 +30,7 @@ export const TopicsEdit = () => {
     refineCoreProps: {
       resource: "topics",
       id: id as string,
+      liveMode: "off", // Wyłącz live mode
     }
   });
 
