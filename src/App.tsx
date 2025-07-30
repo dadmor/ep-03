@@ -35,10 +35,10 @@ function App() {
           dashboardResource,
           groupsResource,
           coursesResource,
-          
+
           activitiesResource,
           usersResource,
-         
+
           vendorsResource,
           reportsResource,
           topicsResource,
@@ -69,15 +69,16 @@ function App() {
             }
           >
             {/* Dashboard jako strona główna */}
-            <Route path="/dashboard" element={<Navigate to="/dashboard/overview" replace />} />
-            
+            <Route
+              path="/dashboard"
+              element={<Navigate to="/dashboard/overview" replace />}
+            />
+
             {...dashboardRoutes}
             {...groupsRoutes}
             {...coursesRoutes}
-           
             {...activitiesRoutes}
             {...usersRoutes}
-           
             {...vendorsRoutes}
             {...reportsRoutes}
             {...topicsRoutes}
@@ -87,8 +88,8 @@ function App() {
           </Route>
 
           {/* Dodatkowe zabezpieczenie */}
-          <Route 
-            path="*" 
+          <Route
+            path="*"
             element={
               <Authenticated
                 key="catch-all"
@@ -96,7 +97,7 @@ function App() {
               >
                 <Navigate to="/dashboard" replace />
               </Authenticated>
-            } 
+            }
           />
         </Routes>
 

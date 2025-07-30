@@ -1,7 +1,6 @@
 // src/pages/topics/index.tsx
 import { Route } from "react-router";
 import { FileText } from "lucide-react";
-import { TopicsList } from "./list";
 import { TopicsCreate } from "./create";
 import { TopicsEdit } from "./edit";
 
@@ -11,7 +10,6 @@ export { TopicsEdit } from "./edit";
 
 export const topicsResource = {
   name: "topics",
-  list: "/topics",
   create: "/topics/create",
   edit: "/topics/edit/:id",
   meta: {
@@ -21,7 +19,6 @@ export const topicsResource = {
 };
 
 export const topicsRoutes = [
-  <Route key="topics-list" path="/topics" element={<TopicsList />} />,
   <Route key="topics-create" path="/topics/create" element={<TopicsCreate />} />,
   <Route key="topics-edit" path="/topics/edit/:id" element={<TopicsEdit />} />,
 ];

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "@refinedev/react-hook-form";
 import { useNavigation, useOne } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,7 @@ export const UsersEdit = () => {
   const { data, isLoading } = useOne({
     resource: "users",
     id: id as string,
+    liveMode: "off", // Wyłącz live mode
   });
 
   const {
@@ -31,13 +33,29 @@ export const UsersEdit = () => {
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm({
     refineCoreProps: {
       resource: "users",
       id: id as string,
+      redirect: "list",
+      liveMode: "off", // Wyłącz live mode
     }
   });
+
+  // Ustaw wartości formularza po załadowaniu danych
+  useEffect(() => {
+    if (data?.data) {
+      reset({
+        full_name: data.data.full_name,
+        email: data.data.email,
+        role: data.data.role,
+        is_active: data.data.is_active,
+        vendor_id: data.data.vendor_id,
+      });
+    }
+  }, [data, reset]);
 
   if (isLoading) {
     return (
@@ -120,7 +138,7 @@ export const UsersEdit = () => {
                 required
               >
                 <Select
-                  value={watch("role")}
+                  value={watch("role") || "student"}
                   onValueChange={(value) => setValue("role", value)}
                 >
                   <SelectTrigger>
@@ -138,7 +156,7 @@ export const UsersEdit = () => {
             <FormControl label="Status konta">
               <FlexBox variant="start">
                 <Switch
-                  checked={watch("is_active")}
+                  checked={watch("is_active") ?? true}
                   onCheckedChange={(checked) => setValue("is_active", checked)}
                 />
                 <span className="text-sm text-muted-foreground">

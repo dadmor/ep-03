@@ -1,3 +1,4 @@
+
 import { useOne, useNavigation, useList } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Edit, Users, FileText, Plus } from "lucide-react";
@@ -8,7 +9,7 @@ import { SubPage } from "@/components/layout";
 import { useParams, useNavigate } from "react-router-dom";
 
 export const CoursesShow = () => {
-  const { list, edit, create } = useNavigation();
+  const { list, edit } = useNavigation();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -152,45 +153,40 @@ export const CoursesShow = () => {
                 {topicsData.data.map((topic: any) => (
                   <div
                     key={topic.id}
-                    className="border rounded-lg"
+                    className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <div className="p-4">
-                      <FlexBox>
-                        <div className="flex-1">
-                          <h4 className="font-medium">
-                            {topic.position}. {topic.title}
-                          </h4>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {topic._count?.activities || 0} aktywności
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant={topic.is_published ? "default" : "secondary"}
-                          >
-                            {topic.is_published ? "Opublikowany" : "Szkic"}
-                          </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate(`/activities/create?topic_id=${topic.id}`)}
-                          >
-                            <Plus className="w-3 h-3 mr-2" />
-                            Dodaj treść
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => edit("topics", topic.id)}
-                          >
-                            <Edit className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </FlexBox>
-                      
-                      {/* Opcjonalnie: Lista aktywności dla tematu */}
-                      <TopicActivities topicId={topic.id} />
-                    </div>
+                    <FlexBox>
+                      <div className="flex-1">
+                        <h4 className="font-medium">
+                          {topic.position}. {topic.title}
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {topic._count?.activities || 0} aktywności
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant={topic.is_published ? "default" : "secondary"}
+                        >
+                          {topic.is_published ? "Opublikowany" : "Szkic"}
+                        </Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/activities/create?topic_id=${topic.id}`)}
+                        >
+                          <Plus className="w-3 h-3 mr-2" />
+                          Dodaj treść
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => edit("topics", topic.id)}
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </FlexBox>
                   </div>
                 ))}
               </div>
@@ -224,61 +220,5 @@ export const CoursesShow = () => {
         </Card>
       </GridBox>
     </SubPage>
-  );
-};
-
-// Komponent pomocniczy do wyświetlania aktywności tematu
-const TopicActivities = ({ topicId }: { topicId: number }) => {
-  const navigate = useNavigate();
-  const { edit } = useNavigation();
-  
-  const { data: activitiesData, isLoading } = useList({
-    resource: "activities",
-    filters: [
-      {
-        field: "topic_id",
-        operator: "eq",
-        value: topicId,
-      },
-    ],
-    sorters: [
-      {
-        field: "position",
-        order: "asc",
-      },
-    ],
-    pagination: {
-      pageSize: 10,
-    },
-  });
-
-  if (isLoading || !activitiesData?.data?.length) return null;
-
-  return (
-    <div className="mt-4 pl-4 border-l-2 border-muted">
-      <p className="text-sm font-medium text-muted-foreground mb-2">Aktywności:</p>
-      <div className="space-y-2">
-        {activitiesData.data.map((activity: any) => (
-          <div key={activity.id} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {activity.position}.
-              </span>
-              <span className="text-sm font-medium">{activity.title}</span>
-              <Badge variant="outline" className="text-xs">
-                {activity.type === 'quiz' ? 'Quiz' : 'Materiał'}
-              </Badge>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => edit("activities", activity.id)}
-            >
-              <Edit className="w-3 h-3" />
-            </Button>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 };

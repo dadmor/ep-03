@@ -1,3 +1,4 @@
+
 import { useForm } from "@refinedev/react-hook-form";
 import { useNavigation, useOne } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,12 +18,16 @@ import { SubPage } from "@/components/layout";
 import { useParams } from "react-router-dom";
 
 export const ActivitiesEdit = () => {
-  const { list } = useNavigation();
+  const { list, show } = useNavigation();
   const { id } = useParams();
 
   const { data, isLoading } = useOne({
     resource: "activities",
     id: id as string,
+    liveMode: "off",
+    meta: {
+      select: '*, topics(*, courses(*)), questions(count)'
+    }
   });
 
   const {
@@ -36,10 +41,20 @@ export const ActivitiesEdit = () => {
     refineCoreProps: {
       resource: "activities",
       id: id as string,
+      liveMode: "off",
+      redirect: false,
+      onMutationSuccess: () => {
+        const courseId = data?.data?.topics?.course_id;
+        if (courseId) {
+          show("courses", courseId);
+        } else {
+          list("activities");
+        }
+      },
     }
   });
 
-  const activityType = watch("type");
+  const activityType = watch("type") || data?.data?.type || "material";
 
   if (isLoading) {
     return (
@@ -51,12 +66,24 @@ export const ActivitiesEdit = () => {
     );
   }
 
+  const activity = data?.data;
+  const topic = activity?.topics;
+  const course = topic?.courses;
+
+  const handleCancel = () => {
+    if (course?.id) {
+      show("courses", course.id);
+    } else {
+      list("activities");
+    }
+  };
+
   return (
     <SubPage>
       <Button
         variant="outline"
         size="sm"
-        onClick={() => list("courses")}
+        onClick={handleCancel}
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Powrót do kursu
@@ -65,7 +92,14 @@ export const ActivitiesEdit = () => {
       <FlexBox>
         <Lead
           title="Edytuj aktywność"
-          description={`Edycja: ${data?.data?.title}`}
+          description={
+            <div>
+              <div>{activity?.title}</div>
+              <div className="text-sm text-muted-foreground">
+                {course?.title} → {topic?.title}
+              </div>
+            </div>
+          }
         />
       </FlexBox>
 
@@ -83,10 +117,9 @@ export const ActivitiesEdit = () => {
               >
                 <Select
                   value={activityType}
-                  onValueChange={(value) => setValue("type", value)}
                   disabled
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-muted">
                     <SelectValue placeholder="Wybierz typ" />
                   </SelectTrigger>
                   <SelectContent>
@@ -185,69 +218,80 @@ export const ActivitiesEdit = () => {
             )}
 
             {activityType === "quiz" && (
-              <GridBox variant="1-1-1">
-                <FormControl
-                  label="Próg zaliczenia (%)"
-                  htmlFor="passing_score"
-                  error={errors.passing_score?.message as string}
-                >
-                  <Input
-                    id="passing_score"
-                    type="number"
-                    min="0"
-                    max="100"
-                    {...register("passing_score", {
-                      min: {
-                        value: 0,
-                        message: "Wartość minimalna to 0",
-                      },
-                      max: {
-                        value: 100,
-                        message: "Wartość maksymalna to 100",
-                      },
-                      valueAsNumber: true,
-                    })}
-                  />
-                </FormControl>
+              <>
+                <GridBox variant="1-1-1">
+                  <FormControl
+                    label="Próg zaliczenia (%)"
+                    htmlFor="passing_score"
+                    error={errors.passing_score?.message as string}
+                  >
+                    <Input
+                      id="passing_score"
+                      type="number"
+                      min="0"
+                      max="100"
+                      {...register("passing_score", {
+                        min: {
+                          value: 0,
+                          message: "Wartość minimalna to 0",
+                        },
+                        max: {
+                          value: 100,
+                          message: "Wartość maksymalna to 100",
+                        },
+                        valueAsNumber: true,
+                      })}
+                    />
+                  </FormControl>
 
-                <FormControl
-                  label="Limit czasu (min)"
-                  htmlFor="time_limit"
-                >
-                  <Input
-                    id="time_limit"
-                    type="number"
-                    min="1"
-                    placeholder="Brak limitu"
-                    {...register("time_limit", {
-                      min: {
-                        value: 1,
-                        message: "Limit musi być większy od 0",
-                      },
-                      valueAsNumber: true,
-                    })}
-                  />
-                </FormControl>
+                  <FormControl
+                    label="Limit czasu (min)"
+                    htmlFor="time_limit"
+                  >
+                    <Input
+                      id="time_limit"
+                      type="number"
+                      min="1"
+                      placeholder="Brak limitu"
+                      {...register("time_limit", {
+                        min: {
+                          value: 1,
+                          message: "Limit musi być większy od 0",
+                        },
+                        valueAsNumber: true,
+                      })}
+                    />
+                  </FormControl>
 
-                <FormControl
-                  label="Maksymalna liczba prób"
-                  htmlFor="max_attempts"
-                >
-                  <Input
-                    id="max_attempts"
-                    type="number"
-                    min="1"
-                    placeholder="Bez limitu"
-                    {...register("max_attempts", {
-                      min: {
-                        value: 1,
-                        message: "Minimum 1 próba",
-                      },
-                      valueAsNumber: true,
-                    })}
-                  />
-                </FormControl>
-              </GridBox>
+                  <FormControl
+                    label="Maksymalna liczba prób"
+                    htmlFor="max_attempts"
+                  >
+                    <Input
+                      id="max_attempts"
+                      type="number"
+                      min="1"
+                      placeholder="Bez limitu"
+                      {...register("max_attempts", {
+                        min: {
+                          value: 1,
+                          message: "Minimum 1 próba",
+                        },
+                        valueAsNumber: true,
+                      })}
+                    />
+                  </FormControl>
+                </GridBox>
+                
+                {activity?._count?.questions !== undefined && (
+                  <div className="mt-4 p-4 bg-muted rounded-lg">
+                    <p className="text-sm">
+                      <strong>Ten quiz zawiera {activity._count.questions} pytań.</strong>
+                      {' '}Możesz zarządzać pytaniami po zapisaniu zmian.
+                    </p>
+                  </div>
+                )}
+              </>
             )}
 
             <FormControl label="Status publikacji">
@@ -266,7 +310,8 @@ export const ActivitiesEdit = () => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => list("courses")}
+                onClick={handleCancel}
+                disabled={isSubmitting}
               >
                 Anuluj
               </Button>
