@@ -11,6 +11,8 @@ import {
   GripVertical,
   ListChecks,
   Plus,
+  Users,
+  CheckCircle2,
 } from "lucide-react";
 import { Button, Badge } from "@/components/ui";
 import {
@@ -48,59 +50,105 @@ export const ActivityCard = ({
 
   const getActivityIcon = () => {
     return activity.type === "quiz" ? (
-      <HelpCircle className="w-4 h-4 text-blue-500" />
+      <div className="p-2 bg-blue-100 rounded-lg">
+        <HelpCircle className="w-5 h-5 text-blue-600" />
+      </div>
     ) : (
-      <FileText className="w-4 h-4 text-green-500" />
+      <div className="p-2 bg-green-100 rounded-lg">
+        <FileText className="w-5 h-5 text-green-600" />
+      </div>
     );
   };
 
-  return (
-    <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-      <GripVertical className="w-4 h-4 text-muted-foreground" />
-      {getActivityIcon()}
+  const getActivityTypeLabel = () => {
+    return activity.type === "quiz" ? "Quiz" : "Materiał";
+  };
 
-      <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <span className="font-medium">
-            {topicPosition}.{activity.position} {activity.title}
-          </span>
-          <Badge variant="outline" className="text-xs">
-            {activity.type === "quiz" ? "Quiz" : "Materiał"}
-          </Badge>
-          {activity.type === "quiz" &&
-            activity._count?.questions !== undefined && (
-              <Badge variant="outline" className="text-xs">
-                {activity._count.questions} pytań
-              </Badge>
-            )}
-          <Badge variant={activity.is_published ? "default" : "secondary"}>
-            {activity.is_published ? "Opublikowany" : "Szkic"}
-          </Badge>
-        </div>
-        {activity.duration_min && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-            <Clock className="w-3 h-3" />
-            {activity.duration_min} min
-          </div>
-        )}
+  const getActivityTypeBadgeVariant = () => {
+    return activity.type === "quiz" ? "default" : "secondary";
+  };
+
+  return (
+    <div className="group flex items-center gap-4 p-4 bg-white border rounded-lg hover:shadow-sm transition-all duration-200">
+      <div className="cursor-move  transition-opacity">
+        <GripVertical className="w-4 h-4 text-muted-foreground" />
       </div>
 
-      <div className="flex items-center gap-2">
-        {/* Szybkie akcje */}
+      {getActivityIcon()}
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h5 className="font-medium text-sm">
+            {topicPosition}.{activity.position} {activity.title}
+          </h5>
+          <div className="flex items-center gap-2">
+            <Badge variant={getActivityTypeBadgeVariant()} className="text-xs">
+              {getActivityTypeLabel()}
+            </Badge>
+            {activity.type === "quiz" &&
+              activity._count?.questions !== undefined && (
+                <Badge variant="outline" className="text-xs">
+                  <ListChecks className="w-3 h-3 mr-1" />
+                  {activity._count.questions}{" "}
+                  {activity._count.questions === 1 ? "pytanie" : "pytań"}
+                </Badge>
+              )}
+            <Badge
+              variant={activity.is_published ? "default" : "secondary"}
+              className="text-xs"
+            >
+              {activity.is_published ? (
+                <>
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  Opublikowany
+                </>
+              ) : (
+                "Szkic"
+              )}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+          {activity.duration_min && (
+            <div className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              <span>{activity.duration_min} min</span>
+            </div>
+          )}
+          <div className="flex items-center gap-1">
+            <Users className="w-3 h-3" />
+            <span>0 ukończeń</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-1 ">
         {activity.type === "quiz" && (
           <Button
             size="sm"
             variant="ghost"
             onClick={() => navigate(`/questions/manage/${activity.id}`)}
             title="Zarządzaj pytaniami"
+            className="h-8 w-8 p-0"
           >
             <ListChecks className="h-4 w-4" />
           </Button>
         )}
 
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => navigate(`/activities/show/${activity.id}`)}
+          title="Podgląd"
+          className="h-8 w-8 p-0"
+        >
+          <Eye className="h-4 w-4" />
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -120,7 +168,7 @@ export const ActivityCard = ({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => navigate(`/questions/manage/${activity.id}`)}
-                  className="text-blue-600"
+                  className="text-blue-600 focus:text-blue-600"
                 >
                   <ListChecks className="mr-2 h-4 w-4" />
                   Zarządzaj pytaniami
@@ -129,7 +177,7 @@ export const ActivityCard = ({
                   onClick={() =>
                     navigate(`/questions/create?activity_id=${activity.id}`)
                   }
-                  className="text-blue-600"
+                  className="text-blue-600 focus:text-blue-600"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   Dodaj pytanie
@@ -139,7 +187,7 @@ export const ActivityCard = ({
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => onDelete(activity.id, activity.title)}
-              className="text-red-600"
+              className="text-red-600 focus:text-red-600"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Usuń
