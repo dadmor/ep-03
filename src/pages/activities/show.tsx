@@ -1,15 +1,23 @@
 import { useOne, useNavigation } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  ArrowLeft, Edit, FileText, HelpCircle, Clock, 
-  CheckCircle, Target, Timer, RefreshCw, ListChecks 
+import {
+  ArrowLeft,
+  Edit,
+  FileText,
+  HelpCircle,
+  Clock,
+  Target,
+  Timer,
+  RefreshCw,
+  ListChecks,
+  Plus,
 } from "lucide-react";
 import { Button, Badge } from "@/components/ui";
 import { FlexBox, GridBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
 import { SubPage } from "@/components/layout";
 import { useParams, useNavigate } from "react-router-dom";
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown from "react-markdown";
 
 export const ActivitiesShow = () => {
   const { edit } = useNavigation();
@@ -20,8 +28,8 @@ export const ActivitiesShow = () => {
     resource: "activities",
     id: id as string,
     meta: {
-      select: '*, topics(*, courses(*)), questions(count)'
-    }
+      select: "*, topics(*, courses(*)), questions(count)",
+    },
   });
 
   if (isLoading) {
@@ -42,23 +50,21 @@ export const ActivitiesShow = () => {
     if (course?.id) {
       navigate(`/courses/show/${course.id}`);
     } else {
-      navigate('/courses');
+      navigate("/courses");
     }
   };
 
   const getActivityIcon = () => {
-    return activity?.type === 'quiz' ? 
-      <HelpCircle className="w-6 h-6 text-blue-500" /> : 
-      <FileText className="w-6 h-6 text-green-500" />;
+    return activity?.type === "quiz" ? (
+      <HelpCircle className="w-6 h-6 text-blue-500" />
+    ) : (
+      <FileText className="w-6 h-6 text-green-500" />
+    );
   };
 
   return (
     <SubPage>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleBackToCourse}
-      >
+      <Button variant="outline" size="sm" onClick={handleBackToCourse}>
         <ArrowLeft className="w-4 h-4 mr-2" />
         Powrót do kursu
       </Button>
@@ -77,18 +83,22 @@ export const ActivitiesShow = () => {
                 {course?.title} → Temat {topic?.position}: {topic?.title}
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <Badge variant={activity?.type === 'quiz' ? 'default' : 'outline'}>
-                  {activity?.type === 'quiz' ? 'Quiz' : 'Materiał'}
+                <Badge
+                  variant={activity?.type === "quiz" ? "default" : "outline"}
+                >
+                  {activity?.type === "quiz" ? "Quiz" : "Materiał"}
                 </Badge>
-                <Badge variant={activity?.is_published ? 'default' : 'secondary'}>
-                  {activity?.is_published ? 'Opublikowany' : 'Szkic'}
+                <Badge
+                  variant={activity?.is_published ? "default" : "secondary"}
+                >
+                  {activity?.is_published ? "Opublikowany" : "Szkic"}
                 </Badge>
               </div>
             </div>
           }
         />
         <div className="flex gap-2">
-          {activity?.type === 'quiz' && (
+          {activity?.type === "quiz" && (
             <Button
               variant="outline"
               onClick={() => navigate(`/questions/manage/${activity.id}`)}
@@ -115,12 +125,12 @@ export const ActivitiesShow = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {activity?.duration_min || '-'} min
+              {activity?.duration_min || "-"} min
             </div>
           </CardContent>
         </Card>
 
-        {activity?.type === 'quiz' && (
+        {activity?.type === "quiz" && (
           <>
             <Card>
               <CardHeader className="pb-2">
@@ -145,8 +155,8 @@ export const ActivitiesShow = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {activity?.time_limit || 'Brak'}
-                  {activity?.time_limit && ' min'}
+                  {activity?.time_limit || "Brak"}
+                  {activity?.time_limit && " min"}
                 </div>
               </CardContent>
             </Card>
@@ -160,7 +170,7 @@ export const ActivitiesShow = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {activity?.max_attempts || 'Bez limitu'}
+                  {activity?.max_attempts || "Bez limitu"}
                 </div>
               </CardContent>
             </Card>
@@ -169,7 +179,7 @@ export const ActivitiesShow = () => {
       </GridBox>
 
       {/* Treść materiału */}
-      {activity?.type === 'material' && activity?.content && (
+      {activity?.type === "material" && activity?.content && (
         <Card>
           <CardHeader>
             <CardTitle>Treść materiału</CardTitle>
@@ -183,7 +193,7 @@ export const ActivitiesShow = () => {
       )}
 
       {/* Informacje o quizie */}
-      {activity?.type === 'quiz' && (
+      {activity?.type === "quiz" && (
         <Card>
           <CardHeader>
             <CardTitle>Informacje o quizie</CardTitle>
@@ -207,21 +217,33 @@ export const ActivitiesShow = () => {
                 <div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">Liczba pytań</p>
-                      <p className="text-2xl font-bold">{activity._count?.questions || 0}</p>
-                    </div>
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">Wymagany wynik</p>
-                      <p className="text-2xl font-bold">{activity.passing_score || 70}%</p>
-                    </div>
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">Limit czasu</p>
+                      <p className="text-sm text-muted-foreground">
+                        Liczba pytań
+                      </p>
                       <p className="text-2xl font-bold">
-                        {activity.time_limit ? `${activity.time_limit} min` : 'Brak'}
+                        {activity._count?.questions || 0}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-muted rounded-lg">
+                      <p className="text-sm text-muted-foreground">
+                        Wymagany wynik
+                      </p>
+                      <p className="text-2xl font-bold">
+                        {activity.passing_score || 70}%
+                      </p>
+                    </div>
+                    <div className="p-4 bg-muted rounded-lg">
+                      <p className="text-sm text-muted-foreground">
+                        Limit czasu
+                      </p>
+                      <p className="text-2xl font-bold">
+                        {activity.time_limit
+                          ? `${activity.time_limit} min`
+                          : "Brak"}
                       </p>
                     </div>
                   </div>
-                  
+
                   <Button
                     className="w-full"
                     onClick={() => navigate(`/questions/manage/${activity.id}`)}
@@ -249,18 +271,24 @@ export const ActivitiesShow = () => {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Status:</span>
-              <Badge variant={activity?.is_published ? 'default' : 'secondary'}>
-                {activity?.is_published ? 'Opublikowany' : 'Szkic'}
+              <Badge variant={activity?.is_published ? "default" : "secondary"}>
+                {activity?.is_published ? "Opublikowany" : "Szkic"}
               </Badge>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Utworzono:</span>
-              <span>{new Date(activity?.created_at).toLocaleDateString('pl-PL')}</span>
+              <span>
+                {new Date(activity?.created_at).toLocaleDateString("pl-PL")}
+              </span>
             </div>
             {activity?.updated_at && (
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Ostatnia aktualizacja:</span>
-                <span>{new Date(activity.updated_at).toLocaleDateString('pl-PL')}</span>
+                <span className="text-muted-foreground">
+                  Ostatnia aktualizacja:
+                </span>
+                <span>
+                  {new Date(activity.updated_at).toLocaleDateString("pl-PL")}
+                </span>
               </div>
             )}
           </div>

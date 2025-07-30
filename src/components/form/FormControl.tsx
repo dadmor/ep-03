@@ -8,6 +8,7 @@ interface FormFieldProps {
   error?: string | undefined;
   required?: boolean;
   className?: string;
+  hint?: string;
 }
 
 export const FormControl = ({
@@ -17,6 +18,7 @@ export const FormControl = ({
   error,
   required = false,
   className = "",
+  hint,
 }: FormFieldProps) => {
   const baseClasses = "space-y-2";
   const combinedClasses = className ? `${baseClasses} ${className}` : baseClasses;
@@ -55,6 +57,7 @@ export const FormControl = ({
     <div className={combinedClasses}>
       {renderLabel()}
       {enhancedChildren}
+      {hint && !error && <p className="text-sm text-muted-foreground">{hint}</p>}
       {error && <p className="text-sm text-red-500">{error}</p>}
     </div>
   );

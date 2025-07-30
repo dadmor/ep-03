@@ -18,6 +18,20 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
+interface ActivityFormData {
+  id: any;
+  topic_id?: number;
+  type: string;
+  title: string;
+  content?: string;
+  position: number;
+  duration_min?: number;
+  is_published: boolean;
+  passing_score?: number;
+  time_limit?: number;
+  max_attempts?: number;
+}
+
 export const ActivitiesCreate = () => {
   const { show } = useNavigation();
   const navigate = useNavigate();
@@ -67,7 +81,7 @@ export const ActivitiesCreate = () => {
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm({
+  } = useForm<ActivityFormData>({
     defaultValues: {
       topic_id: topicId ? parseInt(topicId) : undefined,
       type: "material",
