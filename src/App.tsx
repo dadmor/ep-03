@@ -75,6 +75,11 @@ function App() {
               </Authenticated>
             }
           >
+            {/* PRZEKIEROWANIA DLA NIEISTNIEJĄCYCH TRAS - MUSI BYĆ PIERWSZE! */}
+            <Route path="/admin" element={<Navigate to="/dashboard/overview" replace />} />
+            <Route path="/teacher" element={<Navigate to="/dashboard/overview" replace />} />
+            <Route path="/student" element={<Navigate to="/dashboard/overview" replace />} />
+            
             {/* Dashboard jako strona główna */}
             <Route
               path="/dashboard"
@@ -102,17 +107,10 @@ function App() {
             <Route path="*" element={<ErrorComponent />} />
           </Route>
 
-          {/* Dodatkowe zabezpieczenie */}
+          {/* Dodatkowe zabezpieczenie - przekieruj wszystko inne do dashboard */}
           <Route
             path="*"
-            element={
-              <Authenticated
-                key="catch-all"
-                fallback={<Navigate to="/login" replace />}
-              >
-                <Navigate to="/dashboard" replace />
-              </Authenticated>
-            }
+            element={<Navigate to="/dashboard/overview" replace />}
           />
         </Routes>
 

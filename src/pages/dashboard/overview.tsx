@@ -1,4 +1,4 @@
-import { useGetIdentity, useList } from "@refinedev/core";
+import { useGetIdentity } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Users, 
@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import { FlexBox, GridBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
-import { SubPage } from "@/components/layout";
+import { SubPage } from "@/components/layout"; // Dodaj import jeśli brakuje
+
 import { useEffect, useState } from "react";
 import { supabaseClient } from "@/utility/supabaseClient";
 
@@ -28,14 +29,20 @@ interface DashboardStats {
 }
 
 export const DashboardOverview = () => {
-  const { data: identity } = useGetIdentity<any>();
+  const { data: identity, isLoading: identityLoading } = useGetIdentity<any>();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      if (!identity?.vendor_id) return;
+    // WAŻNE: Dodaj warunek aby uniknąć wielokrotnych wywołań
+    if (identityLoading || !identity?.vendor_id) {
+      setLoading(false);
+      return;
+    }
 
+    let isMounted = true; // Flaga do anulowania efektów po odmontowaniu
+
+    const fetchStats = async () => {
       try {
         // Pobierz statystyki
         const [
@@ -75,6 +82,9 @@ export const DashboardOverview = () => {
             .select('total_points')
         ]);
 
+        // Sprawdź czy komponent jest nadal zamontowany
+        if (!isMounted) return;
+
         const avgScore = progressRes.data?.length 
           ? progressRes.data.reduce((acc, p) => acc + (p.score || 0), 0) / progressRes.data.length
           : 0;
@@ -94,18 +104,36 @@ export const DashboardOverview = () => {
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchStats();
-  }, [identity]);
 
-  if (loading) {
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+  }, [identity?.vendor_id, identityLoading]); // Bardziej specyficzne zależności
+
+  if (loading || identityLoading) {
     return (
       <SubPage>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </SubPage>
+    );
+  }
+
+  // Jeśli nie ma identity, pokaż komunikat
+  if (!identity) {
+    return (
+      <SubPage>
+        <div className="text-center text-muted-foreground">
+          Nie można załadować danych użytkownika
         </div>
       </SubPage>
     );

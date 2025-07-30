@@ -50,12 +50,12 @@ export const ActivityCard = ({
 
   const getActivityIcon = () => {
     return activity.type === "quiz" ? (
-      <div className="p-2 bg-blue-100 rounded-lg">
-        <HelpCircle className="w-5 h-5 text-blue-600" />
+      <div className="p-2 bg-blue-600 rounded-lg">
+        <HelpCircle className="w-5 h-5 text-white" />
       </div>
     ) : (
-      <div className="p-2 bg-green-100 rounded-lg">
-        <FileText className="w-5 h-5 text-green-600" />
+      <div className="p-2 bg-green-600 rounded-lg">
+        <FileText className="w-5 h-5 text-white" />
       </div>
     );
   };
@@ -69,33 +69,36 @@ export const ActivityCard = ({
   };
 
   return (
-    <div className="group flex items-center gap-4 p-4 bg-white border rounded-lg hover:shadow-sm transition-all duration-200">
-      <div className="cursor-move  transition-opacity">
+    <div className="group flex items-center gap-4 p-4 bg-white border-2 rounded-lg hover:border-primary/50 transition-all duration-200">
+      <div className="cursor-move opacity-0 group-hover:opacity-100 transition-opacity">
         <GripVertical className="w-4 h-4 text-muted-foreground" />
       </div>
-
+      
       {getActivityIcon()}
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <h5 className="font-medium text-sm">
+          <h5 className="font-semibold text-sm text-foreground">
             {topicPosition}.{activity.position} {activity.title}
           </h5>
           <div className="flex items-center gap-2">
-            <Badge variant={getActivityTypeBadgeVariant()} className="text-xs">
+            <Badge 
+              variant={activity.type === "quiz" ? "default" : "secondary"}
+              className="text-xs font-medium"
+            >
               {getActivityTypeLabel()}
             </Badge>
-            {activity.type === "quiz" &&
-              activity._count?.questions !== undefined && (
-                <Badge variant="outline" className="text-xs">
-                  <ListChecks className="w-3 h-3 mr-1" />
-                  {activity._count.questions}{" "}
-                  {activity._count.questions === 1 ? "pytanie" : "pytań"}
-                </Badge>
-              )}
-            <Badge
-              variant={activity.is_published ? "default" : "secondary"}
-              className="text-xs"
+            {activity.type === "quiz" && activity._count?.questions !== undefined && (
+              <Badge variant="outline" className="text-xs font-medium border-2">
+                <ListChecks className="w-3 h-3 mr-1" />
+                {activity._count.questions} {activity._count.questions === 1 ? 'pytanie' : 'pytań'}
+              </Badge>
+            )}
+            <Badge 
+              variant={activity.is_published ? "default" : "outline"}
+              className={`text-xs font-medium ${
+                activity.is_published ? 'bg-green-600 hover:bg-green-700' : 'border-2'
+              }`}
             >
               {activity.is_published ? (
                 <>
@@ -103,12 +106,12 @@ export const ActivityCard = ({
                   Opublikowany
                 </>
               ) : (
-                "Szkic"
+                'Szkic'
               )}
             </Badge>
           </div>
         </div>
-
+        
         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
           {activity.duration_min && (
             <div className="flex items-center gap-1">
@@ -123,7 +126,7 @@ export const ActivityCard = ({
         </div>
       </div>
 
-      <div className="flex items-center gap-1 ">
+      <div className="flex items-center gap-1">
         {activity.type === "quiz" && (
           <Button
             size="sm"

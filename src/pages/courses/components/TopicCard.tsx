@@ -55,17 +55,19 @@ export const TopicCard = ({
   };
 
   return (
-    <div className={`border rounded-lg overflow-hidden transition-all duration-200 ${
-      isExpanded ? 'shadow-sm' : ''
+    <div className={`border-2 rounded-lg overflow-hidden transition-all duration-200 group ${
+      isExpanded ? 'shadow-lg border-primary' : 'border-border hover:border-primary/50'
     }`}>
       <div className={`p-4 transition-colors duration-200 ${
-        isExpanded ? 'bg-muted/50 border-b' : 'bg-background hover:bg-muted/30'
+        isExpanded ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'
       }`}>
         <FlexBox>
           <div className="flex items-center gap-3 flex-1">
             <button
               onClick={onToggle}
-              className="p-1 rounded hover:bg-muted transition-colors"
+              className={`p-1 rounded transition-colors ${
+                isExpanded ? 'text-primary-foreground hover:bg-primary-foreground/20' : 'hover:bg-muted'
+              }`}
               aria-label={isExpanded ? "Zwiń temat" : "Rozwiń temat"}
             >
               {isExpanded ? (
@@ -76,7 +78,9 @@ export const TopicCard = ({
             </button>
             
             <div className="cursor-move">
-              <GripVertical className="w-4 h-4 text-muted-foreground" />
+              <GripVertical className={`w-4 h-4 ${
+                isExpanded ? 'text-primary-foreground/70' : 'text-muted-foreground'
+              }`} />
             </div>
 
             <div 
@@ -84,18 +88,22 @@ export const TopicCard = ({
               onClick={onToggle}
             >
               <div className="flex items-center gap-3">
-                <h4 className="font-semibold text-base group-hover:text-primary transition-colors">
+                <h4 className={`font-semibold text-base transition-colors ${
+                  isExpanded ? 'text-primary-foreground' : 'group-hover:text-primary'
+                }`}>
                   Temat {topic.position}: {topic.title}
                 </h4>
                 <Badge 
-                  variant={topic.is_published ? "default" : "secondary"}
-                  className="text-xs"
+                  variant={topic.is_published ? (isExpanded ? "secondary" : "default") : "outline"}
+                  className={isExpanded ? "bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30" : ""}
                 >
                   {topic.is_published ? "Opublikowany" : "Szkic"}
                 </Badge>
               </div>
               <div className="flex items-center gap-4 mt-1">
-                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                <span className={`text-sm flex items-center gap-1 ${
+                  isExpanded ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                }`}>
                   <FileText className="w-3 h-3" />
                   {activitiesCount} {activitiesCount === 1 ? 'aktywność' : 'aktywności'}
                 </span>
@@ -106,21 +114,29 @@ export const TopicCard = ({
           <div className="flex items-center gap-1">
             <Button
               size="sm"
-              variant="ghost"
+              variant={isExpanded ? "secondary" : "ghost"}
               onClick={() =>
                 handleNavigateWithState(
                   `/activities/create?topic_id=${topic.id}`
                 )
               }
               title="Dodaj aktywność"
-              className="h-8 w-8 p-0"
+              className={`h-8 w-8 p-0 ${
+                isExpanded ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground' : ''
+              }`}
             >
               <Plus className="h-4 w-4" />
             </Button>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Button 
+                  variant={isExpanded ? "secondary" : "ghost"} 
+                  size="sm" 
+                  className={`h-8 w-8 p-0 ${
+                    isExpanded ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground' : ''
+                  }`}
+                >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -155,7 +171,7 @@ export const TopicCard = ({
       </div>
 
       {isExpanded && (
-        <div className="p-4 bg-muted/10">
+        <div className="p-4 bg-muted/20 border-t-2 border-primary">
           <div className="space-y-2">
             {children}
           </div>
