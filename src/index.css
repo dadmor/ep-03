@@ -16,50 +16,48 @@
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas,
     "Liberation Mono", Menlo, monospace;
 
-  /* Ekskluzywna paleta inspirowana luksusowymi kosmetykami */
-  --background: 330 20% 98%; /* Bardzo delikatny pudrowy róż */
-  --foreground: 285 35% 25%; /* Głęboki purpurowy odcień */
-  --card: 330 15% 97%; /* Subtelny pudrowy odcień */
-  --card-foreground: 285 35% 25%;
-  --popover: 330 15% 97%;
-  --popover-foreground: 285 35% 25%;
-  --primary: 285 45% 45%; /* Królewska purpura */
-  --primary-foreground: 330 20% 98%;
-  --secondary: 330 25% 85%; /* Pudrowy róż */
-  --secondary-foreground: 285 35% 25%;
-  --muted: 330 20% 92%; /* Bardzo jasny pudrowy */
-  --muted-foreground: 285 25% 40%;
-  --accent: 300 30% 75%; /* Lawendowy akcent */
-  --accent-foreground: 285 35% 25%;
-  --destructive: 350 65% 55%; /* Malinowy */
-  --destructive-foreground: 330 20% 98%;
-  --border: 330 15% 88%; /* Delikatna pudrowa ramka */
-  --input: 330 15% 88%;
-  --ring: 285 45% 45%;
+  --background: 0 0% 100%;
+  --foreground: 223 51% 28%; /* logo navy #23386D */
+  --card: 0 0% 100%;
+  --card-foreground: 223 51% 28%; /* logo navy #23386D */
+  --popover: 0 0% 100%;
+  --popover-foreground: 223 51% 28%; /* logo navy #23386D */
+  --primary: 223 51% 28%; /* logo navy #23386D */
+  --primary-foreground: 210 40% 98%;
+  --secondary: 196 54% 54%; /* logo light blue #49A6C9 */
+  --secondary-foreground: 0 0% 100%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 177 44% 50%; /* logo teal #47B8B2 */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 67% 57%; /* logo red #DA4747 */
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 223 51% 28%; /* logo navy #23386D */
   --radius: 0.5rem;
 }
 
 .dark {
-  /* Wieczorowa elegancja - głębokie purpury i róże */
-  --background: 285 25% 12%; /* Głęboka purpura */
-  --foreground: 330 25% 95%; /* Jasny pudrowy */
-  --card: 285 20% 16%;
-  --card-foreground: 330 25% 95%;
-  --popover: 285 20% 16%;
-  --popover-foreground: 330 25% 95%;
-  --primary: 330 40% 75%; /* Pudrowy róż */
-  --primary-foreground: 285 25% 12%;
-  --secondary: 285 30% 35%; /* Średnia purpura */
-  --secondary-foreground: 330 25% 95%;
-  --muted: 285 20% 25%; /* Przytłumiona purpura */
-  --muted-foreground: 330 20% 75%;
-  --accent: 300 35% 60%; /* Lawendowy akcent */
-  --accent-foreground: 330 25% 95%;
-  --destructive: 350 55% 45%; /* Głęboki malinowy */
-  --destructive-foreground: 330 25% 95%;
-  --border: 285 20% 25%;
-  --input: 285 20% 25%;
-  --ring: 330 40% 75%;
+  --background: 223 51% 4%; /* very dark navy */
+  --foreground: 210 40% 98%;
+  --card: 223 51% 8%; /* dark navy */
+  --card-foreground: 210 40% 98%;
+  --popover: 223 51% 8%; /* dark navy */
+  --popover-foreground: 210 40% 98%;
+  --primary: 196 54% 54%; /* logo light blue #49A6C9 in dark mode */
+  --primary-foreground: 223 51% 4%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 177 44% 60%; /* brighter logo teal in dark */
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 67% 65%; /* brighter logo red in dark */
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 196 54% 54%; /* logo light blue ring in dark */
 }
 
 body {
