@@ -1,7 +1,6 @@
 import { useOne, useNavigation } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  ArrowLeft,
   Edit,
   FileText,
   HelpCircle,
@@ -18,6 +17,7 @@ import { Lead } from "@/components/reader";
 import { SubPage } from "@/components/layout";
 import { useParams, useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
+import { BackToCourseButton } from "../courses/components/BackToCourseButton";
 
 export const ActivitiesShow = () => {
   const { edit } = useNavigation();
@@ -45,13 +45,20 @@ export const ActivitiesShow = () => {
   const activity = activityData?.data;
   const topic = activity?.topics;
   const course = topic?.courses;
+  const courseId = course?.id;
+  const topicId = activity?.topic_id;
 
-  const handleBackToCourse = () => {
-    if (course?.id) {
-      navigate(`/courses/show/${course.id}`);
-    } else {
-      navigate("/courses");
-    }
+  const handleEdit = () => {
+    // Zapisz obecny stan przed edycją
+    const currentUrl = window.location.pathname + window.location.search;
+    sessionStorage.setItem('returnUrl', currentUrl);
+    edit("activities", activity?.id ?? "");
+  };
+
+  const handleNavigateWithState = (path: string) => {
+    const currentUrl = window.location.pathname + window.location.search;
+    sessionStorage.setItem('returnUrl', currentUrl);
+    navigate(path);
   };
 
   const getActivityIcon = () => {
@@ -64,10 +71,7 @@ export const ActivitiesShow = () => {
 
   return (
     <SubPage>
-      <Button variant="outline" size="sm" onClick={handleBackToCourse}>
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Powrót do kursu
-      </Button>
+      <BackToCourseButton />
 
       <FlexBox>
         <Lead
@@ -101,13 +105,13 @@ export const ActivitiesShow = () => {
           {activity?.type === "quiz" && (
             <Button
               variant="outline"
-              onClick={() => navigate(`/questions/manage/${activity.id}`)}
+              onClick={() => handleNavigateWithState(`/questions/manage/${activity.id}`)}
             >
               <ListChecks className="w-4 h-4 mr-2" />
               Pytania ({activity._count?.questions || 0})
             </Button>
           )}
-          <Button onClick={() => edit("activities", activity?.id ?? "")}>
+          <Button onClick={handleEdit}>
             <Edit className="w-4 h-4 mr-2" />
             Edytuj
           </Button>
@@ -207,7 +211,7 @@ export const ActivitiesShow = () => {
                     Ten quiz nie ma jeszcze pytań
                   </p>
                   <Button
-                    onClick={() => navigate(`/questions/manage/${activity.id}`)}
+                    onClick={() => handleNavigateWithState(`/questions/manage/${activity.id}`)}
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Dodaj pytania
@@ -246,7 +250,7 @@ export const ActivitiesShow = () => {
 
                   <Button
                     className="w-full"
-                    onClick={() => navigate(`/questions/manage/${activity.id}`)}
+                    onClick={() => handleNavigateWithState(`/questions/manage/${activity.id}`)}
                   >
                     <ListChecks className="w-4 h-4 mr-2" />
                     Zarządzaj pytaniami

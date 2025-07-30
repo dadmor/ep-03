@@ -1,17 +1,19 @@
 import { useForm } from "@refinedev/react-hook-form";
 import { useNavigation, useOne } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
 import { Button, Input, Switch } from "@/components/ui";
 import { FlexBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
 import { Form, FormActions, FormControl } from "@/components/form";
 import { SubPage } from "@/components/layout";
-import { useParams } from "react-router-dom";
+
+import { useParams, useNavigate } from "react-router-dom";
+import { BackToCourseButton } from "../courses/components/BackToCourseButton";
 
 export const TopicsEdit = () => {
   const { show } = useNavigation();
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const { data, isLoading } = useOne({
     resource: "topics",
@@ -44,17 +46,28 @@ export const TopicsEdit = () => {
       }),
       redirect: false,
       onMutationSuccess: () => {
-        // Po zaktualizowaniu tematu, wróć do widoku kursu
-        if (courseId) {
-          show("courses", courseId);
+        // Sprawdź czy mamy zapisany URL powrotu
+        const returnUrl = sessionStorage.getItem('returnUrl');
+        if (returnUrl) {
+          sessionStorage.removeItem('returnUrl');
+          navigate(returnUrl);
+        } else if (courseId) {
+          // Fallback - wróć do kursu z rozwinietym tematem
+          navigate(`/courses/show/${courseId}?expanded=${id}`);
         }
       },
     }
   });
 
   const handleCancel = () => {
-    if (courseId) {
-      show("courses", courseId);
+    // Sprawdź czy mamy zapisany URL powrotu
+    const returnUrl = sessionStorage.getItem('returnUrl');
+    if (returnUrl) {
+      sessionStorage.removeItem('returnUrl');
+      navigate(returnUrl);
+    } else if (courseId) {
+      // Fallback - wróć do kursu z rozwinietym tematem
+      navigate(`/courses/show/${courseId}?expanded=${id}`);
     } else {
       show("courses", "");
     }
@@ -72,14 +85,9 @@ export const TopicsEdit = () => {
 
   return (
     <SubPage>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleCancel}
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Powrót do kursu
-      </Button>
+      <BackToCourseButton 
+       
+      />
 
       <FlexBox>
         <Lead

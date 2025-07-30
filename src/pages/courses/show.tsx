@@ -8,7 +8,7 @@ import { Button, Badge } from "@/components/ui";
 import { FlexBox, GridBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
 import { SubPage } from "@/components/layout";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { TopicCard } from "./components/TopicCard";
 import { ActivityCard } from "./components/ActivityCard";
@@ -40,8 +40,11 @@ export const CoursesShow = () => {
   const { list, edit } = useNavigation();
   const { id } = useParams();
   const navigate = useNavigate();
-  const [expandedTopics, setExpandedTopics] = useState<Set<number>>(new Set());
-
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Pobierz ID rozwinietego tematu z URL
+  const expandedTopicId = searchParams.get('expanded');
+  
   const { mutate: deleteTopic } = useDelete();
   const { mutate: deleteActivity } = useDelete();
 
@@ -116,14 +119,16 @@ export const CoursesShow = () => {
 
   const course = courseData?.data;
 
+  // Funkcja do przełączania tematu - tylko jeden może być rozwinięty
   const toggleTopic = (topicId: number) => {
-    const newExpanded = new Set(expandedTopics);
-    if (newExpanded.has(topicId)) {
-      newExpanded.delete(topicId);
+    if (expandedTopicId === topicId.toString()) {
+      // Jeśli klikamy na już rozwinięty temat, zwiń go
+      searchParams.delete('expanded');
+      setSearchParams(searchParams);
     } else {
-      newExpanded.add(topicId);
+      // Rozwiń nowy temat
+      setSearchParams({ expanded: topicId.toString() });
     }
-    setExpandedTopics(newExpanded);
   };
 
   const handleDeleteTopic = (topicId: number, title: string) => {
@@ -138,6 +143,11 @@ export const CoursesShow = () => {
             toast.success("Temat został usunięty");
             refetchTopics();
             refetchActivities();
+            // Usuń z URL jeśli to był rozwinięty temat
+            if (expandedTopicId === topicId.toString()) {
+              searchParams.delete('expanded');
+              setSearchParams(searchParams);
+            }
           },
         }
       );
@@ -166,6 +176,13 @@ export const CoursesShow = () => {
     return activitiesData?.data?.filter(activity => activity.topic_id === topicId) || [];
   };
 
+  // Funkcja do nawigacji z URL powrotu
+  const navigateWithReturn = (path: string) => {
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    const returnUrl = encodeURIComponent(currentUrl);
+    navigate(`${path}${path.includes('?') ? '&' : '?'}returnUrl=${returnUrl}`);
+  };
+
   return (
     <SubPage>
       <Button variant="outline" size="sm" onClick={() => list("courses")}>
@@ -185,7 +202,7 @@ export const CoursesShow = () => {
           }
           description={course?.description}
         />
-        <Button onClick={() => edit("courses", course?.id ?? "")}>
+        <Button onClick={() => edit("courses", course?.id ?? 0)}>
           <Edit className="w-4 h-4 mr-2" />
           Edytuj kurs
         </Button>
@@ -239,7 +256,7 @@ export const CoursesShow = () => {
             <CardTitle>Struktura kursu</CardTitle>
             <Button
               size="sm"
-              onClick={() => navigate(`/topics/create?course_id=${id}`)}
+              onClick={() => navigateWithReturn(`/topics/create?course_id=${id}`)}
             >
               <Plus className="w-4 h-4 mr-2" />
               Dodaj temat
@@ -255,15 +272,16 @@ export const CoursesShow = () => {
             <div className="space-y-4">
               {topicsData.data.map((topic: Topic) => {
                 const activities = getActivitiesForTopic(topic.id);
+                const isExpanded = expandedTopicId === topic.id.toString();
                 
                 return (
                   <TopicCard
                     key={topic.id}
                     topic={topic}
-                    isExpanded={expandedTopics.has(topic.id)}
+                    isExpanded={isExpanded}
                     onToggle={() => toggleTopic(topic.id)}
                     onDelete={handleDeleteTopic}
-                    onEdit={edit}
+                    onEdit={(resource, id) => navigateWithReturn(`/${resource}/edit/${id}`)}
                     activitiesCount={activities.length}
                   >
                     {activities.length > 0 ? (
@@ -273,7 +291,7 @@ export const CoursesShow = () => {
                           activity={activity}
                           topicPosition={topic.position}
                           onDelete={handleDeleteActivity}
-                          onEdit={edit}
+                          onEdit={(resource, id) => navigateWithReturn(`/${resource}/edit/${id}`)}
                         />
                       ))
                     ) : (
@@ -282,7 +300,7 @@ export const CoursesShow = () => {
                         <Button
                           size="sm"
                           className="mt-2"
-                          onClick={() => navigate(`/activities/create?topic_id=${topic.id}`)}
+                          onClick={() => navigateWithReturn(`/activities/create?topic_id=${topic.id}`)}
                         >
                           <Plus className="w-4 h-4 mr-2" />
                           Dodaj pierwszą aktywność
@@ -299,7 +317,7 @@ export const CoursesShow = () => {
               <p>Brak tematów w tym kursie</p>
               <Button
                 className="mt-4"
-                onClick={() => navigate(`/topics/create?course_id=${id}`)}
+                onClick={() => navigateWithReturn(`/topics/create?course_id=${id}`)}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Dodaj pierwszy temat

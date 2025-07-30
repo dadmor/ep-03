@@ -1,7 +1,7 @@
 import { useForm } from "@refinedev/react-hook-form";
 import { useNavigation, useOne, useList } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, FileText, HelpCircle } from "lucide-react";
+import { FileText, HelpCircle } from "lucide-react";
 import { Button, Input, Textarea, Switch } from "@/components/ui";
 import {
   Select,
@@ -14,9 +14,11 @@ import { FlexBox, GridBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
 import { Form, FormActions, FormControl } from "@/components/form";
 import { SubPage } from "@/components/layout";
+
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { BackToCourseButton } from "../courses/components/BackToCourseButton";
 
 interface ActivityFormData {
   id: any;
@@ -36,14 +38,14 @@ export const ActivitiesCreate = () => {
   const { show } = useNavigation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const topicId = searchParams.get('topic_id');
+  const topicId = searchParams.get("topic_id");
 
   // Pobierz dane tematu
   const { data: topicData } = useOne({
     resource: "topics",
     id: topicId as string,
     meta: {
-      select: '*, courses(*)'
+      select: "*, courses(*)",
     },
     queryOptions: {
       enabled: !!topicId,
@@ -95,18 +97,25 @@ export const ActivitiesCreate = () => {
       onMutationSuccess: (data) => {
         const courseId = topicData?.data?.course_id;
         const activityType = data.data.type;
-        
+
         toast.success("Aktywność została utworzona");
-        
-        if (activityType === 'quiz') {
+
+        if (activityType === "quiz") {
           // Dla quizu przekieruj do zarządzania pytaniami
           toast.info("Dodaj pytania do quizu");
           navigate(`/questions/manage/${data.data.id}`);
-        } else if (courseId) {
-          // Dla materiału wróć do kursu
-          show("courses", courseId);
         } else {
-          navigate("/courses");
+          // Sprawdź czy mamy zapisany URL powrotu
+          const returnUrl = sessionStorage.getItem("returnUrl");
+          if (returnUrl) {
+            sessionStorage.removeItem("returnUrl");
+            navigate(returnUrl);
+          } else if (courseId) {
+            // Fallback - wróć do kursu z rozwinietym tematem
+            navigate(`/courses/show/${courseId}?expanded=${topicId}`);
+          } else {
+            navigate("/courses");
+          }
         }
       },
     },
@@ -123,12 +132,20 @@ export const ActivitiesCreate = () => {
   }, [activitiesData, positionLoading, setValue]);
 
   const handleCancel = () => {
-    if (topicData?.data?.course_id) {
-      show("courses", topicData.data.course_id);
+    // Sprawdź czy mamy zapisany URL powrotu
+    const returnUrl = sessionStorage.getItem("returnUrl");
+    if (returnUrl) {
+      sessionStorage.removeItem("returnUrl");
+      navigate(returnUrl);
+    } else if (topicData?.data?.course_id) {
+      // Fallback - wróć do kursu z rozwinietym tematem
+      navigate(`/courses/show/${topicData.data.course_id}?expanded=${topicId}`);
     } else {
       navigate("/courses");
     }
   };
+
+  const courseId = topicData?.data?.course_id;
 
   if (!topicId) {
     return (
@@ -149,29 +166,22 @@ export const ActivitiesCreate = () => {
 
   return (
     <SubPage>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleCancel}
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Powrót do kursu
-      </Button>
+      <BackToCourseButton/>
 
       <FlexBox>
         <Lead
           title="Dodaj aktywność"
           description={
-            topicData?.data 
-              ? (
-                <div>
-                  <div className="text-lg">{topicData.data.courses?.title}</div>
-                  <div className="text-sm text-muted-foreground">
-                    Temat {topicData.data.position}: {topicData.data.title}
-                  </div>
+            topicData?.data ? (
+              <div>
+                <div className="text-lg">{topicData.data.courses?.title}</div>
+                <div className="text-sm text-muted-foreground">
+                  Temat {topicData.data.position}: {topicData.data.title}
                 </div>
-              )
-              : "Utwórz nowy materiał lub quiz"
+              </div>
+            ) : (
+              "Utwórz nowy materiał lub quiz"
+            )
           }
         />
       </FlexBox>
@@ -183,7 +193,7 @@ export const ActivitiesCreate = () => {
         <CardContent>
           <Form onSubmit={handleSubmit(onFinish)}>
             <input type="hidden" {...register("topic_id")} />
-            
+
             <GridBox variant="1-2-2">
               <FormControl
                 label="Typ aktywności"
@@ -222,7 +232,11 @@ export const ActivitiesCreate = () => {
               >
                 <Input
                   id="title"
-                  placeholder={activityType === "quiz" ? "np. Test wiedzy z rozdziału" : "np. Wprowadzenie do tematu"}
+                  placeholder={
+                    activityType === "quiz"
+                      ? "np. Test wiedzy z rozdziału"
+                      : "np. Wprowadzenie do tematu"
+                  }
                   {...register("title", {
                     required: "Tytuł jest wymagany",
                     minLength: {
@@ -290,7 +304,10 @@ export const ActivitiesCreate = () => {
                   placeholder="Wprowadź treść materiału edukacyjnego..."
                   rows={10}
                   {...register("content", {
-                    required: activityType === "material" ? "Treść jest wymagana dla materiału" : false,
+                    required:
+                      activityType === "material"
+                        ? "Treść jest wymagana dla materiału"
+                        : false,
                   })}
                 />
               </FormControl>
@@ -364,12 +381,15 @@ export const ActivitiesCreate = () => {
                     />
                   </FormControl>
                 </GridBox>
-                
+
                 <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
                   <p className="text-sm">
-                    <strong className="text-blue-700 dark:text-blue-300">💡 Wskazówka:</strong>{' '}
+                    <strong className="text-blue-700 dark:text-blue-300">
+                      💡 Wskazówka:
+                    </strong>{" "}
                     <span className="text-blue-600 dark:text-blue-400">
-                      Po utworzeniu quizu zostaniesz przekierowany do ekranu dodawania pytań.
+                      Po utworzeniu quizu zostaniesz przekierowany do ekranu
+                      dodawania pytań.
                     </span>
                   </p>
                 </div>
@@ -380,7 +400,9 @@ export const ActivitiesCreate = () => {
               <FlexBox variant="start">
                 <Switch
                   checked={watch("is_published") || false}
-                  onCheckedChange={(checked) => setValue("is_published", checked)}
+                  onCheckedChange={(checked) =>
+                    setValue("is_published", checked)
+                  }
                 />
                 <span className="text-sm text-muted-foreground">
                   Opublikuj aktywność od razu (uczniowie będą mogli ją zobaczyć)
@@ -397,13 +419,12 @@ export const ActivitiesCreate = () => {
               >
                 Anuluj
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || !topicId}
-              >
-                {isSubmitting ? "Tworzenie..." : 
-                  activityType === "quiz" ? "Utwórz i dodaj pytania" : "Utwórz aktywność"
-                }
+              <Button type="submit" disabled={isSubmitting || !topicId}>
+                {isSubmitting
+                  ? "Tworzenie..."
+                  : activityType === "quiz"
+                  ? "Utwórz i dodaj pytania"
+                  : "Utwórz aktywność"}
               </Button>
             </FormActions>
           </Form>

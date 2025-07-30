@@ -1,13 +1,20 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useOne, useList, useCreate, useUpdate, useDelete } from "@refinedev/core";
+import {
+  useOne,
+  useList,
+  useCreate,
+  useUpdate,
+  useDelete,
+} from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Plus, Edit, Trash2, Save, X, Check, HelpCircle } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Check, HelpCircle } from "lucide-react";
 import { Button, Input, Textarea, Badge, Checkbox } from "@/components/ui";
 import { FlexBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
 import { SubPage } from "@/components/layout";
 import { toast } from "sonner";
+import { BackToCourseButton } from "../courses/components/BackToCourseButton";
 
 interface Question {
   id: number;
@@ -25,6 +32,19 @@ interface QuestionOption {
   is_correct: boolean;
 }
 
+// Typ dla formularza - opcje bez ID
+interface QuestionFormData {
+  question: string;
+  explanation: string;
+  points: number;
+  position: number;
+  options: {
+    id?: number;
+    text: string;
+    is_correct: boolean;
+  }[];
+}
+
 export const QuestionsManage = () => {
   const { activityId } = useParams();
   const navigate = useNavigate();
@@ -36,12 +56,16 @@ export const QuestionsManage = () => {
     resource: "activities",
     id: activityId as string,
     meta: {
-      select: '*, topics(*, courses(*))'
-    }
+      select: "*, topics(*, courses(*))",
+    },
   });
 
   // Pobierz pytania
-  const { data: questionsData, isLoading: questionsLoading, refetch } = useList<Question>({
+  const {
+    data: questionsData,
+    isLoading: questionsLoading,
+    refetch,
+  } = useList<Question>({
     resource: "questions",
     filters: [
       {
@@ -77,26 +101,10 @@ export const QuestionsManage = () => {
 
   const activity = activityData?.data;
   const questions = questionsData?.data || [];
-  const courseId = activity?.topics?.course_id;
-
-  const handleBackToCourse = () => {
-    if (courseId) {
-      navigate(`/courses/show/${courseId}`);
-    } else {
-      navigate('/courses');
-    }
-  };
 
   return (
     <SubPage>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleBackToCourse}
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Powrót do kursu
-      </Button>
+      <BackToCourseButton />
 
       <FlexBox>
         <Lead
@@ -110,14 +118,15 @@ export const QuestionsManage = () => {
             <div>
               <div className="text-lg font-medium">{activity?.title}</div>
               <div className="text-sm text-muted-foreground">
-                {activity?.topics?.courses?.title} → Temat {activity?.topics?.position}: {activity?.topics?.title}
+                {activity?.topics?.courses?.title} → Temat{" "}
+                {activity?.topics?.position}: {activity?.topics?.title}
               </div>
             </div>
           }
         />
         <div className="flex gap-2">
           <Badge variant="outline" className="text-base px-3 py-1">
-            {questions.length} {questions.length === 1 ? 'pytanie' : 'pytań'}
+            {questions.length} {questions.length === 1 ? "pytanie" : "pytań"}
           </Badge>
           <Button onClick={() => setNewQuestion(true)} disabled={newQuestion}>
             <Plus className="w-4 h-4 mr-2" />
@@ -132,18 +141,24 @@ export const QuestionsManage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">Próg zaliczenia:</span>
-              <span className="ml-2 font-medium">{activity?.passing_score || 70}%</span>
+              <span className="ml-2 font-medium">
+                {activity?.passing_score || 70}%
+              </span>
             </div>
             {activity?.time_limit && (
               <div>
                 <span className="text-muted-foreground">Limit czasu:</span>
-                <span className="ml-2 font-medium">{activity.time_limit} min</span>
+                <span className="ml-2 font-medium">
+                  {activity.time_limit} min
+                </span>
               </div>
             )}
             {activity?.max_attempts && (
               <div>
                 <span className="text-muted-foreground">Max. prób:</span>
-                <span className="ml-2 font-medium">{activity.max_attempts}</span>
+                <span className="ml-2 font-medium">
+                  {activity.max_attempts}
+                </span>
               </div>
             )}
           </div>
@@ -206,7 +221,9 @@ export const QuestionsManage = () => {
                 <CardHeader>
                   <FlexBox>
                     <CardTitle className="text-base">
-                      <span className="text-muted-foreground mr-2">#{question.position}</span>
+                      <span className="text-muted-foreground mr-2">
+                        #{question.position}
+                      </span>
                       {question.question}
                     </CardTitle>
                     <div className="flex gap-2">
@@ -222,7 +239,9 @@ export const QuestionsManage = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          if (confirm("Czy na pewno chcesz usunąć to pytanie?")) {
+                          if (
+                            confirm("Czy na pewno chcesz usunąć to pytanie?")
+                          ) {
                             deleteQuestion(
                               {
                                 resource: "questions",
@@ -249,7 +268,9 @@ export const QuestionsManage = () => {
                       <div
                         key={option.id || index}
                         className={`flex items-center gap-2 p-2 rounded ${
-                          option.is_correct ? "bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800" : ""
+                          option.is_correct
+                            ? "bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800"
+                            : ""
                         }`}
                       >
                         {option.is_correct ? (
@@ -257,14 +278,20 @@ export const QuestionsManage = () => {
                         ) : (
                           <X className="w-4 h-4 text-gray-400" />
                         )}
-                        <span className={option.is_correct ? "font-medium" : ""}>{option.text}</span>
+                        <span
+                          className={option.is_correct ? "font-medium" : ""}
+                        >
+                          {option.text}
+                        </span>
                       </div>
                     ))}
                   </div>
                   {question.explanation && (
                     <div className="mt-4 p-3 bg-muted rounded">
                       <p className="text-sm font-medium mb-1">Wyjaśnienie:</p>
-                      <p className="text-sm text-muted-foreground">{question.explanation}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {question.explanation}
+                      </p>
                     </div>
                   )}
                 </CardContent>
@@ -298,9 +325,9 @@ export const QuestionsManage = () => {
           <div className="text-sm text-muted-foreground">
             Łącznie punktów: {questions.reduce((sum, q) => sum + q.points, 0)}
           </div>
-          <Button variant="outline" onClick={handleBackToCourse}>
+          <BackToCourseButton variant="outline">
             Zakończ edycję
-          </Button>
+          </BackToCourseButton>
         </div>
       )}
     </SubPage>
@@ -321,7 +348,7 @@ const QuestionForm = ({
   onSave: (data: any) => void;
   onCancel: () => void;
 }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<QuestionFormData>({
     question: question?.question || "",
     explanation: question?.explanation || "",
     points: question?.points || 1,
@@ -341,13 +368,13 @@ const QuestionForm = ({
       return;
     }
 
-    const validOptions = formData.options.filter(opt => opt.text.trim());
+    const validOptions = formData.options.filter((opt) => opt.text.trim());
     if (validOptions.length < 2) {
       toast.error("Dodaj przynajmniej 2 odpowiedzi");
       return;
     }
 
-    const correctOptions = validOptions.filter(opt => opt.is_correct);
+    const correctOptions = validOptions.filter((opt) => opt.is_correct);
     if (correctOptions.length === 0) {
       toast.error("Zaznacz przynajmniej jedną poprawną odpowiedź");
       return;
@@ -361,7 +388,7 @@ const QuestionForm = ({
       position: formData.position,
       options: validOptions.map((opt, index) => ({
         ...opt,
-        position: index + 1
+        position: index + 1,
       })),
     });
   };
@@ -370,7 +397,7 @@ const QuestionForm = ({
     if (formData.options.length < 6) {
       setFormData({
         ...formData,
-        options: [...formData.options, { text: "", is_correct: false }]
+        options: [...formData.options, { text: "", is_correct: false }],
       });
     }
   };
@@ -393,7 +420,9 @@ const QuestionForm = ({
           <Textarea
             placeholder="Wprowadź treść pytania..."
             value={formData.question}
-            onChange={(e) => setFormData({ ...formData, question: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, question: e.target.value })
+            }
             className="mt-1"
             rows={3}
           />
@@ -406,7 +435,12 @@ const QuestionForm = ({
               type="number"
               min="1"
               value={formData.points}
-              onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) || 1 })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  points: parseInt(e.target.value) || 1,
+                })
+              }
               className="mt-1"
             />
           </div>
@@ -416,7 +450,12 @@ const QuestionForm = ({
               type="number"
               min="1"
               value={formData.position}
-              onChange={(e) => setFormData({ ...formData, position: parseInt(e.target.value) || 1 })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  position: parseInt(e.target.value) || 1,
+                })
+              }
               className="mt-1"
             />
           </div>
@@ -426,7 +465,12 @@ const QuestionForm = ({
           <div className="flex justify-between items-center mb-2">
             <label className="text-sm font-medium">Odpowiedzi</label>
             {formData.options.length < 6 && (
-              <Button type="button" size="sm" variant="outline" onClick={addOption}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={addOption}
+              >
                 <Plus className="w-3 h-3 mr-1" />
                 Dodaj opcję
               </Button>
@@ -467,16 +511,21 @@ const QuestionForm = ({
             ))}
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Zaznacz checkbox przy poprawnych odpowiedziach. Możesz zaznaczyć więcej niż jedną.
+            Zaznacz checkbox przy poprawnych odpowiedziach. Możesz zaznaczyć
+            więcej niż jedną.
           </p>
         </div>
 
         <div>
-          <label className="text-sm font-medium">Wyjaśnienie (opcjonalne)</label>
+          <label className="text-sm font-medium">
+            Wyjaśnienie (opcjonalne)
+          </label>
           <Textarea
             placeholder="Wyjaśnienie poprawnej odpowiedzi..."
             value={formData.explanation}
-            onChange={(e) => setFormData({ ...formData, explanation: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, explanation: e.target.value })
+            }
             className="mt-1"
             rows={3}
           />
