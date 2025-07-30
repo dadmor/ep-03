@@ -1,0 +1,116 @@
+@import "./fonts.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+:root {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas,
+    "Liberation Mono", Menlo, monospace;
+
+  /* Ekskluzywna paleta inspirowana luksusowymi kosmetykami */
+  --background: 330 20% 98%; /* Bardzo delikatny pudrowy róż */
+  --foreground: 285 35% 25%; /* Głęboki purpurowy odcień */
+  --card: 330 15% 97%; /* Subtelny pudrowy odcień */
+  --card-foreground: 285 35% 25%;
+  --popover: 330 15% 97%;
+  --popover-foreground: 285 35% 25%;
+  --primary: 285 45% 45%; /* Królewska purpura */
+  --primary-foreground: 330 20% 98%;
+  --secondary: 330 25% 85%; /* Pudrowy róż */
+  --secondary-foreground: 285 35% 25%;
+  --muted: 330 20% 92%; /* Bardzo jasny pudrowy */
+  --muted-foreground: 285 25% 40%;
+  --accent: 300 30% 75%; /* Lawendowy akcent */
+  --accent-foreground: 285 35% 25%;
+  --destructive: 350 65% 55%; /* Malinowy */
+  --destructive-foreground: 330 20% 98%;
+  --border: 330 15% 88%; /* Delikatna pudrowa ramka */
+  --input: 330 15% 88%;
+  --ring: 285 45% 45%;
+  --radius: 0.5rem;
+}
+
+.dark {
+  /* Wieczorowa elegancja - głębokie purpury i róże */
+  --background: 285 25% 12%; /* Głęboka purpura */
+  --foreground: 330 25% 95%; /* Jasny pudrowy */
+  --card: 285 20% 16%;
+  --card-foreground: 330 25% 95%;
+  --popover: 285 20% 16%;
+  --popover-foreground: 330 25% 95%;
+  --primary: 330 40% 75%; /* Pudrowy róż */
+  --primary-foreground: 285 25% 12%;
+  --secondary: 285 30% 35%; /* Średnia purpura */
+  --secondary-foreground: 330 25% 95%;
+  --muted: 285 20% 25%; /* Przytłumiona purpura */
+  --muted-foreground: 330 20% 75%;
+  --accent: 300 35% 60%; /* Lawendowy akcent */
+  --accent-foreground: 330 25% 95%;
+  --destructive: 350 55% 45%; /* Głęboki malinowy */
+  --destructive-foreground: 330 25% 95%;
+  --border: 285 20% 25%;
+  --input: 285 20% 25%;
+  --ring: 330 40% 75%;
+}
+
+body {
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+h1,
+h2 {
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "rlig" 1, "calt" 1;
+  font-variation-settings: "opsz" auto;
+  letter-spacing: -0.05em;
+}
+
+h3 {
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  letter-spacing: -0.025em;
+}
+
+/* Enhanced readability */
+p,
+.prose {
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1, "clig" 1, "calt" 1;
+}
+
+code,
+pre,
+.font-mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "liga" 0;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@keyframes reverse-pulse {
+  0%,
+  100% {
+    opacity: 0.01;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-reverse-pulse {
+  animation: reverse-pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
