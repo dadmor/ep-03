@@ -104,7 +104,16 @@ export const CoursesList = () => {
 
       <GridBox>
         {data?.data?.map((course) => (
-          <Card key={course.id} className="relative">
+          <Card 
+            key={course.id} 
+            className="relative cursor-pointer transition-shadow hover:shadow-lg"
+            onClick={(e) => {
+              // Sprawdzamy czy kliknięcie nie było w dropdown menu
+              if (!(e.target as HTMLElement).closest('[role="menu"]')) {
+                show("courses", course.id);
+              }
+            }}
+          >
             <CardHeader>
               <FlexBox>
                 <CardTitle className="flex items-center gap-2">
@@ -117,7 +126,11 @@ export const CoursesList = () => {
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>

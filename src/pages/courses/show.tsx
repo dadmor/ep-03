@@ -82,7 +82,7 @@ export const CoursesShow = () => {
         </Button>
       </FlexBox>
 
-      <GridBox variant="1-2-2">
+      <GridBox variant="2-2-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Status</CardTitle>
@@ -123,6 +123,8 @@ export const CoursesShow = () => {
           </CardContent>
         </Card>
       </GridBox>
+
+      <GridBox variant="1-2-2">
 
       {/* Lista tematów */}
       <Card>
@@ -205,6 +207,8 @@ export const CoursesShow = () => {
           </div>
         </CardContent>
       </Card>
+      </GridBox>
+
     </SubPage>
   );
 };

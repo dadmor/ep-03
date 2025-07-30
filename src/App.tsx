@@ -33,13 +33,15 @@ function App() {
         routerProvider={routerBindings}
         resources={[
           dashboardResource,
+          groupsResource,
           coursesResource,
-          topicsResource,
+          
           activitiesResource,
           usersResource,
-          groupsResource,
+         
           vendorsResource,
           reportsResource,
+          topicsResource,
         ]}
         options={{
           syncWithLocation: true,
@@ -70,13 +72,15 @@ function App() {
             <Route path="/dashboard" element={<Navigate to="/dashboard/overview" replace />} />
             
             {...dashboardRoutes}
+            {...groupsRoutes}
             {...coursesRoutes}
-            {...topicsRoutes}
+           
             {...activitiesRoutes}
             {...usersRoutes}
-            {...groupsRoutes}
+           
             {...vendorsRoutes}
             {...reportsRoutes}
+            {...topicsRoutes}
 
             {/* Catch all dla nieznanych tras */}
             <Route path="*" element={<ErrorComponent />} />

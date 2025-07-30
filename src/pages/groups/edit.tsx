@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "@refinedev/react-hook-form";
 import { useNavigation, useOne } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +17,7 @@ export const GroupsEdit = () => {
   const { data, isLoading } = useOne({
     resource: "groups",
     id: id as string,
+    liveMode: "off", // Wyłącz live mode dla tego zapytania
   });
 
   const {
@@ -24,13 +26,28 @@ export const GroupsEdit = () => {
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm({
     refineCoreProps: {
       resource: "groups",
       id: id as string,
+      redirect: "list",
+      liveMode: "off", // Wyłącz live mode dla formularza
     }
   });
+
+  // Ustaw wartości formularza po załadowaniu danych
+  useEffect(() => {
+    if (data?.data) {
+      reset({
+        name: data.data.name,
+        academic_year: data.data.academic_year,
+        is_active: data.data.is_active,
+        vendor_id: data.data.vendor_id,
+      });
+    }
+  }, [data, reset]);
 
   if (isLoading) {
     return (

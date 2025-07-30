@@ -116,7 +116,7 @@ const LandingPage = () => {
         <div className="container mx-auto px-6 py-5 flex justify-between items-center">
           <div className="text-2xl font-black tracking-tighter flex items-center gap-2">
             <Music className="w-6 h-6 text-primary" />
-            DANCE HUB<span className="text-primary">.</span>
+            SMART UP<span className="text-primary">.</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
             <Button variant="ghost" className="text-sm font-medium">
@@ -519,10 +519,10 @@ const LandingPage = () => {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-2xl font-black tracking-tighter flex items-center gap-2">
               <Music className="w-6 h-6 text-primary" />
-              DANCE HUBR<span className="text-primary">.</span>
+              SMART UP<span className="text-primary">.</span>
             </div>
             <div className="text-sm text-muted-foreground">
-              © 2025 Dance Hub. Stworzone z pasją dla tańca.
+              © 2025 Smart Up. Stworzone z pasją dla tańca.
             </div>
           </div>
         </div>

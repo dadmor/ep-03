@@ -10,14 +10,17 @@ import { SubPage } from "@/components/layout";
 import { useParams } from "react-router-dom";
 
 export const TopicsEdit = () => {
-  const { list } = useNavigation();
+  const { show } = useNavigation();
   const { id } = useParams();
 
   const { data, isLoading } = useOne({
     resource: "topics",
     id: id as string,
-    liveMode: "off", // Wyłącz live mode
+    liveMode: "off",
   });
+
+  const topic = data?.data;
+  const courseId = topic?.course_id;
 
   const {
     refineCore: { onFinish },
@@ -26,13 +29,36 @@ export const TopicsEdit = () => {
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm({
+  } = useForm<{
+    title: string;
+    is_published: boolean;
+    position: number;
+  }>({
     refineCoreProps: {
       resource: "topics",
       id: id as string,
-      liveMode: "off", // Wyłącz live mode
+      liveMode: "off",
+      successNotification: () => ({
+        message: "Temat został zaktualizowany",
+        type: "success",
+      }),
+      redirect: false,
+      onMutationSuccess: () => {
+        // Po zaktualizowaniu tematu, wróć do widoku kursu
+        if (courseId) {
+          show("courses", courseId);
+        }
+      },
     }
   });
+
+  const handleCancel = () => {
+    if (courseId) {
+      show("courses", courseId);
+    } else {
+      show("courses", "");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -49,7 +75,7 @@ export const TopicsEdit = () => {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => list("courses")}
+        onClick={handleCancel}
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Powrót do kursu
@@ -58,7 +84,7 @@ export const TopicsEdit = () => {
       <FlexBox>
         <Lead
           title="Edytuj temat"
-          description={`Edycja: ${data?.data?.title}`}
+          description={`Edycja: ${topic?.title}`}
         />
       </FlexBox>
 
@@ -124,7 +150,7 @@ export const TopicsEdit = () => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => list("courses")}
+                onClick={handleCancel}
               >
                 Anuluj
               </Button>

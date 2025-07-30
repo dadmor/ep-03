@@ -1,5 +1,5 @@
 import { useForm } from "@refinedev/react-hook-form";
-import { useNavigation, useOne } from "@refinedev/core";
+import { useNavigation, useOne, useList } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import { Button, Input, Switch } from "@/components/ui";
@@ -7,16 +7,41 @@ import { FlexBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
 import { Form, FormActions, FormControl } from "@/components/form";
 import { SubPage } from "@/components/layout";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 export const TopicsCreate = () => {
-  const { list } = useNavigation();
+  const { show } = useNavigation();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const courseId = searchParams.get('course_id');
 
   const { data: courseData } = useOne({
     resource: "courses",
     id: courseId as string,
+    queryOptions: {
+      enabled: !!courseId,
+    },
+  });
+
+  const { data: topicsData, isLoading: topicsLoading } = useList({
+    resource: "topics",
+    filters: [
+      {
+        field: "course_id",
+        operator: "eq",
+        value: courseId,
+      },
+    ],
+    sorters: [
+      {
+        field: "position",
+        order: "desc",
+      },
+    ],
+    pagination: {
+      pageSize: 1,
+    },
     queryOptions: {
       enabled: !!courseId,
     },
@@ -29,20 +54,55 @@ export const TopicsCreate = () => {
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm({
+  } = useForm<{
+    course_id: number | undefined;
+    title: string;
+    is_published: boolean;
+    position: number;
+  }>({
     defaultValues: {
       course_id: courseId ? parseInt(courseId) : undefined,
       is_published: false,
       position: 1,
-    }
+    },
+    refineCoreProps: {
+      successNotification: () => ({
+        message: "Temat został utworzony",
+        type: "success",
+      }),
+      redirect: false,
+      onMutationSuccess: () => {
+        if (courseId) {
+          show("courses", courseId);
+        } else {
+          navigate("/courses");
+        }
+      },
+    },
   });
+
+  // Ustaw pozycję gdy dane się załadują
+  useEffect(() => {
+    if (!topicsLoading && topicsData && topicsData.data.length > 0) {
+      const nextPosition = topicsData.data[0].position + 1;
+      setValue("position", nextPosition);
+    }
+  }, [topicsData, topicsLoading, setValue]);
+
+  const handleCancel = () => {
+    if (courseId) {
+      show("courses", courseId);
+    } else {
+      navigate("/courses");
+    }
+  };
 
   return (
     <SubPage>
       <Button
         variant="outline"
         size="sm"
-        onClick={() => list("courses")}
+        onClick={handleCancel}
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Powrót do kursu
@@ -92,6 +152,8 @@ export const TopicsCreate = () => {
                 id="position"
                 type="number"
                 min="1"
+                disabled
+                className="bg-muted"
                 {...register("position", {
                   required: "Pozycja jest wymagana",
                   min: {
@@ -119,13 +181,13 @@ export const TopicsCreate = () => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => list("courses")}
+                onClick={handleCancel}
               >
                 Anuluj
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !courseId}
               >
                 {isSubmitting ? "Tworzenie..." : "Utwórz temat"}
               </Button>
