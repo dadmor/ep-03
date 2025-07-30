@@ -1,9 +1,8 @@
-
 import { useForm } from "@refinedev/react-hook-form";
 import { useNavigation, useOne } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, FileText, HelpCircle } from "lucide-react";
-import { Button, Input, Textarea, Switch } from "@/components/ui";
+import { ArrowLeft, FileText, HelpCircle, ListChecks } from "lucide-react";
+import { Button, Input, Textarea, Switch, Badge } from "@/components/ui";
 import {
   Select,
   SelectContent,
@@ -15,11 +14,13 @@ import { FlexBox, GridBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
 import { Form, FormActions, FormControl } from "@/components/form";
 import { SubPage } from "@/components/layout";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 export const ActivitiesEdit = () => {
   const { list, show } = useNavigation();
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const { data, isLoading } = useOne({
     resource: "activities",
@@ -43,8 +44,11 @@ export const ActivitiesEdit = () => {
       id: id as string,
       liveMode: "off",
       redirect: false,
+      successNotification: false,
       onMutationSuccess: () => {
         const courseId = data?.data?.topics?.course_id;
+        toast.success("Aktywność została zaktualizowana");
+        
         if (courseId) {
           show("courses", courseId);
         } else {
@@ -78,6 +82,12 @@ export const ActivitiesEdit = () => {
     }
   };
 
+  const getActivityIcon = () => {
+    return activityType === 'quiz' ? 
+      <HelpCircle className="w-6 h-6 text-blue-500" /> : 
+      <FileText className="w-6 h-6 text-green-500" />;
+  };
+
   return (
     <SubPage>
       <Button
@@ -91,16 +101,30 @@ export const ActivitiesEdit = () => {
 
       <FlexBox>
         <Lead
-          title="Edytuj aktywność"
+          title={
+            <div className="flex items-center gap-2">
+              {getActivityIcon()}
+              Edytuj aktywność
+            </div>
+          }
           description={
             <div>
-              <div>{activity?.title}</div>
+              <div className="text-lg font-medium">{activity?.title}</div>
               <div className="text-sm text-muted-foreground">
-                {course?.title} → {topic?.title}
+                {course?.title} → Temat {topic?.position}: {topic?.title}
               </div>
             </div>
           }
         />
+        {activityType === 'quiz' && (
+          <Button 
+            onClick={() => navigate(`/questions/manage/${activity?.id}`)}
+            variant="outline"
+          >
+            <ListChecks className="w-4 h-4 mr-2" />
+            Zarządzaj pytaniami ({activity?._count?.questions || 0})
+          </Button>
+        )}
       </FlexBox>
 
       <Card>
@@ -137,6 +161,9 @@ export const ActivitiesEdit = () => {
                     </SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Typ aktywności nie może być zmieniony
+                </p>
               </FormControl>
 
               <FormControl
@@ -159,7 +186,7 @@ export const ActivitiesEdit = () => {
               </FormControl>
 
               <FormControl
-                label="Pozycja"
+                label="Pozycja w temacie"
                 htmlFor="position"
                 error={errors.position?.message as string}
                 required
@@ -182,6 +209,7 @@ export const ActivitiesEdit = () => {
               <FormControl
                 label="Czas trwania (min)"
                 htmlFor="duration_min"
+                hint="Szacowany czas potrzebny na ukończenie"
               >
                 <Input
                   id="duration_min"
@@ -205,11 +233,12 @@ export const ActivitiesEdit = () => {
                 htmlFor="content"
                 error={errors.content?.message as string}
                 required
+                hint="Możesz używać formatowania Markdown"
               >
                 <Textarea
                   id="content"
                   placeholder="Wprowadź treść materiału..."
-                  rows={8}
+                  rows={10}
                   {...register("content", {
                     required: activityType === "material" ? "Treść jest wymagana dla materiału" : false,
                   })}
@@ -224,6 +253,7 @@ export const ActivitiesEdit = () => {
                     label="Próg zaliczenia (%)"
                     htmlFor="passing_score"
                     error={errors.passing_score?.message as string}
+                    hint="Minimalny wynik do zaliczenia"
                   >
                     <Input
                       id="passing_score"
@@ -247,6 +277,7 @@ export const ActivitiesEdit = () => {
                   <FormControl
                     label="Limit czasu (min)"
                     htmlFor="time_limit"
+                    hint="Pozostaw puste dla braku limitu"
                   >
                     <Input
                       id="time_limit"
@@ -266,6 +297,7 @@ export const ActivitiesEdit = () => {
                   <FormControl
                     label="Maksymalna liczba prób"
                     htmlFor="max_attempts"
+                    hint="Pozostaw puste dla nieograniczonej liczby"
                   >
                     <Input
                       id="max_attempts"
@@ -284,12 +316,23 @@ export const ActivitiesEdit = () => {
                 </GridBox>
                 
                 {activity?._count?.questions !== undefined && (
-                  <div className="mt-4 p-4 bg-muted rounded-lg">
-                    <p className="text-sm">
-                      <strong>Ten quiz zawiera {activity._count.questions} pytań.</strong>
-                      {' '}Możesz zarządzać pytaniami po zapisaniu zmian.
-                    </p>
-                  </div>
+                  <Card className="mt-4 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">
+                            Ten quiz zawiera {activity._count.questions} {activity._count.questions === 1 ? 'pytanie' : 'pytań'}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Możesz zarządzać pytaniami klikając przycisk powyżej
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-lg px-3 py-1">
+                          {activity._count.questions}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
               </>
             )}
@@ -301,7 +344,7 @@ export const ActivitiesEdit = () => {
                   onCheckedChange={(checked) => setValue("is_published", checked)}
                 />
                 <span className="text-sm text-muted-foreground">
-                  Aktywność jest opublikowana
+                  Aktywność jest opublikowana (uczniowie mogą ją zobaczyć)
                 </span>
               </FlexBox>
             </FormControl>

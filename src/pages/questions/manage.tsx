@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useOne, useList, useCreate, useUpdate, useDelete } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Plus, Edit, Trash2, Save, X, Check } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, Save, X, Check, HelpCircle } from "lucide-react";
 import { Button, Input, Textarea, Badge, Checkbox } from "@/components/ui";
 import { FlexBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
@@ -77,28 +77,78 @@ export const QuestionsManage = () => {
 
   const activity = activityData?.data;
   const questions = questionsData?.data || [];
+  const courseId = activity?.topics?.course_id;
+
+  const handleBackToCourse = () => {
+    if (courseId) {
+      navigate(`/courses/show/${courseId}`);
+    } else {
+      navigate('/courses');
+    }
+  };
 
   return (
     <SubPage>
       <Button
         variant="outline"
         size="sm"
-        onClick={() => navigate(`/activities/show/${activityId}`)}
+        onClick={handleBackToCourse}
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
-        Powrót do aktywności
+        Powrót do kursu
       </Button>
 
       <FlexBox>
         <Lead
-          title={`Pytania quizu: ${activity?.title}`}
-          description={`${activity?.topics?.courses?.title} → ${activity?.topics?.title}`}
+          title={
+            <div className="flex items-center gap-2">
+              <HelpCircle className="w-6 h-6 text-blue-500" />
+              Pytania quizu
+            </div>
+          }
+          description={
+            <div>
+              <div className="text-lg font-medium">{activity?.title}</div>
+              <div className="text-sm text-muted-foreground">
+                {activity?.topics?.courses?.title} → Temat {activity?.topics?.position}: {activity?.topics?.title}
+              </div>
+            </div>
+          }
         />
-        <Button onClick={() => setNewQuestion(true)} disabled={newQuestion}>
-          <Plus className="w-4 h-4 mr-2" />
-          Dodaj pytanie
-        </Button>
+        <div className="flex gap-2">
+          <Badge variant="outline" className="text-base px-3 py-1">
+            {questions.length} {questions.length === 1 ? 'pytanie' : 'pytań'}
+          </Badge>
+          <Button onClick={() => setNewQuestion(true)} disabled={newQuestion}>
+            <Plus className="w-4 h-4 mr-2" />
+            Dodaj pytanie
+          </Button>
+        </div>
       </FlexBox>
+
+      {/* Informacje o quizie */}
+      <Card className="bg-muted/50">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <span className="text-muted-foreground">Próg zaliczenia:</span>
+              <span className="ml-2 font-medium">{activity?.passing_score || 70}%</span>
+            </div>
+            {activity?.time_limit && (
+              <div>
+                <span className="text-muted-foreground">Limit czasu:</span>
+                <span className="ml-2 font-medium">{activity.time_limit} min</span>
+              </div>
+            )}
+            {activity?.max_attempts && (
+              <div>
+                <span className="text-muted-foreground">Max. prób:</span>
+                <span className="ml-2 font-medium">{activity.max_attempts}</span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Formularz nowego pytania */}
       {newQuestion && (
@@ -195,11 +245,11 @@ export const QuestionsManage = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {question.options.map((option) => (
+                    {question.options.map((option, index) => (
                       <div
-                        key={option.id}
+                        key={option.id || index}
                         className={`flex items-center gap-2 p-2 rounded ${
-                          option.is_correct ? "bg-green-50 dark:bg-green-950" : ""
+                          option.is_correct ? "bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800" : ""
                         }`}
                       >
                         {option.is_correct ? (
@@ -207,13 +257,13 @@ export const QuestionsManage = () => {
                         ) : (
                           <X className="w-4 h-4 text-gray-400" />
                         )}
-                        <span>{option.text}</span>
+                        <span className={option.is_correct ? "font-medium" : ""}>{option.text}</span>
                       </div>
                     ))}
                   </div>
                   {question.explanation && (
                     <div className="mt-4 p-3 bg-muted rounded">
-                      <p className="text-sm font-medium">Wyjaśnienie:</p>
+                      <p className="text-sm font-medium mb-1">Wyjaśnienie:</p>
                       <p className="text-sm text-muted-foreground">{question.explanation}</p>
                     </div>
                   )}
@@ -227,8 +277,12 @@ export const QuestionsManage = () => {
       {questions.length === 0 && !newQuestion && (
         <Card>
           <CardContent className="text-center py-12">
+            <HelpCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
             <p className="text-lg font-medium text-muted-foreground mb-4">
-              Brak pytań w tym quizie
+              Quiz nie ma jeszcze żadnych pytań
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Dodaj pierwsze pytanie, aby uczniowie mogli rozwiązać quiz
             </p>
             <Button onClick={() => setNewQuestion(true)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -236,6 +290,18 @@ export const QuestionsManage = () => {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Przyciski akcji na dole */}
+      {questions.length > 0 && (
+        <div className="flex justify-between items-center pt-6 border-t">
+          <div className="text-sm text-muted-foreground">
+            Łącznie punktów: {questions.reduce((sum, q) => sum + q.points, 0)}
+          </div>
+          <Button variant="outline" onClick={handleBackToCourse}>
+            Zakończ edycję
+          </Button>
+        </div>
       )}
     </SubPage>
   );
@@ -261,10 +327,10 @@ const QuestionForm = ({
     points: question?.points || 1,
     position: position,
     options: question?.options || [
-      { id: 1, text: "", is_correct: false },
-      { id: 2, text: "", is_correct: false },
-      { id: 3, text: "", is_correct: false },
-      { id: 4, text: "", is_correct: false },
+      { text: "", is_correct: false },
+      { text: "", is_correct: false },
+      { text: "", is_correct: false },
+      { text: "", is_correct: false },
     ],
   });
 
@@ -293,8 +359,27 @@ const QuestionForm = ({
       explanation: formData.explanation || null,
       points: formData.points,
       position: formData.position,
-      options: validOptions,
+      options: validOptions.map((opt, index) => ({
+        ...opt,
+        position: index + 1
+      })),
     });
+  };
+
+  const addOption = () => {
+    if (formData.options.length < 6) {
+      setFormData({
+        ...formData,
+        options: [...formData.options, { text: "", is_correct: false }]
+      });
+    }
+  };
+
+  const removeOption = (index: number) => {
+    if (formData.options.length > 2) {
+      const newOptions = formData.options.filter((_, i) => i !== index);
+      setFormData({ ...formData, options: newOptions });
+    }
   };
 
   return (
@@ -310,6 +395,7 @@ const QuestionForm = ({
             value={formData.question}
             onChange={(e) => setFormData({ ...formData, question: e.target.value })}
             className="mt-1"
+            rows={3}
           />
         </div>
 
@@ -337,8 +423,16 @@ const QuestionForm = ({
         </div>
 
         <div>
-          <label className="text-sm font-medium">Odpowiedzi</label>
-          <div className="space-y-2 mt-2">
+          <div className="flex justify-between items-center mb-2">
+            <label className="text-sm font-medium">Odpowiedzi</label>
+            {formData.options.length < 6 && (
+              <Button type="button" size="sm" variant="outline" onClick={addOption}>
+                <Plus className="w-3 h-3 mr-1" />
+                Dodaj opcję
+              </Button>
+            )}
+          </div>
+          <div className="space-y-2">
             {formData.options.map((option, index) => (
               <div key={index} className="flex gap-2">
                 <Checkbox
@@ -359,9 +453,22 @@ const QuestionForm = ({
                   }}
                   className="flex-1"
                 />
+                {formData.options.length > 2 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeOption(index)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             ))}
           </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Zaznacz checkbox przy poprawnych odpowiedziach. Możesz zaznaczyć więcej niż jedną.
+          </p>
         </div>
 
         <div>

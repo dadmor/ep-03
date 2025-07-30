@@ -10,14 +10,15 @@ import { BrowserRouter, Outlet, Route, Routes, Navigate } from "react-router";
 import { Layout } from "./components/layout";
 import { authProvider, supabaseClient } from "./utility";
 
-// Import zasobów
+// Import zasobów - uporządkowane hierarchicznie
+import { dashboardResource, dashboardRoutes } from "./pages/dashboard";
 import { coursesResource, coursesRoutes } from "./pages/courses";
 import { topicsResource, topicsRoutes } from "./pages/topics";
 import { activitiesResource, activitiesRoutes } from "./pages/activities";
-import { usersResource, usersRoutes } from "./pages/users";
+import { questionsRoutes } from "./pages/questions";
 import { groupsResource, groupsRoutes } from "./pages/groups";
+import { usersResource, usersRoutes } from "./pages/users";
 import { vendorsResource, vendorsRoutes } from "./pages/vendors";
-import { dashboardResource, dashboardRoutes } from "./pages/dashboard";
 import { reportsResource, reportsRoutes } from "./pages/reports";
 
 import { authRoutes } from "./pages/auth";
@@ -32,16 +33,22 @@ function App() {
         authProvider={authProvider}
         routerProvider={routerBindings}
         resources={[
+          // Główne zasoby
           dashboardResource,
-          groupsResource,
+          
+          // Zarządzanie kursami (hierarchia)
           coursesResource,
-
+          topicsResource,
           activitiesResource,
+          // questions nie jest zasobem, tylko trasą pomocniczą
+          
+          // Zarządzanie użytkownikami
+          groupsResource,
           usersResource,
-
+          
+          // Administracja
           vendorsResource,
           reportsResource,
-          topicsResource,
         ]}
         options={{
           syncWithLocation: true,
@@ -74,14 +81,22 @@ function App() {
               element={<Navigate to="/dashboard/overview" replace />}
             />
 
+            {/* Trasy pogrupowane logicznie */}
             {...dashboardRoutes}
-            {...groupsRoutes}
+            
+            {/* Zarządzanie kursami */}
             {...coursesRoutes}
+            {...topicsRoutes}
             {...activitiesRoutes}
+            {...questionsRoutes}
+            
+            {/* Zarządzanie użytkownikami */}
+            {...groupsRoutes}
             {...usersRoutes}
+            
+            {/* Administracja */}
             {...vendorsRoutes}
             {...reportsRoutes}
-            {...topicsRoutes}
 
             {/* Catch all dla nieznanych tras */}
             <Route path="*" element={<ErrorComponent />} />

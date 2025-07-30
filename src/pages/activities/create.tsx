@@ -16,6 +16,7 @@ import { Form, FormActions, FormControl } from "@/components/form";
 import { SubPage } from "@/components/layout";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 export const ActivitiesCreate = () => {
   const { show } = useNavigation();
@@ -75,14 +76,21 @@ export const ActivitiesCreate = () => {
       passing_score: 70,
     },
     refineCoreProps: {
-      successNotification: () => ({
-        message: "Aktywność została utworzona",
-        type: "success",
-      }),
+      successNotification: false,
       redirect: false,
-      onMutationSuccess: () => {
-        if (topicData?.data?.course_id) {
-          show("courses", topicData.data.course_id);
+      onMutationSuccess: (data) => {
+        const courseId = topicData?.data?.course_id;
+        const activityType = data.data.type;
+        
+        toast.success("Aktywność została utworzona");
+        
+        if (activityType === 'quiz') {
+          // Dla quizu przekieruj do zarządzania pytaniami
+          toast.info("Dodaj pytania do quizu");
+          navigate(`/questions/manage/${data.data.id}`);
+        } else if (courseId) {
+          // Dla materiału wróć do kursu
+          show("courses", courseId);
         } else {
           navigate("/courses");
         }
@@ -108,6 +116,23 @@ export const ActivitiesCreate = () => {
     }
   };
 
+  if (!topicId) {
+    return (
+      <SubPage>
+        <Card>
+          <CardContent className="text-center py-12">
+            <p className="text-lg font-medium text-muted-foreground mb-4">
+              Nie wybrano tematu
+            </p>
+            <Button onClick={() => navigate("/courses")}>
+              Przejdź do kursów
+            </Button>
+          </CardContent>
+        </Card>
+      </SubPage>
+    );
+  }
+
   return (
     <SubPage>
       <Button
@@ -124,7 +149,14 @@ export const ActivitiesCreate = () => {
           title="Dodaj aktywność"
           description={
             topicData?.data 
-              ? `Do tematu: ${topicData.data.title} (${topicData.data.courses?.title})`
+              ? (
+                <div>
+                  <div className="text-lg">{topicData.data.courses?.title}</div>
+                  <div className="text-sm text-muted-foreground">
+                    Temat {topicData.data.position}: {topicData.data.title}
+                  </div>
+                </div>
+              )
               : "Utwórz nowy materiał lub quiz"
           }
         />
@@ -176,7 +208,7 @@ export const ActivitiesCreate = () => {
               >
                 <Input
                   id="title"
-                  placeholder={activityType === "quiz" ? "np. Test wiedzy" : "np. Wprowadzenie"}
+                  placeholder={activityType === "quiz" ? "np. Test wiedzy z rozdziału" : "np. Wprowadzenie do tematu"}
                   {...register("title", {
                     required: "Tytuł jest wymagany",
                     minLength: {
@@ -188,7 +220,7 @@ export const ActivitiesCreate = () => {
               </FormControl>
 
               <FormControl
-                label="Pozycja"
+                label="Pozycja w temacie"
                 htmlFor="position"
                 error={errors.position?.message as string}
                 required
@@ -213,6 +245,7 @@ export const ActivitiesCreate = () => {
               <FormControl
                 label="Czas trwania (min)"
                 htmlFor="duration_min"
+                hint="Szacowany czas potrzebny na ukończenie"
               >
                 <Input
                   id="duration_min"
@@ -236,11 +269,12 @@ export const ActivitiesCreate = () => {
                 htmlFor="content"
                 error={errors.content?.message as string}
                 required
+                hint="Możesz używać formatowania Markdown"
               >
                 <Textarea
                   id="content"
-                  placeholder="Wprowadź treść materiału..."
-                  rows={8}
+                  placeholder="Wprowadź treść materiału edukacyjnego..."
+                  rows={10}
                   {...register("content", {
                     required: activityType === "material" ? "Treść jest wymagana dla materiału" : false,
                   })}
@@ -255,6 +289,7 @@ export const ActivitiesCreate = () => {
                     label="Próg zaliczenia (%)"
                     htmlFor="passing_score"
                     error={errors.passing_score?.message as string}
+                    hint="Minimalny wynik do zaliczenia"
                   >
                     <Input
                       id="passing_score"
@@ -278,6 +313,7 @@ export const ActivitiesCreate = () => {
                   <FormControl
                     label="Limit czasu (min)"
                     htmlFor="time_limit"
+                    hint="Pozostaw puste dla braku limitu"
                   >
                     <Input
                       id="time_limit"
@@ -297,6 +333,7 @@ export const ActivitiesCreate = () => {
                   <FormControl
                     label="Maksymalna liczba prób"
                     htmlFor="max_attempts"
+                    hint="Pozostaw puste dla nieograniczonej liczby"
                   >
                     <Input
                       id="max_attempts"
@@ -314,9 +351,12 @@ export const ActivitiesCreate = () => {
                   </FormControl>
                 </GridBox>
                 
-                <div className="mt-4 p-4 bg-muted rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    <strong>Uwaga:</strong> Po utworzeniu quizu będziesz mógł dodać pytania w następnym kroku.
+                <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm">
+                    <strong className="text-blue-700 dark:text-blue-300">💡 Wskazówka:</strong>{' '}
+                    <span className="text-blue-600 dark:text-blue-400">
+                      Po utworzeniu quizu zostaniesz przekierowany do ekranu dodawania pytań.
+                    </span>
                   </p>
                 </div>
               </>
@@ -329,7 +369,7 @@ export const ActivitiesCreate = () => {
                   onCheckedChange={(checked) => setValue("is_published", checked)}
                 />
                 <span className="text-sm text-muted-foreground">
-                  Opublikuj aktywność od razu
+                  Opublikuj aktywność od razu (uczniowie będą mogli ją zobaczyć)
                 </span>
               </FlexBox>
             </FormControl>
@@ -347,7 +387,9 @@ export const ActivitiesCreate = () => {
                 type="submit"
                 disabled={isSubmitting || !topicId}
               >
-                {isSubmitting ? "Tworzenie..." : "Utwórz aktywność"}
+                {isSubmitting ? "Tworzenie..." : 
+                  activityType === "quiz" ? "Utwórz i dodaj pytania" : "Utwórz aktywność"
+                }
               </Button>
             </FormActions>
           </Form>
