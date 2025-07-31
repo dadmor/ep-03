@@ -1,4 +1,4 @@
-// utility/auth/authProvider.ts - PEŁNA WERSJA Z REJESTRACJĄ
+// utility/auth/authProvider.ts - DZIAŁAJĄCA WERSJA
 
 import { AuthBindings } from "@refinedev/core";
 import { supabaseClient } from "..";
@@ -16,7 +16,7 @@ export interface User {
 }
 
 // Cache dla danych użytkownika
-let userCache: any = null;
+let userCache: User | null = null;
 let lastFetch = 0;
 const CACHE_DURATION = 60000; // 60 sekund
 
@@ -98,7 +98,7 @@ export const authProvider: AuthBindings = {
     }
   },
 
-  getIdentity: async () => {
+  getIdentity: async (): Promise<User | null> => {
     try {
       // Używaj cache aby uniknąć ciągłych zapytań
       const now = Date.now();
@@ -113,12 +113,12 @@ export const authProvider: AuthBindings = {
       }
 
       // Prosty obiekt użytkownika bez dodatkowych zapytań
-      const simpleUser = {
+      const simpleUser: User = {
         id: session.user.id,
-        email: session.user.email,
+        email: session.user.email || '',
         full_name: session.user.user_metadata?.full_name || 'User',
         vendor_id: 1,
-        role: 'admin' as const
+        role: 'admin'
       };
 
       // Zapisz w cache
@@ -132,7 +132,6 @@ export const authProvider: AuthBindings = {
     }
   },
 
-  // PEŁNA IMPLEMENTACJA REJESTRACJI
   register: async ({ email, password, name }) => {
     try {
       console.log("🚀 Starting registration:", { email, name });
@@ -175,7 +174,7 @@ export const authProvider: AuthBindings = {
         password,
         options: {
           data: {
-            full_name: name || email.split('@')[0], // Użyj imienia lub części emaila
+            full_name: name || email.split('@')[0],
           },
           emailRedirectTo: `${window.location.origin}/login?verified=true`
         }
@@ -201,14 +200,12 @@ export const authProvider: AuthBindings = {
 
       console.log("✅ Registration successful:", data.user.id);
 
-      // Zwróć sukces z danymi użytkownika
       return {
         success: true,
         successNotification: {
           message: "Rejestracja udana! Sprawdź swoją skrzynkę email.",
           description: "Wysłaliśmy link aktywacyjny na podany adres email."
-        },
-        user: data.user
+        }
       };
 
     } catch (error: any) {
@@ -278,8 +275,20 @@ export const authProvider: AuthBindings = {
 
   getPermissions: async () => {
     try {
-      const user = await authProvider.getIdentity?.();
-      return user?.role || null;
+      // Użyj tej samej logiki co w getIdentity
+      const now = Date.now();
+      if (userCache && (now - lastFetch) < CACHE_DURATION) {
+        return userCache.role;
+      }
+
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      
+      if (!session) {
+        return null;
+      }
+
+      // Zwróć rolę - na razie hardcoded
+      return 'admin';
     } catch {
       return null;  
     }
