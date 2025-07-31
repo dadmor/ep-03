@@ -18,7 +18,8 @@ root.render(
       duration={4000}
       toastOptions={{
         style: {
-          fontSize: '14px',
+          width: '500px',
+          fontSize: '20px',
         },
         className: 'sonner-toast',
       }}

@@ -2,7 +2,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useOne } from "@refinedev/core";
-import { ChevronLeft, Clock, AlertCircle } from "lucide-react";
+import { ChevronLeft, Clock, AlertCircle, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -56,7 +56,9 @@ export const StudentQuiz = () => {
 
         if (startError) {
           console.error("Error starting quiz:", startError);
-          toast.error("Nie udało się rozpocząć quizu");
+          toast.error("Nie udało się rozpocząć quizu", {
+            icon: <XCircle size={24} />
+          });
         }
 
         // Pobierz pytania
@@ -68,13 +70,27 @@ export const StudentQuiz = () => {
 
         if (questionsError) {
           console.error("Error fetching questions:", questionsError);
-          toast.error("Nie udało się pobrać pytań");
+          toast.error("Nie udało się pobrać pytań", {
+            icon: <XCircle size={24} />
+          });
         } else {
-          setQuestions(questionsData || []);
+          // Parsuj JSON jeśli to string lub użyj bezpośrednio jeśli to już tablica
+          const parsedQuestions = typeof questionsData === 'string' 
+            ? JSON.parse(questionsData) 
+            : questionsData;
+          
+          console.log("Questions data:", parsedQuestions);
+          // Dodajmy też log pierwszego pytania żeby zobaczyć strukturę opcji
+          if (parsedQuestions && parsedQuestions.length > 0) {
+            console.log("First question options:", parsedQuestions[0].options);
+          }
+          setQuestions(Array.isArray(parsedQuestions) ? parsedQuestions : []);
         }
       } catch (error) {
         console.error("Quiz init error:", error);
-        toast.error("Błąd podczas ładowania quizu");
+        toast.error("Błąd podczas ładowania quizu", {
+          icon: <XCircle size={24} />
+        });
       } finally {
         setQuestionsLoading(false);
       }
@@ -113,6 +129,8 @@ export const StudentQuiz = () => {
         option_id: optionId
       }));
 
+      console.log("Submitting answers:", answersArray);
+
       const { data: result, error } = await supabaseClient.rpc('finish_quiz', {
         p_activity_id: parseInt(quizId!),
         p_answers: answersArray
@@ -126,21 +144,25 @@ export const StudentQuiz = () => {
         const { score, passed, points_earned } = result;
         
         if (passed) {
-          toast.success(`Quiz ukończony! Wynik: ${score}%`, {
-            description: `Zdobyłeś ${points_earned} punktów!`
+          toast.success(`Quiz zaliczony! Wynik: ${score}%`, {
+            description: `Zdobyłeś ${points_earned} punktów!`,
+            icon: <CheckCircle size={24} />
           });
         } else {
-          toast.error(`Wynik: ${score}%`, {
-            description: `Wymagane minimum ${quiz?.passing_score}% do zaliczenia`
+          toast.warning(`Quiz niezaliczony. Wynik: ${score}%`, {
+            description: `Wymagane minimum ${quiz?.passing_score || 70}% do zaliczenia. Spróbuj ponownie!`,
+            icon: <AlertTriangle size={24} />
           });
         }
         
-        navigate(`/student/courses/${courseId}`);
+        // Dodaj parametr do URL żeby wymusić odświeżenie
+        navigate(`/student/courses/${courseId}?refresh=true`);
       }
     } catch (error: any) {
       console.error("Submit error:", error);
       toast.error("Nie udało się przesłać odpowiedzi", {
-        description: error.message
+        description: error.message,
+        icon: <XCircle size={24} />
       });
     } finally {
       setIsSubmitting(false);
@@ -200,7 +222,7 @@ export const StudentQuiz = () => {
         <Progress value={progress} className="h-2" />
 
         {/* Pytanie */}
-        {currentQ && (
+        {currentQ && questions.length > 0 ? (
           <Card>
             <CardHeader>
               <FlexBox>
@@ -213,10 +235,16 @@ export const StudentQuiz = () => {
                 value={String(answers[currentQ.id] || '')}
                 onValueChange={(value) => handleAnswer(currentQ.id, parseInt(value))}
               >
-                {currentQ.options.map((option) => (
-                  <div key={option.id} className="flex items-center space-x-2">
-                    <RadioGroupItem value={String(option.id)} id={`option-${option.id}`} />
-                    <Label htmlFor={`option-${option.id}`} className="flex-1 cursor-pointer">
+                {currentQ.options && Array.isArray(currentQ.options) && currentQ.options.map((option) => (
+                  <div key={`option-${currentQ.id}-${option.id}`} className="flex items-center space-x-2">
+                    <RadioGroupItem 
+                      value={String(option.id)} 
+                      id={`radio-${currentQ.id}-${option.id}`} 
+                    />
+                    <Label 
+                      htmlFor={`radio-${currentQ.id}-${option.id}`} 
+                      className="flex-1 cursor-pointer py-2"
+                    >
                       {option.text}
                     </Label>
                   </div>
@@ -231,7 +259,14 @@ export const StudentQuiz = () => {
               )}
             </CardContent>
           </Card>
-        )}
+        ) : questions.length === 0 && !questionsLoading ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <AlertCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-gray-500">Nie znaleziono pytań dla tego quizu</p>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/* Nawigacja między pytaniami */}
         <FlexBox>
@@ -244,14 +279,14 @@ export const StudentQuiz = () => {
           </Button>
 
           <div className="flex gap-2">
-            {questions.map((_, index) => (
+            {questions.map((question, index) => (
               <button
-                key={index}
+                key={`nav-${question.id}-${index}`}
                 onClick={() => setCurrentQuestion(index)}
                 className={`w-10 h-10 rounded-lg border-2 transition-all ${
                   index === currentQuestion
                     ? 'border-primary bg-primary text-white'
-                    : answers[questions[index]?.id]
+                    : answers[question.id]
                     ? 'border-green-500 bg-green-50'
                     : 'border-gray-300'
                 }`}
