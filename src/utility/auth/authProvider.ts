@@ -281,7 +281,7 @@ export const authProvider: AuthBindings = {
       const user = await authProvider.getIdentity?.();
       return user?.role || null;
     } catch {
-      return null;
+      return null;  
     }
   },
 

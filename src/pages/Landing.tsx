@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ import {
 import { ResponsiveContainer, XAxis, YAxis, Area, AreaChart } from "recharts";
 
 const LandingPage = () => {
+  const navigate = useNavigate();
   const [scrollY, setScrollY] = useState(0);
   const [email, setEmail] = useState("");
 
@@ -76,7 +78,10 @@ const LandingPage = () => {
               >
                 Cennik
               </a>
-              <Button className="bg-gray-900 hover:bg-gray-800 text-white text-sm px-6">
+              <Button 
+                className="bg-gray-900 hover:bg-gray-800 text-white text-sm px-6"
+                onClick={() => navigate('/login')}
+              >
                 Rozpocznij
               </Button>
             </div>
@@ -113,6 +118,7 @@ const LandingPage = () => {
                 <Button
                   size="lg"
                   className="bg-gray-900 hover:bg-gray-800 text-white px-8"
+                  onClick={() => navigate('/login')}
                 >
                   Zacznij za darmo
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -575,6 +581,7 @@ const LandingPage = () => {
               <Button
                 size="lg"
                 className="bg-gradient-to-r from-pink-600 to-purple-700 hover:opacity-90 text-white px-8 h-12"
+                onClick={() => navigate('/login')}
               >
                 Rozpocznij za darmo
                 <ArrowRight className="ml-2 h-4 w-4" />
