@@ -1,4 +1,4 @@
-// utility/auth/authProvider.ts - DZIAŁAJĄCA WERSJA
+// utility/auth/authProvider.ts - POPRAWIONA WERSJA
 
 import { AuthBindings } from "@refinedev/core";
 import { supabaseClient } from "..";
@@ -112,20 +112,41 @@ export const authProvider: AuthBindings = {
         return null;
       }
 
-      // Prosty obiekt użytkownika bez dodatkowych zapytań
-      const simpleUser: User = {
-        id: session.user.id,
-        email: session.user.email || '',
-        full_name: session.user.user_metadata?.full_name || 'User',
-        vendor_id: 1,
-        role: 'admin'
+      // Pobierz dane użytkownika z tabeli users
+      const { data: userData, error } = await supabaseClient
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error || !userData) {
+        console.error("Error fetching user data:", error);
+        // Fallback jeśli nie udało się pobrać danych
+        return {
+          id: session.user.id,
+          email: session.user.email || '',
+          full_name: session.user.user_metadata?.full_name || 'User',
+          vendor_id: 1,
+          role: 'student' // Domyślnie student, nie admin
+        };
+      }
+
+      // Użyj danych z bazy
+      const user: User = {
+        id: userData.id,
+        email: userData.email,
+        full_name: userData.full_name,
+        vendor_id: userData.vendor_id,
+        role: userData.role,
+        is_active: userData.is_active,
+        created_at: userData.created_at
       };
 
       // Zapisz w cache
-      userCache = simpleUser;
+      userCache = user;
       lastFetch = now;
 
-      return simpleUser;
+      return user;
     } catch (error) {
       console.error("Error in getIdentity:", error);
       return null;
@@ -175,6 +196,7 @@ export const authProvider: AuthBindings = {
         options: {
           data: {
             full_name: name || email.split('@')[0],
+            role: 'student' // Domyślnie rejestrujemy jako student
           },
           emailRedirectTo: `${window.location.origin}/login?verified=true`
         }
@@ -287,8 +309,19 @@ export const authProvider: AuthBindings = {
         return null;
       }
 
-      // Zwróć rolę - na razie hardcoded
-      return 'admin';
+      // Pobierz rolę z bazy danych
+      const { data: userData, error } = await supabaseClient
+        .from('users')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error || !userData) {
+        console.error("Error fetching user permissions:", error);
+        return 'student'; // Domyślnie student
+      }
+
+      return userData.role;
     } catch {
       return null;  
     }

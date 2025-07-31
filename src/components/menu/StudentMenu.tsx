@@ -13,6 +13,8 @@ import {
   Settings,
   X
 } from "lucide-react";
+import { cn } from "@/utility";
+import { Button } from "../ui";
 
 
 interface StudentMenuProps {
