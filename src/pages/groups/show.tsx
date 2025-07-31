@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   Edit,
   Users,
-  Calendar,
   BookOpen,
   Plus,
   UserPlus,
@@ -190,12 +189,16 @@ export const GroupsShow = () => {
         </Card>
       </GridBox>
 
+<GridBox variant="1-2-2">
       {/* Lista uczniów */}
       <Card>
         <CardHeader>
           <FlexBox>
             <CardTitle>Uczniowie grupy</CardTitle>
-            <Button size="sm">
+            <Button 
+              size="sm"
+              onClick={() => navigate(`/groups/${id}/assign-students`)}
+            >
               <UserPlus className="w-4 h-4 mr-2" />
               Dodaj ucznia
             </Button>
@@ -297,6 +300,7 @@ export const GroupsShow = () => {
           )}
         </CardContent>
       </Card>
+      </GridBox>
     </SubPage>
   );
 };

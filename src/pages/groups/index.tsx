@@ -5,12 +5,14 @@ import { GroupsCreate } from "./create";
 import { GroupsEdit } from "./edit";
 import { GroupsShow } from "./show";
 import { GroupsAssignCourses } from "./assign-courses";
+import { GroupsAssignStudents } from "./assign-students";
 
 export { GroupsList } from "./list";
 export { GroupsCreate } from "./create";
 export { GroupsEdit } from "./edit";
 export { GroupsShow } from "./show";
 export { GroupsAssignCourses } from "./assign-courses";
+export { GroupsAssignStudents } from "./assign-students";
 
 export const groupsResource = {
   name: "groups",
@@ -37,5 +39,10 @@ export const groupsRoutes = [
     key="groups-assign-courses"
     path="/groups/:id/assign-courses"
     element={<GroupsAssignCourses />}
+  />,
+  <Route
+    key="groups-assign-students"
+    path="/groups/:id/assign-students"
+    element={<GroupsAssignStudents />}
   />,
 ];
