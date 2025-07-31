@@ -4,6 +4,15 @@ import { useNavigate } from "react-router-dom";
 import { useFormSchemaStore } from "@/utility/llmFormWizard";
 import { authProvider } from "./authProvider";
 
+interface UseRegistrationResult {
+  isLoading: boolean;
+  isSuccess: boolean;
+  error: string | null;
+  register: () => void;
+  goBack: () => void;
+  processData: any;
+}
+
 export const useRegistration = (): UseRegistrationResult => {
   const navigate = useNavigate();
   const { getData, setData } = useFormSchemaStore();
@@ -19,17 +28,28 @@ export const useRegistration = (): UseRegistrationResult => {
       return;
     }
 
+    // Sprawdź czy mamy wszystkie wymagane dane
+    if (!processData?.email || !processData?.password) {
+      setError("Brak wymaganych danych. Rozpocznij proces rejestracji od początku.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
     try {
+      console.log("📝 Attempting registration with:", {
+        email: processData.email,
+        name: processData.name
+      });
+
       const result = await authProvider.register({
         email: processData.email,
         password: processData.password,
-        name: processData.name // Przekazujemy imię i nazwisko
+        name: processData.name
       });
 
-      console.log("Registration result:", result);
+      console.log("📝 Registration result:", result);
 
       if (result.success) {
         setIsSuccess(true);
@@ -47,11 +67,15 @@ export const useRegistration = (): UseRegistrationResult => {
           navigate("/register/step4");
         }, 1500);
       } else {
-        setError(result.error?.message || "Rejestracja nie powiodła się");
+        // Ustaw komunikat błędu
+        const errorMessage = result.error?.message || "Rejestracja nie powiodła się";
+        console.error("❌ Registration failed:", errorMessage);
+        setError(errorMessage);
       }
-    } catch (err) {
-      console.error("Registration error:", err);
-      setError("Wystąpił nieoczekiwany błąd");
+    } catch (err: any) {
+      console.error("❌ Registration error:", err);
+      const errorMessage = err?.message || "Wystąpił nieoczekiwany błąd";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

@@ -1,0 +1,127 @@
+// src/pages/student/components/StudentLesson.tsx
+import React from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useOne, useCustomMutation } from "@refinedev/core";
+import { ChevronLeft, CheckCircle2, Clock } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { SubPage } from "@/components/layout";
+import { FlexBox } from "@/components/shared";
+import { toast } from "sonner";
+
+export const StudentLesson = () => {
+  const { courseId, lessonId } = useParams();
+  const navigate = useNavigate();
+  const { mutate: completeMaterial } = useCustomMutation();
+  const [isCompleting, setIsCompleting] = React.useState(false);
+
+  // Pobierz dane lekcji
+  const { data: lessonData, isLoading } = useOne({
+    resource: "activities",
+    id: lessonId!,
+    meta: {
+      select: "*, topics(title, course_id, courses(title, icon_emoji))"
+    }
+  });
+
+  const handleComplete = async () => {
+    setIsCompleting(true);
+    try {
+      const result = await completeMaterial({
+        url: "rpc/complete_material",
+        method: "post",
+        values: { p_activity_id: parseInt(lessonId!) },
+      });
+
+      if (result.data) {
+        toast.success("Lekcja ukończona!", {
+          description: "Zdobyłeś punkty za ukończenie materiału"
+        });
+        navigate(`/student/courses/${courseId}`);
+      }
+    } catch (error) {
+      toast.error("Nie udało się ukończyć lekcji");
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <SubPage>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </SubPage>
+    );
+  }
+
+  const lesson = lessonData?.data;
+
+  return (
+    <SubPage>
+      <div className="space-y-6 max-w-4xl mx-auto">
+        {/* Nawigacja */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(`/student/courses/${courseId}`)}
+          className="gap-2"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Powrót do kursu
+        </Button>
+
+        {/* Nagłówek */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>{lesson?.topics?.courses?.icon_emoji || '📚'}</span>
+            <span>{lesson?.topics?.courses?.title}</span>
+            <span>/</span>
+            <span>{lesson?.topics?.title}</span>
+          </div>
+          <h1 className="text-3xl font-bold">{lesson?.title}</h1>
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary">Materiał</Badge>
+            {lesson?.duration_min && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                <span>{lesson?.duration_min} min</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Treść */}
+        <Card>
+          <CardContent className="prose prose-lg max-w-none p-8">
+            <div dangerouslySetInnerHTML={{ __html: lesson?.content || '' }} />
+          </CardContent>
+        </Card>
+
+        {/* Akcje */}
+        <Card>
+          <CardContent className="p-6">
+            <FlexBox>
+              <div>
+                <p className="font-medium">Ukończyłeś tę lekcję?</p>
+                <p className="text-sm text-muted-foreground">
+                  Kliknij przycisk, aby zaznaczyć jako ukończone i otrzymać punkty
+                </p>
+              </div>
+              <Button
+                onClick={handleComplete}
+                disabled={isCompleting}
+                className="gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                {isCompleting ? "Zapisywanie..." : "Oznacz jako ukończone"}
+              </Button>
+            </FlexBox>
+          </CardContent>
+        </Card>
+      </div>
+    </SubPage>
+  );
+};

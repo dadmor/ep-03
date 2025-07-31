@@ -1,5 +1,5 @@
-// src/App.tsx
-import { Authenticated, ErrorComponent, Refine } from "@refinedev/core";
+// src/App.tsx - poprawiony z importem useGetIdentity
+import { Authenticated, ErrorComponent, Refine, useGetIdentity } from "@refinedev/core";
 import routerBindings, {
   CatchAllNavigate,
   DocumentTitleHandler,
@@ -21,8 +21,22 @@ import { usersResource, usersRoutes } from "./pages/users";
 import { vendorsResource, vendorsRoutes } from "./pages/vendors";
 import { reportsResource, reportsRoutes } from "./pages/reports";
 
+// Import panelu ucznia
+import { studentRoutes } from "./pages/student";
+
 import { authRoutes } from "./pages/auth";
 import LandingPage from "./pages/Landing";
+
+// Komponent sprawdzający rolę i przekierowujący
+const RoleBasedRedirect = () => {
+  const { data: identity } = useGetIdentity<any>();
+  
+  if (identity?.role === 'student') {
+    return <Navigate to="/student/dashboard" replace />;
+  }
+  
+  return <Navigate to="/dashboard/overview" replace />;
+};
 
 function App() {
   return (
@@ -40,7 +54,6 @@ function App() {
           coursesResource,
           topicsResource,
           activitiesResource,
-          // questions nie jest zasobem, tylko trasą pomocniczą
           
           // Zarządzanie użytkownikami
           groupsResource,
@@ -62,7 +75,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           {...authRoutes}
 
-          {/* Chronione trasy */}
+          {/* Chronione trasy - wspólny layout */}
           <Route
             element={
               <Authenticated
@@ -75,12 +88,12 @@ function App() {
               </Authenticated>
             }
           >
-            {/* PRZEKIEROWANIA DLA NIEISTNIEJĄCYCH TRAS - MUSI BYĆ PIERWSZE! */}
-            <Route path="/admin" element={<Navigate to="/dashboard/overview" replace />} />
-            <Route path="/teacher" element={<Navigate to="/dashboard/overview" replace />} />
-            <Route path="/student" element={<Navigate to="/dashboard/overview" replace />} />
+            {/* PRZEKIEROWANIA DLA NIEISTNIEJĄCYCH TRAS */}
+            <Route path="/admin" element={<RoleBasedRedirect />} />
+            <Route path="/teacher" element={<RoleBasedRedirect />} />
+            <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
             
-            {/* Dashboard jako strona główna */}
+            {/* Dashboard jako strona główna dla adminów/nauczycieli */}
             <Route
               path="/dashboard"
               element={<Navigate to="/dashboard/overview" replace />}
@@ -102,15 +115,25 @@ function App() {
             {/* Administracja */}
             {...vendorsRoutes}
             {...reportsRoutes}
+            
+            {/* Panel ucznia */}
+            {...studentRoutes}
 
             {/* Catch all dla nieznanych tras */}
             <Route path="*" element={<ErrorComponent />} />
           </Route>
 
-          {/* Dodatkowe zabezpieczenie - przekieruj wszystko inne do dashboard */}
+          {/* Dodatkowe zabezpieczenie */}
           <Route
             path="*"
-            element={<Navigate to="/dashboard/overview" replace />}
+            element={
+              <Authenticated
+                key="catch-all-redirect"
+                fallback={<Navigate to="/login" replace />}
+              >
+                <RoleBasedRedirect />
+              </Authenticated>
+            }
           />
         </Routes>
 
