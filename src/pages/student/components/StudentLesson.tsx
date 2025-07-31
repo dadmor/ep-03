@@ -1,7 +1,7 @@
 // src/pages/student/components/StudentLesson.tsx
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useOne, useCustomMutation } from "@refinedev/core";
+import { useOne } from "@refinedev/core";
 import { ChevronLeft, CheckCircle2, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,11 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { SubPage } from "@/components/layout";
 import { FlexBox } from "@/components/shared";
 import { toast } from "sonner";
+import { supabaseClient } from "@/utility";
 
 export const StudentLesson = () => {
   const { courseId, lessonId } = useParams();
   const navigate = useNavigate();
-  const { mutate: completeMaterial } = useCustomMutation();
   const [isCompleting, setIsCompleting] = React.useState(false);
 
   // Pobierz dane lekcji
@@ -28,20 +28,25 @@ export const StudentLesson = () => {
   const handleComplete = async () => {
     setIsCompleting(true);
     try {
-      const result = await completeMaterial({
-        url: "rpc/complete_material",
-        method: "post",
-        values: { p_activity_id: parseInt(lessonId!) },
+      const { data: result, error } = await supabaseClient.rpc('complete_material', {
+        p_activity_id: parseInt(lessonId!)
       });
 
-      if (result.data) {
+      if (error) {
+        throw error;
+      }
+
+      if (result) {
         toast.success("Lekcja ukończona!", {
           description: "Zdobyłeś punkty za ukończenie materiału"
         });
         navigate(`/student/courses/${courseId}`);
       }
-    } catch (error) {
-      toast.error("Nie udało się ukończyć lekcji");
+    } catch (error: any) {
+      console.error("Complete error:", error);
+      toast.error("Nie udało się ukończyć lekcji", {
+        description: error.message
+      });
     } finally {
       setIsCompleting(false);
     }

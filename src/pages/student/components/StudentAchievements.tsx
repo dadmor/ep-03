@@ -1,6 +1,6 @@
 // src/pages/student/components/StudentAchievements.tsx
-import React from "react";
-import { Flame, Star, Zap, Trophy, Target, Rocket, Brain, Heart } from "lucide-react";
+
+import { Flame, Star, Zap, Trophy, Target, Rocket } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";

@@ -1,7 +1,7 @@
 // src/pages/student/components/StudentQuiz.tsx
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useOne, useCustom, useCustomMutation } from "@refinedev/core";
+import { useOne } from "@refinedev/core";
 import { ChevronLeft, Clock, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { SubPage } from "@/components/layout";
 import { FlexBox } from "@/components/shared";
 import { toast } from "sonner";
+import { supabaseClient } from "@/utility";
 
 interface QuizQuestion {
   id: number;
@@ -30,9 +31,8 @@ export const StudentQuiz = () => {
   const [answers, setAnswers] = React.useState<Record<number, number>>({});
   const [timeLeft, setTimeLeft] = React.useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-
-  const { mutate: startQuiz } = useCustomMutation();
-  const { mutate: finishQuiz } = useCustomMutation();
+  const [questions, setQuestions] = React.useState<QuizQuestion[]>([]);
+  const [questionsLoading, setQuestionsLoading] = React.useState(true);
 
   // Pobierz dane quizu
   const { data: quizData, isLoading: quizLoading } = useOne({
@@ -43,27 +43,44 @@ export const StudentQuiz = () => {
     }
   });
 
-  // Pobierz pytania
-  const { data: questionsData, isLoading: questionsLoading } = useCustom({
-    url: "rpc/get_quiz_questions",
-    method: "post",
-    config: {
-      payload: { p_activity_id: parseInt(quizId!) }
-    },
-    queryOptions: {
-      enabled: !!quizId
-    }
-  });
-
-  // Start quiz on mount
+  // Pobierz pytania i rozpocznij quiz
   React.useEffect(() => {
-    if (quizId) {
-      startQuiz({
-        url: "rpc/start_activity",
-        method: "post",
-        values: { p_activity_id: parseInt(quizId) },
-      });
-    }
+    const initQuiz = async () => {
+      if (!quizId) return;
+
+      try {
+        // Rozpocznij quiz
+        const { error: startError } = await supabaseClient.rpc('start_activity', {
+          p_activity_id: parseInt(quizId)
+        });
+
+        if (startError) {
+          console.error("Error starting quiz:", startError);
+          toast.error("Nie udało się rozpocząć quizu");
+        }
+
+        // Pobierz pytania
+        setQuestionsLoading(true);
+        const { data: questionsData, error: questionsError } = await supabaseClient.rpc(
+          'get_quiz_questions',
+          { p_activity_id: parseInt(quizId) }
+        );
+
+        if (questionsError) {
+          console.error("Error fetching questions:", questionsError);
+          toast.error("Nie udało się pobrać pytań");
+        } else {
+          setQuestions(questionsData || []);
+        }
+      } catch (error) {
+        console.error("Quiz init error:", error);
+        toast.error("Błąd podczas ładowania quizu");
+      } finally {
+        setQuestionsLoading(false);
+      }
+    };
+
+    initQuiz();
   }, [quizId]);
 
   // Timer
@@ -82,7 +99,6 @@ export const StudentQuiz = () => {
     }
   }, [timeLeft]);
 
-  const questions: QuizQuestion[] = questionsData?.data || [];
   const quiz = quizData?.data;
 
   const handleAnswer = (questionId: number, optionId: number) => {
@@ -97,17 +113,17 @@ export const StudentQuiz = () => {
         option_id: optionId
       }));
 
-      const result = await finishQuiz({
-        url: "rpc/finish_quiz",
-        method: "post",
-        values: {
-          p_activity_id: parseInt(quizId!),
-          p_answers: answersArray
-        },
+      const { data: result, error } = await supabaseClient.rpc('finish_quiz', {
+        p_activity_id: parseInt(quizId!),
+        p_answers: answersArray
       });
 
-      if (result.data) {
-        const { score, passed, points_earned } = result.data;
+      if (error) {
+        throw error;
+      }
+
+      if (result) {
+        const { score, passed, points_earned } = result;
         
         if (passed) {
           toast.success(`Quiz ukończony! Wynik: ${score}%`, {
@@ -121,8 +137,11 @@ export const StudentQuiz = () => {
         
         navigate(`/student/courses/${courseId}`);
       }
-    } catch (error) {
-      toast.error("Nie udało się przesłać odpowiedzi");
+    } catch (error: any) {
+      console.error("Submit error:", error);
+      toast.error("Nie udało się przesłać odpowiedzi", {
+        description: error.message
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -139,7 +158,7 @@ export const StudentQuiz = () => {
   }
 
   const currentQ = questions[currentQuestion];
-  const progress = ((currentQuestion + 1) / questions.length) * 100;
+  const progress = questions.length > 0 ? ((currentQuestion + 1) / questions.length) * 100 : 0;
 
   return (
     <SubPage>
