@@ -11,6 +11,14 @@ import { useState } from "react";
 
 const EMOJI_OPTIONS = ['📚', '🎓', '💡', '🚀', '⭐', '🏆', '🎯', '📖', '✏️', '🧮'];
 
+interface CourseFormData {
+  title: string;
+  description?: string;
+  vendor_id: number;
+  is_published: boolean;
+  icon_emoji: string;
+}
+
 export const CoursesCreate = () => {
   const { list } = useNavigation();
   const { data: identity } = useGetIdentity<any>();
@@ -23,9 +31,11 @@ export const CoursesCreate = () => {
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm({
+  } = useForm<CourseFormData>({
     defaultValues: {
-      vendor_id: identity?.vendor_id,
+      title: '',
+      description: '',
+      vendor_id: identity?.vendor_id || 0,
       is_published: false,
       icon_emoji: '📚'
     }
@@ -61,7 +71,7 @@ export const CoursesCreate = () => {
               <FormControl
                 label="Tytuł kursu"
                 htmlFor="title"
-                error={errors.title?.message as string}
+                error={errors.title?.message?.toString()}
                 required
               >
                 <Input
@@ -118,7 +128,7 @@ export const CoursesCreate = () => {
             <FormControl
               label="Opis kursu"
               htmlFor="description"
-              error={errors.description?.message as string}
+              error={errors.description?.message?.toString()}
             >
               <Textarea
                 id="description"

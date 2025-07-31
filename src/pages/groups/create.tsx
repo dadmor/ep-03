@@ -8,6 +8,13 @@ import { Lead } from "@/components/reader";
 import { Form, FormActions, FormControl } from "@/components/form";
 import { SubPage } from "@/components/layout";
 
+interface GroupFormData {
+  name: string;
+  academic_year: string;
+  vendor_id: number;
+  is_active: boolean;
+}
+
 export const GroupsCreate = () => {
   const { list } = useNavigation();
   const { data: identity } = useGetIdentity<any>();
@@ -19,9 +26,10 @@ export const GroupsCreate = () => {
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm({
+  } = useForm<GroupFormData>({
     defaultValues: {
-      vendor_id: identity?.vendor_id,
+      name: '',
+      vendor_id: identity?.vendor_id || 0,
       is_active: true,
       academic_year: new Date().getFullYear().toString() + "/" + (new Date().getFullYear() + 1).toString()
     }
@@ -54,7 +62,7 @@ export const GroupsCreate = () => {
             <FormControl
               label="Nazwa grupy"
               htmlFor="name"
-              error={errors.name?.message as string}
+              error={errors.name?.message?.toString()}
               required
             >
               <Input
@@ -73,7 +81,7 @@ export const GroupsCreate = () => {
             <FormControl
               label="Rok akademicki"
               htmlFor="academic_year"
-              error={errors.academic_year?.message as string}
+              error={errors.academic_year?.message?.toString()}
               required
             >
               <Input

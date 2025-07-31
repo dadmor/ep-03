@@ -2,7 +2,6 @@ import { useTable, useNavigation, useDelete } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   FileText, 
-  Plus, 
   Edit, 
   Trash2, 
   Eye,

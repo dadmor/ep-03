@@ -15,6 +15,14 @@ import { Lead } from "@/components/reader";
 import { Form, FormActions, FormControl } from "@/components/form";
 import { SubPage } from "@/components/layout";
 
+interface UserFormData {
+  full_name: string;
+  email: string;
+  role: string;
+  vendor_id: number;
+  is_active: boolean;
+}
+
 export const UsersCreate = () => {
   const { list } = useNavigation();
   const { data: identity } = useGetIdentity<any>();
@@ -26,9 +34,11 @@ export const UsersCreate = () => {
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm({
+  } = useForm<UserFormData>({
     defaultValues: {
-      vendor_id: identity?.vendor_id,
+      full_name: '',
+      email: '',
+      vendor_id: identity?.vendor_id || 0,
       role: "student",
       is_active: true,
     }
@@ -62,7 +72,7 @@ export const UsersCreate = () => {
               <FormControl
                 label="Imię i nazwisko"
                 htmlFor="full_name"
-                error={errors.full_name?.message as string}
+                error={errors.full_name?.message?.toString()}
                 required
               >
                 <Input
@@ -81,7 +91,7 @@ export const UsersCreate = () => {
               <FormControl
                 label="Email"
                 htmlFor="email"
-                error={errors.email?.message as string}
+                error={errors.email?.message?.toString()}
                 required
               >
                 <Input
@@ -100,7 +110,7 @@ export const UsersCreate = () => {
 
               <FormControl
                 label="Rola"
-                error={errors.role?.message as string}
+                error={errors.role?.message?.toString()}
                 required
               >
                 <Select

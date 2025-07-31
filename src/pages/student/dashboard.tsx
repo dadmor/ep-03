@@ -1,17 +1,18 @@
 // src/pages/student/components/StudentDashboard.tsx - poprawiony
-import React, { useEffect } from "react";
+
 import { useCustom, useList, useGetIdentity } from "@refinedev/core";
 import { useNavigate } from "react-router-dom";
-import { Trophy, Flame, Target, Clock, TrendingUp, Gift } from "lucide-react";
+import { Trophy, Flame, Target, Clock,  Gift } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { StatCard, CourseCard, ActivityCard, ProgressBar } from "@/components/student";
+
 import { SubPage } from "@/components/layout";
 import { GridBox, FlexBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
-import { useStudentStats, useIdlePoints } from "@/hooks/student";
+
 import { toast } from "sonner";
+import { useIdlePoints, useStudentStats } from "./hooks";
+import { ActivityCard, CourseCard, ProgressBar, StatCard } from "./components";
 
 export const StudentDashboard = () => {
   const navigate = useNavigate();

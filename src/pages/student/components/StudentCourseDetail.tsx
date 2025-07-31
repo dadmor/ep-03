@@ -1,4 +1,4 @@
-// src/pages/student/components/StudentCourseDetail.tsx - POPRAWIONY
+// src/pages/student/components/StudentCourseDetail.tsx - POPRAWIONY Z TYPAMI
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -19,19 +19,55 @@ import { ActivityCard } from "./ActivityCard";
 import { useRPC } from "../hooks/useRPC";
 import { useSupabaseQuery } from "../hooks/useSupabaseQuery";
 
+// Definicje typów
+interface CourseStructureItem {
+  topic_id: number;
+  topic_title: string;
+  topic_position: number;
+  activity_id: number | null;
+  activity_title: string | null;
+  activity_type: "material" | "quiz" | null;
+  activity_position: number | null;
+  is_completed: boolean;
+  score: number | null;
+}
+
+interface Activity {
+  id: number;
+  title: string;
+  type: "material" | "quiz";
+  position: number;
+  completed: boolean;
+  score: number | null;
+}
+
+interface TopicWithActivities {
+  id: number;
+  title: string;
+  position: number;
+  activities: Activity[];
+}
+
+interface Course {
+  id: number;
+  title: string;
+  description: string;
+  icon_emoji: string;
+}
+
 export const StudentCourseDetail = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
 
   // Pobierz strukturę kursu przez RPC
-  const { data: courseStructure, isLoading } = useRPC<any[]>(
+  const { data: courseStructure, isLoading } = useRPC<CourseStructureItem[]>(
     "get_course_structure",
     { p_course_id: parseInt(courseId!) },
     { enabled: !!courseId }
   );
 
   // Pobierz dane kursu
-  const { data: courseData } = useSupabaseQuery("courses", {
+  const { data: courseData } = useSupabaseQuery<Course>("courses", {
     filters: [{ field: "id", operator: "eq", value: parseInt(courseId!) }],
     enabled: !!courseId,
   });
@@ -54,16 +90,16 @@ export const StudentCourseDetail = () => {
       if (item.activity_id) {
         acc[topicKey].activities.push({
           id: item.activity_id,
-          title: item.activity_title,
-          type: item.activity_type,
-          position: item.activity_position,
+          title: item.activity_title!,
+          type: item.activity_type!,
+          position: item.activity_position!,
           completed: item.is_completed,
           score: item.score,
         });
       }
 
       return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, TopicWithActivities>);
 
     return Object.values(grouped).sort((a, b) => a.position - b.position);
   }, [courseStructure]);
@@ -150,7 +186,7 @@ export const StudentCourseDetail = () => {
         <div className="space-y-6">
           {topicsWithActivities.map((topic) => {
             const topicCompleted = topic.activities.filter(
-              (a: any) => a.completed
+              (a) => a.completed
             ).length;
             const isTopicComplete = topicCompleted === topic.activities.length;
 
@@ -176,7 +212,7 @@ export const StudentCourseDetail = () => {
                   </FlexBox>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {topic.activities.map((activity: any) => (
+                  {topic.activities.map((activity) => (
                     <ActivityCard
                       key={activity.id}
                       activity={{
