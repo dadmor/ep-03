@@ -1,8 +1,8 @@
-// src/pages/student/components/StudentDashboard.tsx
-import React, { useEffect } from "react";
-import { useCustom, useList, useGetIdentity } from "@refinedev/core";
+// src/pages/student/components/StudentDashboard.tsx - FINALNIE POPRAWIONY
+import React from "react";
+import { useList, useGetIdentity } from "@refinedev/core";
 import { useNavigate } from "react-router-dom";
-import { Trophy, Flame, Target, Clock, TrendingUp, Gift } from "lucide-react";
+import { Trophy, Flame, Target, Clock, Gift } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -10,35 +10,101 @@ import { SubPage } from "@/components/layout";
 import { GridBox, FlexBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
 import { toast } from "sonner";
-import { useIdlePoints, useStudentStats } from "../hooks";
+import { supabaseClient } from "@/utility";
 import { StatCard } from "./StatCard";
-import { ActivityCard } from "@/pages/courses/components/ActivityCard";
+import { CourseCard } from "./CourseCard";
+import { ActivityCard } from "./ActivityCard";
+
+// Hook dla statystyk studenta
+const useStudentStats = () => {
+  const [stats, setStats] = React.useState({
+    points: 0,
+    level: 1,
+    streak: 0,
+    idle_rate: 1,
+    next_level_points: 200,
+    quizzes_completed: 0,
+    perfect_scores: 0,
+    total_time: 0,
+    rank: 0
+  });
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  const fetchStats = React.useCallback(async () => {
+    try {
+      const { data, error } = await supabaseClient.rpc('get_my_stats');
+      if (error) throw error;
+      
+      if (data) {
+        setStats({
+          points: data.points || 0,
+          level: data.level || 1,
+          streak: data.streak || 0,
+          idle_rate: data.idle_rate || 1,
+          next_level_points: data.next_level_points || 200,
+          quizzes_completed: data.quizzes_completed || 0,
+          perfect_scores: data.perfect_scores || 0,
+          total_time: data.total_time || 0,
+          rank: data.rank || 0
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  return { stats, isLoading, refetch: fetchStats };
+};
+
+// Hook dla kursów
+const useStudentCourses = () => {
+  const [courses, setCourses] = React.useState<any[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const { data, error } = await supabaseClient.rpc('get_my_courses');
+        if (error) throw error;
+        setCourses(data || []);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  return { data: courses, isLoading };
+};
 
 export const StudentDashboard = () => {
   const navigate = useNavigate();
   const { data: identity } = useGetIdentity<any>();
   const { stats, isLoading: statsLoading, refetch: refetchStats } = useStudentStats();
-  const { claimDailyRewards } = useIdlePoints();
+  const { data: coursesData, isLoading: coursesLoading } = useStudentCourses();
 
-  // Pobierz kursy ucznia
-  const { data: coursesData, isLoading: coursesLoading } = useCustom({
-    url: "rpc/get_my_courses",
-    method: "post",
-  });
-
-  // Pobierz ostatnie aktywności
+  // Pobierz ostatnie aktywności - używamy standardowego useList
   const { data: activitiesData } = useList({
     resource: "activity_progress",
-    filters: [
+    filters: identity?.id ? [
       {
         field: "user_id",
         operator: "eq",
-        value: identity?.id,
+        value: identity.id,
       },
-    ],
+    ] : [],
     sorters: [
       {
-        field: "updated_at",
+        field: "started_at",
         order: "desc",
       },
     ],
@@ -47,13 +113,18 @@ export const StudentDashboard = () => {
     },
     meta: {
       select: "*, activities(title, type, topic_id, topics(title, course_id, courses(title, icon_emoji)))"
-    }
+    },
+    queryOptions: {
+      enabled: !!identity?.id,
+    },
   });
 
-  // Sprawdź czy można odebrać nagrody
   const handleClaimRewards = async () => {
     try {
-      const result = await claimDailyRewards();
+      const { data: result, error } = await supabaseClient.rpc('claim_daily_rewards');
+      
+      if (error) throw error;
+      
       if (result) {
         toast.success(`Odebrano ${result.total_earned} punktów!`, {
           description: result.daily_points > 0 
@@ -63,12 +134,14 @@ export const StudentDashboard = () => {
         refetchStats();
       }
     } catch (error) {
+      console.error("Error claiming rewards:", error);
       toast.error("Nie można odebrać nagród");
     }
   };
 
   const levelProgress = stats.level > 0 
-    ? ((stats.points - (stats.level - 1) * 100) / ((stats.level * 100) - ((stats.level - 1) * 100))) * 100
+    ? ((stats.points - ((stats.level - 1) * (stats.level - 1) * 100)) / 
+       ((stats.level * stats.level * 100) - ((stats.level - 1) * (stats.level - 1) * 100))) * 100
     : 0;
 
   if (statsLoading || coursesLoading) {
@@ -147,41 +220,45 @@ export const StudentDashboard = () => {
                 {stats.points} punktów
               </span>
               <span className="text-sm font-medium">
-                {stats.next_level_points} punktów do następnego poziomu
+                {stats.next_level_points - stats.points} punktów do następnego poziomu
               </span>
             </FlexBox>
           </CardContent>
         </Card>
 
         {/* Aktywne kursy */}
-        <div>
-          <FlexBox className="mb-4">
-            <h2 className="text-xl font-bold">Twoje kursy</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate("/student/courses")}
-            >
-              Zobacz wszystkie
-            </Button>
-          </FlexBox>
-          
-          <GridBox>
-            {coursesData?.data?.slice(0, 3).map((course: any) => (
-              <CourseCard 
-                key={course.course_id}
-                course={{
-                  id: course.course_id,
-                  title: course.title,
-                  emoji: course.icon_emoji || '📚',
-                  progress: course.progress_percent || 0,
-                  lastActivity: course.last_activity
-                }}
-                onClick={() => navigate(`/student/courses/${course.course_id}`)}
-              />
-            ))}
-          </GridBox>
-        </div>
+        {coursesData && coursesData.length > 0 && (
+          <div>
+            <FlexBox className="mb-4">
+              <h2 className="text-xl font-bold">Twoje kursy</h2>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/student/courses")}
+              >
+                Zobacz wszystkie
+              </Button>
+            </FlexBox>
+            
+            <GridBox>
+              {coursesData.slice(0, 3).map((course: any) => (
+                <CourseCard 
+                  key={course.course_id}
+                  course={{
+                    id: course.course_id,
+                    title: course.title,
+                    emoji: course.icon_emoji || '📚',
+                    progress: course.progress_percent || 0,
+                    lastActivity: course.last_activity 
+                      ? new Date(course.last_activity).toLocaleDateString('pl-PL')
+                      : null
+                  }}
+                  onClick={() => navigate(`/student/courses/${course.course_id}`)}
+                />
+              ))}
+            </GridBox>
+          </div>
+        )}
 
         {/* Ostatnie aktywności */}
         {activitiesData?.data && activitiesData.data.length > 0 && (
@@ -195,8 +272,8 @@ export const StudentDashboard = () => {
                   key={progress.activity_id}
                   activity={{
                     id: progress.activity_id,
-                    title: progress.activities?.title,
-                    type: progress.activities?.type,
+                    title: progress.activities?.title || 'Bez tytułu',
+                    type: progress.activities?.type || 'material',
                     completed: !!progress.completed_at,
                     score: progress.score,
                     courseTitle: progress.activities?.topics?.courses?.title,
@@ -205,10 +282,12 @@ export const StudentDashboard = () => {
                   onStart={() => {
                     const courseId = progress.activities?.topics?.course_id;
                     const activityId = progress.activity_id;
-                    if (progress.activities?.type === 'quiz') {
-                      navigate(`/student/courses/${courseId}/quiz/${activityId}`);
-                    } else {
-                      navigate(`/student/courses/${courseId}/lesson/${activityId}`);
+                    if (courseId && activityId) {
+                      if (progress.activities?.type === 'quiz') {
+                        navigate(`/student/courses/${courseId}/quiz/${activityId}`);
+                      } else {
+                        navigate(`/student/courses/${courseId}/lesson/${activityId}`);
+                      }
                     }
                   }}
                 />

@@ -1,45 +1,51 @@
 // src/pages/student/hooks/useStudentStats.ts
-import { useCustom, useGetIdentity } from "@refinedev/core";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { supabaseClient } from "@/utility";
 
 export const useStudentStats = () => {
-  const { data: identity } = useGetIdentity<any>();
   const [stats, setStats] = useState({
     points: 0,
     level: 1,
     streak: 0,
-    idleRate: 1,
-    nextLevelPoints: 200,
-    quizzesCompleted: 0,
-    perfectScores: 0,
-    totalTime: 0
+    idle_rate: 1,
+    next_level_points: 200,
+    quizzes_completed: 0,
+    perfect_scores: 0,
+    total_time: 0,
+    rank: 0
   });
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { data, isLoading } = useCustom({
-    url: "rpc/get_my_stats",
-    method: "post",
-    config: {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-  });
+  const refetch = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabaseClient.rpc('get_my_stats');
+      
+      if (error) throw error;
+      
+      if (data) {
+        setStats({
+          points: data.points || 0,
+          level: data.level || 1,
+          streak: data.streak || 0,
+          idle_rate: data.idle_rate || 1,
+          next_level_points: data.next_level_points || 200,
+          quizzes_completed: data.quizzes_completed || 0,
+          perfect_scores: data.perfect_scores || 0,
+          total_time: data.total_time || 0,
+          rank: data.rank || 0
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (data?.data) {
-      const statsData = data.data;
-      setStats({
-        points: statsData.points || 0,
-        level: statsData.level || 1,
-        streak: statsData.streak || 0,
-        idleRate: statsData.idle_rate || 1,
-        nextLevelPoints: statsData.next_level_points || 200,
-        quizzesCompleted: statsData.quizzes_completed || 0,
-        perfectScores: statsData.perfect_scores || 0,
-        totalTime: statsData.total_time || 0
-      });
-    }
-  }, [data]);
+    refetch();
+  }, [refetch]);
 
-  return { stats, setStats, isLoading };
+  return { stats, setStats, isLoading, refetch };
 };
