@@ -1,38 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowRight,
-  Sparkles,
-  CheckCircle2,
   Users,
-  Calendar,
-  Heart,
   Trophy,
-  Music,
-  MapPin,
   Star,
   Award,
+  Zap,
+  TrendingUp,
+  BarChart3,
+  Target,
+  Coins,
+  GraduationCap,
+  Gamepad2,
+  ChevronRight,
 } from "lucide-react";
-import { useNavigate } from "react-router";
-import {
-  Bar,
-  BarChart as RechartsBarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-} from "recharts";
-import RodoDisclaimer from "./RodoDisclamer";
-import KhakiBackgroundSVG from "@/components/KhakiBackgroundSVG";
+import { ResponsiveContainer, XAxis, YAxis, Area, AreaChart } from "recharts";
 
 const LandingPage = () => {
-  const [scrollY, setScrollY] = useState(0);
+  const [, setScrollY] = useState(0);
   const [email, setEmail] = useState("");
-  const navigate = useNavigate();
+  const [, setHoveredCard] = useState(null);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -40,489 +30,597 @@ const LandingPage = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const features = [
-    {
-      icon: Calendar,
-      title: "WYDARZENIA TANECZNE",
-      desc: "Twórz i odkrywaj wydarzenia w klubach, szkołach tańca i plenerze",
-      features: ["Imprezy klubowe", "Warsztaty taneczne", "Eventy plenerowe"],
-      color: "from-purple-500/20 to-purple-600/10",
-    },
-    {
-      icon: Trophy,
-      title: "SYSTEM GAMIFIKACJI",
-      desc: "Zdobywaj punkty, odznaki i awansuj w rankingu tancerzy",
-      features: [
-        "Poziomy doświadczenia",
-        "Wyzwania tygodniowe",
-        "Nagrody społeczności",
-      ],
-      color: "from-amber-500/20 to-amber-600/10",
-    },
-    {
-      icon: Users,
-      title: "SPOŁECZNOŚĆ TRENERSKA",
-      desc: "Ucz się od najlepszych lub dziel się swoją wiedzą",
-      features: ["Lekcje indywidualne", "Grupy treningowe", "Mentoring online"],
-      color: "from-blue-500/20 to-blue-600/10",
-    },
+  const progressData = [
+    { name: "Sty", value: 65 },
+    { name: "Lut", value: 72 },
+    { name: "Mar", value: 78 },
+    { name: "Kwi", value: 85 },
+    { name: "Maj", value: 88 },
+    { name: "Cze", value: 94 },
   ];
-
-  const chartData = [
-    { day: "Pon", aktywni: 1240, wydarzenia: 45 },
-    { day: "Wto", aktywni: 1650, wydarzenia: 62 },
-    { day: "Śro", aktywni: 1480, wydarzenia: 51 },
-    { day: "Czw", aktywni: 1890, wydarzenia: 78 },
-    { day: "Pią", aktywni: 2450, wydarzenia: 125 },
-    { day: "Sob", aktywni: 3200, wydarzenia: 186 },
-    { day: "Nie", aktywni: 2800, wydarzenia: 142 },
-  ];
-
-  interface ChartDataPoint {
-    day: string;
-    aktywni: number;
-    wydarzenia: number;
-  }
-
-  interface CustomTooltipProps {
-    active?: boolean;
-    payload?: Array<{
-      value: number;
-      payload: ChartDataPoint;
-    }>;
-    label?: string;
-  }
-
-  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-background border rounded-lg shadow-lg p-3">
-          <p className="font-medium">{label}</p>
-          <p className="text-sm text-primary">Aktywni: {payload[0].value}</p>
-          <p className="text-sm text-muted-foreground">
-            Wydarzenia: {payload[0].payload.wydarzenia}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <RodoDisclaimer />
+    <div className="min-h-screen bg-white text-foreground">
       {/* Navigation */}
-      <nav className="fixed  top-0 w-full z-30 bg-background/80 backdrop-blur-lg border-b">
-        <div className="container mx-auto px-6 py-5 flex justify-between items-center">
-          <div className="text-2xl font-black tracking-tighter flex items-center gap-2">
-            <Music className="w-6 h-6 text-primary" />
-            SMART UP<span className="text-primary">.</span>
-          </div>
-          <div className="hidden md:flex items-center gap-8">
-            <Button variant="ghost" className="text-sm font-medium">
-              Funkcje
-            </Button>
-            <Button variant="ghost" className="text-sm font-medium">
-              Społeczność
-            </Button>
-            <Button variant="ghost" className="text-sm font-medium">
-              Wydarzenia
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => navigate("/register")}
-            >
-              Dołącz teraz <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-[#CE0477] to-[#604A97] rounded-xl flex items-center justify-center">
+                <Trophy className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-xl font-bold">Smart Up</span>
+            </div>
+
+            <div className="hidden md:flex items-center gap-8">
+              <a
+                href="#"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Funkcje
+              </a>
+              <a
+                href="#"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Kursy
+              </a>
+              <a
+                href="#"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Dla firm
+              </a>
+              <a
+                href="#"
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                Cennik
+              </a>
+              <Button className="bg-gray-900 hover:bg-gray-800 text-white text-sm px-6">
+                Rozpocznij
+              </Button>
+            </div>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center pt-20">
-        <div className="absolute inset-0 pointer-events-none">
-          <KhakiBackgroundSVG />
-        </div>
+      {/* Hero Section - Modern Grid */}
+      <section className="pt-32 pb-20 overflow-hidden">
+        <div className="container mx-auto px-6">
+          <div className="grid lg:grid-cols-12 gap-8 items-center">
+            {/* Left Content */}
+            <div className="lg:col-span-5">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-full mb-8">
+                <Zap className="w-4 h-4 text-[#604A97]" />
+                <span className="text-sm font-medium text-[#604A97]">
+                  Gamifikacja w edukacji
+                </span>
+              </div>
 
-        <div className="container mx-auto px-6 z-20">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <Badge className="mb-8" variant="secondary">
-                <Heart className="mr-2 h-3 w-3" />
-                Dla pasjonatów tańca
-              </Badge>
-
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter leading-none mb-8">
-                TWOJA
-                <br />
-                <span className="text-primary">TANECZNA</span>
-                <br />
-                SPOŁECZNOŚĆ
+              <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
+                Nauka, która
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#CE0477] to-[#604A97]">
+                  motywuje
+                </span>
               </h1>
 
-              <p className="text-xl text-muted-foreground mb-10 max-w-xl">
-                Odkryj wydarzenia, ucz się od najlepszych, znajdź idealnego
-                partnera tanecznego. Dołącz do platformy, która łączy tancerzy z
-                całej Polski.
+              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                Przekształć edukację w angażującą przygodę. System poziomów,
+                punktów i nagród sprawia, że nauka staje się uzależniająca.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 mb-10">
-                <Input
-                  type="email"
-                  placeholder="twoj@email.pl"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 h-14 px-5 text-base"
-                />
-                <Button size="lg" className="h-14 px-8 font-bold text-base">
-                  Rozpocznij przygodę <ArrowRight className="ml-2" />
+              <div className="flex flex-col sm:flex-row gap-4 mb-12">
+                <Button
+                  size="lg"
+                  className="bg-gray-900 hover:bg-gray-800 text-white px-8"
+                  onClick={() => navigate("/register")}
+                >
+                  Zacznij za darmo
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-gray-300"
+                  onClick={() => navigate("/demo")}
+                >
+                  Zobacz demo
                 </Button>
               </div>
 
-              <div className="flex flex-wrap gap-8 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <span>15k+ tancerzy</span>
+              <div className="flex items-center gap-8">
+                <div>
+                  <div className="text-2xl font-bold">15k+</div>
+                  <div className="text-sm text-gray-500">aktywnych uczniów</div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span>500+ wydarzeń/mies.</span>
+                <div className="w-px h-12 bg-gray-200" />
+                <div>
+                  <div className="text-2xl font-bold">92%</div>
+                  <div className="text-sm text-gray-500">ukończalność</div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Heart className="h-4 w-4" />
-                  <span>System dopasowań</span>
+                <div className="w-px h-12 bg-gray-200" />
+                <div>
+                  <div className="text-2xl font-bold">4.9</div>
+                  <div className="text-sm text-gray-500">ocena</div>
                 </div>
               </div>
             </div>
 
-            <div className="relative">
-              <div
-                className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/5 blur-3xl rounded-3xl"
-                style={{ transform: `translateY(${scrollY * 0.1}px)` }}
-              />
-              <Card className="relative border shadow-2xl">
-                <CardContent className="p-0">
-                  {/* App Preview Header */}
-                  <div className="border-b px-6 py-4 bg-muted/30">
+            {/* Right Visual - Modern Dashboard */}
+            <div className="lg:col-span-7">
+              <div className="relative">
+                {/* Background decoration */}
+                <div className="absolute -inset-4 bg-gradient-to-r from-[#CE0477]/5 to-[#604A97]/5 rounded-3xl blur-2xl" />
+
+                {/* Main dashboard card */}
+                <div className="relative bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                  {/* Dashboard header */}
+                  <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Music className="w-4 h-4 text-primary" />
-                        <span className="text-sm font-semibold">Dance Hub</span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gradient-to-br from-[#CE0477] to-[#604A97] rounded-lg flex items-center justify-center">
+                          <Trophy className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="font-semibold">Dashboard ucznia</span>
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        twoj.profil
-                      </span>
+                      <Badge className="bg-green-50 text-green-700 border-green-200">
+                        Online
+                      </Badge>
                     </div>
                   </div>
 
-                  {/* App Content Preview */}
-                  <div className="p-8">
-                    <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                      <Trophy className="w-5 h-5 text-amber-500" />
-                      Twój Dashboard
-                    </h3>
+                  {/* Dashboard content */}
+                  <div className="p-6">
+                    {/* Stats grid */}
+                    <div className="grid grid-cols-3 gap-4 mb-6">
+                      <div className="bg-gradient-to-br from-[#CE0477]/5 to-[#CE0477]/10 rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Coins className="w-5 h-5 text-[#CE0477]" />
+                          <span className="text-xs text-gray-500">+125</span>
+                        </div>
+                        <div className="text-2xl font-bold">1,842</div>
+                        <div className="text-xs text-gray-500">Punkty XP</div>
+                      </div>
 
-                    {/* Stats Cards */}
-                    <div className="grid grid-cols-3 gap-4 mb-8">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-primary">
-                          42
+                      <div className="bg-gradient-to-br from-[#604A97]/5 to-[#604A97]/10 rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Target className="w-5 h-5 text-[#604A97]" />
+                          <span className="text-xs text-gray-500">75%</span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Wydarzenia
-                        </p>
+                        <div className="text-2xl font-bold">Lvl 12</div>
+                        <div className="text-xs text-gray-500">Poziom</div>
                       </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-amber-500">
-                          Lvl 8
+
+                      <div className="bg-gradient-to-br from-[#47B8B2]/5 to-[#47B8B2]/10 rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Award className="w-5 h-5 text-[#47B8B2]" />
+                          <span className="text-xs text-gray-500">New!</span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Poziom
-                        </p>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold">127</div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Znajomi
-                        </p>
+                        <div className="text-2xl font-bold">24</div>
+                        <div className="text-xs text-gray-500">Odznaki</div>
                       </div>
                     </div>
 
-                    {/* Activity Chart */}
-                    <div className="bg-muted/50 rounded-lg p-4">
-                      <h4 className="text-sm font-medium mb-4 text-muted-foreground">
-                        Aktywność społeczności
-                      </h4>
-                      <ResponsiveContainer width="100%" height={200}>
-                        <RechartsBarChart data={chartData}>
-                          <CartesianGrid
-                            strokeDasharray="3 3"
-                            className="opacity-30"
+                    {/* Progress chart */}
+                    <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-sm font-medium">
+                          Postęp nauki
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          Ostatnie 6 miesięcy
+                        </span>
+                      </div>
+                      <ResponsiveContainer width="100%" height={120}>
+                        <AreaChart data={progressData}>
+                          <defs>
+                            <linearGradient
+                              id="colorProgress"
+                              x1="0"
+                              y1="0"
+                              x2="0"
+                              y2="1"
+                            >
+                              <stop
+                                offset="5%"
+                                stopColor="#CE0477"
+                                stopOpacity={0.3}
+                              />
+                              <stop
+                                offset="95%"
+                                stopColor="#CE0477"
+                                stopOpacity={0}
+                              />
+                            </linearGradient>
+                          </defs>
+                          <Area
+                            type="monotone"
+                            dataKey="value"
+                            stroke="#CE0477"
+                            strokeWidth={2}
+                            fill="url(#colorProgress)"
                           />
                           <XAxis
-                            dataKey="day"
-                            tick={{ fontSize: 12 }}
-                            tickLine={false}
-                          />
-                          <YAxis
-                            tick={{ fontSize: 12 }}
-                            tickLine={false}
+                            dataKey="name"
                             axisLine={false}
+                            tickLine={false}
+                            tick={{ fontSize: 11 }}
                           />
-                          <Tooltip
-                            content={<CustomTooltip />}
-                            cursor={{ fill: "transparent" }}
-                          />
-                          <Bar
-                            dataKey="aktywni"
-                            fill="hsl(var(--primary))"
-                            radius={[8, 8, 0, 0]}
-                          />
-                        </RechartsBarChart>
+                          <YAxis hide />
+                        </AreaChart>
                       </ResponsiveContainer>
                     </div>
 
-                    {/* Upcoming Events */}
-                    <div className="mt-6 space-y-3">
-                      <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <MapPin className="w-4 h-4 text-primary" />
-                          <div>
-                            <span className="text-sm font-medium">
-                              Salsa Night
-                            </span>
-                            <p className="text-xs text-muted-foreground">
-                              Klub Proxima, dziś 20:00
-                            </p>
-                          </div>
-                        </div>
-                        <Badge variant="secondary" className="text-xs">
-                          23 osoby
-                        </Badge>
+                    {/* Active courses */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">Aktywne kursy</span>
+                        <a href="#" className="text-[#604A97] hover:underline">
+                          Zobacz wszystkie
+                        </a>
                       </div>
-                      <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <Award className="w-4 h-4 text-amber-500" />
-                          <div>
-                            <span className="text-sm font-medium">
-                              Workshop: Bachata
-                            </span>
-                            <p className="text-xs text-muted-foreground">
-                              Studio Dance, sob 14:00
-                            </p>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-[#CE0477] to-[#604A97] rounded-lg flex items-center justify-center">
+                              <Gamepad2 className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-sm">
+                                JavaScript: Gra w kodowanie
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                Rozdział 4 z 12
+                              </div>
+                            </div>
                           </div>
+                          <ChevronRight className="w-4 h-4 text-gray-400" />
                         </div>
-                        <Badge variant="secondary" className="text-xs">
-                          8 miejsc
-                        </Badge>
+
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-[#47B8B2] to-[#49A6C9] rounded-lg flex items-center justify-center">
+                              <BarChart3 className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-sm">
+                                Analiza danych: Quest
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                Rozdział 7 z 10
+                              </div>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-gray-400" />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-32 bg-muted/20">
+      {/* Features Grid - Bauhaus Style */}
+      <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-6">
-          <div className="text-center mb-20">
-            <Badge className="mb-6" variant="outline">
-              <Sparkles className="mr-2 h-3 w-3" />
-              Wszystko w jednym miejscu
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-6">
-              PLATFORMA DLA <span className="text-primary">TANCERZY</span>
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">
+              Funkcje, które{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#CE0477] to-[#604A97]">
+                angażują
+              </span>
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Kompleksowe rozwiązanie dla społeczności tanecznej
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              System zaprojektowany, aby uczynić naukę uzależniającą jak
+              najlepsza gra
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card
-                key={index}
-                className="relative overflow-hidden border hover:shadow-lg transition-all duration-300"
-              >
-                <div
-                  className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-30`}
-                />
-                <CardContent className="relative p-8">
-                  <feature.icon className="w-12 h-12 text-primary mb-6" />
-                  <h3 className="text-2xl font-bold mb-4">{feature.title}</h3>
-                  <p className="text-muted-foreground mb-6">{feature.desc}</p>
-                  <div className="space-y-3">
-                    {feature.features.map((item, i) => (
-                      <div key={i} className="flex items-center gap-3">
-                        <CheckCircle2 className="w-4 h-4 text-primary" />
-                        <span className="text-sm">{item}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Partner Matching Feature */}
-          <Card className="mt-12 overflow-hidden">
-            <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10">
-              <CardContent className="p-12 text-center">
-                <Heart className="w-16 h-16 text-primary mx-auto mb-6" />
-                <h3 className="text-3xl font-bold mb-4">
-                  ZNAJDŹ IDEALNEGO{" "}
-                  <span className="text-primary">PARTNERA</span>
-                </h3>
-                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                  Nasz inteligentny system dopasowań pomoże Ci znaleźć osobę o
-                  podobnym poziomie umiejętności, preferencjach muzycznych i
-                  dostępności czasowej. Taniec we dwoje nigdy nie był prostszy!
-                </p>
-              </CardContent>
-            </div>
-          </Card>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-32">
-        <div className="container mx-auto px-6">
-          <div className="max-w-4xl">
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-20">
-              JAK TO <span className="text-primary">DZIAŁA</span>
-            </h2>
-
-            <div className="space-y-16">
-              {[
-                {
-                  num: "01",
-                  title: "STWÓRZ PROFIL",
-                  desc: "Opisz swoje umiejętności, style tańca i cele. System gamifikacji rozpocznie śledzenie Twoich postępów.",
-                },
-                {
-                  num: "02",
-                  title: "ODKRYWAJ WYDARZENIA",
-                  desc: "Przeglądaj imprezy w klubach, warsztaty w szkołach tańca i spontaniczne spotkania plenerowe.",
-                },
-                {
-                  num: "03",
-                  title: "UCZ SIĘ I UCZ INNYCH",
-                  desc: "Dołącz do lekcji prowadzonych przez doświadczonych tancerzy lub sam zostań trenerem.",
-                },
-                {
-                  num: "04",
-                  title: "BUDUJ SPOŁECZNOŚĆ",
-                  desc: "Poznawaj nowych ludzi, znajduj partnerów tanecznych i rozwijaj swoją pasję razem z innymi.",
-                },
-              ].map((step, index) => (
-                <div key={index} className="flex gap-8 items-start">
-                  <div className="text-6xl font-black text-muted-foreground/20 w-24 flex-shrink-0">
-                    {step.num}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold mb-3">{step.title}</h3>
-                    <p className="text-lg text-muted-foreground">{step.desc}</p>
-                  </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Feature 1 */}
+            <div
+              className="group relative bg-white rounded-2xl p-8 hover:shadow-lg transition-all duration-300 cursor-pointer border border-gray-100"
+              onMouseEnter={() => setHoveredCard(0)}
+              onMouseLeave={() => setHoveredCard(null)}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-[#CE0477]/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative">
+                <div className="w-14 h-14 bg-gradient-to-br from-[#CE0477] to-[#604A97] rounded-2xl flex items-center justify-center mb-6">
+                  <Trophy className="w-7 h-7 text-white" />
                 </div>
-              ))}
+                <h3 className="text-xl font-bold mb-3">System poziomów</h3>
+                <p className="text-gray-600 mb-4">
+                  99 poziomów do zdobycia. Każdy poziom odblokowuje nowe
+                  możliwości i nagrody.
+                </p>
+                <div className="flex items-center text-sm text-[#CE0477] font-medium">
+                  Dowiedz się więcej
+                  <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </div>
+
+            {/* Feature 2 */}
+            <div
+              className="group relative bg-white rounded-2xl p-8 hover:shadow-lg transition-all duration-300 cursor-pointer border border-gray-100"
+              onMouseEnter={() => setHoveredCard(1)}
+              onMouseLeave={() => setHoveredCard(null)}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-[#604A97]/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative">
+                <div className="w-14 h-14 bg-gradient-to-br from-[#604A97] to-[#47B8B2] rounded-2xl flex items-center justify-center mb-6">
+                  <Coins className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-xl font-bold mb-3">Idle Points</h3>
+                <p className="text-gray-600 mb-4">
+                  Zdobywaj punkty nawet gdy nie uczysz się aktywnie. System
+                  pasywnego rozwoju.
+                </p>
+                <div className="flex items-center text-sm text-[#604A97] font-medium">
+                  Dowiedz się więcej
+                  <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </div>
+
+            {/* Feature 3 */}
+            <div
+              className="group relative bg-white rounded-2xl p-8 hover:shadow-lg transition-all duration-300 cursor-pointer border border-gray-100"
+              onMouseEnter={() => setHoveredCard(2)}
+              onMouseLeave={() => setHoveredCard(null)}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-[#47B8B2]/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative">
+                <div className="w-14 h-14 bg-gradient-to-br from-[#47B8B2] to-[#49A6C9] rounded-2xl flex items-center justify-center mb-6">
+                  <Target className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-xl font-bold mb-3">Wyzwania</h3>
+                <p className="text-gray-600 mb-4">
+                  Codzienne i tygodniowe wyzwania z dodatkowymi nagrodami za
+                  ukończenie.
+                </p>
+                <div className="flex items-center text-sm text-[#47B8B2] font-medium">
+                  Dowiedz się więcej
+                  <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </div>
+
+            {/* Feature 4 */}
+            <div
+              className="group relative bg-white rounded-2xl p-8 hover:shadow-lg transition-all duration-300 cursor-pointer border border-gray-100"
+              onMouseEnter={() => setHoveredCard(3)}
+              onMouseLeave={() => setHoveredCard(null)}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-[#CE7314]/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative">
+                <div className="w-14 h-14 bg-gradient-to-br from-[#CE7314] to-[#CFBD04] rounded-2xl flex items-center justify-center mb-6">
+                  <Users className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-xl font-bold mb-3">Rankingi</h3>
+                <p className="text-gray-600 mb-4">
+                  Rywalizuj z innymi uczniami. Rankingi globalne, lokalne i
+                  grupowe.
+                </p>
+                <div className="flex items-center text-sm text-[#CE7314] font-medium">
+                  Dowiedz się więcej
+                  <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </div>
+
+            {/* Feature 5 */}
+            <div
+              className="group relative bg-white rounded-2xl p-8 hover:shadow-lg transition-all duration-300 cursor-pointer border border-gray-100"
+              onMouseEnter={() => setHoveredCard(4)}
+              onMouseLeave={() => setHoveredCard(null)}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-[#604A97]/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative">
+                <div className="w-14 h-14 bg-gradient-to-br from-[#604A97] to-[#CE0477] rounded-2xl flex items-center justify-center mb-6">
+                  <Award className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-xl font-bold mb-3">Odznaki</h3>
+                <p className="text-gray-600 mb-4">
+                  Kolekcjonuj unikalne odznaki za osiągnięcia i kamienie milowe.
+                </p>
+                <div className="flex items-center text-sm text-[#604A97] font-medium">
+                  Dowiedz się więcej
+                  <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </div>
+
+            {/* Feature 6 */}
+            <div
+              className="group relative bg-white rounded-2xl p-8 hover:shadow-lg transition-all duration-300 cursor-pointer border border-gray-100"
+              onMouseEnter={() => setHoveredCard(5)}
+              onMouseLeave={() => setHoveredCard(null)}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-[#47B8B2]/5 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative">
+                <div className="w-14 h-14 bg-gradient-to-br from-[#47B8B2] to-[#604A97] rounded-2xl flex items-center justify-center mb-6">
+                  <BarChart3 className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-xl font-bold mb-3">Analityka</h3>
+                <p className="text-gray-600 mb-4">
+                  Szczegółowe statystyki postępów i personalizowane
+                  rekomendacje.
+                </p>
+                <div className="flex items-center text-sm text-[#47B8B2] font-medium">
+                  Dowiedz się więcej
+                  <ArrowRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-32 bg-muted/20">
+      {/* How it works - Modern Timeline */}
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <h2 className="text-4xl font-bold mb-4">
+              Jak to{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#CE0477] to-[#604A97]">
+                działa
+              </span>
+            </h2>
+            <p className="text-lg text-gray-600">
+              Cztery proste kroki do rozpoczęcia nauki z gamifikacją
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto">
+            <div className="relative">
+              {/* Timeline line */}
+              <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-200" />
+
+              {/* Steps */}
+              <div className="space-y-12">
+                {[
+                  {
+                    number: "01",
+                    title: "Stwórz profil",
+                    description:
+                      "Wybierz swoją rolę i spersonalizuj doświadczenie nauki",
+                    icon: Users,
+                    color: "from-[#CE0477] to-[#604A97]",
+                  },
+                  {
+                    number: "02",
+                    title: "Wybierz kursy",
+                    description:
+                      "Przeglądaj bibliotekę kursów i wybierz te, które Cię interesują",
+                    icon: GraduationCap,
+                    color: "from-[#604A97] to-[#47B8B2]",
+                  },
+                  {
+                    number: "03",
+                    title: "Ucz się i graj",
+                    description:
+                      "Rozwiązuj quizy, zdobywaj punkty i awansuj na kolejne poziomy",
+                    icon: Gamepad2,
+                    color: "from-[#47B8B2] to-[#49A6C9]",
+                  },
+                  {
+                    number: "04",
+                    title: "Śledź postępy",
+                    description:
+                      "Monitoruj swoje osiągnięcia i rywalizuj z innymi",
+                    icon: TrendingUp,
+                    color: "from-[#CE7314] to-[#CFBD04]",
+                  },
+                ].map((step, index) => (
+                  <div key={index} className="relative flex items-start gap-8">
+                    {/* Icon */}
+                    <div
+                      className={`relative z-10 w-16 h-16 bg-gradient-to-br ${step.color} rounded-2xl flex items-center justify-center shadow-lg`}
+                    >
+                      <step.icon className="w-8 h-8 text-white" />
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 pt-2">
+                      <div className="flex items-center gap-4 mb-2">
+                        <span className="text-4xl font-bold text-gray-200">
+                          {step.number}
+                        </span>
+                        <h3 className="text-2xl font-bold">{step.title}</h3>
+                      </div>
+                      <p className="text-gray-600 text-lg">
+                        {step.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section - Clean Grid */}
+      <section className="py-20 bg-gradient-to-br from-gray-900 to-gray-800">
+        <div className="container mx-auto px-6">
+          <div className="grid md:grid-cols-4 gap-8">
             {[
-              {
-                icon: Users,
-                value: "15k+",
-                label: "AKTYWNYCH TANCERZY",
-                desc: "Rosnąca społeczność pasjonatów",
-              },
-              {
-                icon: Calendar,
-                value: "500+",
-                label: "WYDARZEŃ MIESIĘCZNIE",
-                desc: "W całej Polsce",
-              },
-              {
-                icon: Star,
-                value: "4.8/5",
-                label: "OCENA APLIKACJI",
-                desc: "Od naszych użytkowników",
-              },
+              { value: "15k+", label: "Aktywnych uczniów", icon: Users },
+              { value: "200+", label: "Kursów", icon: GraduationCap },
+              { value: "92%", label: "Ukończalność", icon: Target },
+              { value: "4.9/5", label: "Ocena", icon: Star },
             ].map((stat, index) => (
-              <Card key={index} className="text-center border-0 shadow-sm">
-                <CardContent className="p-8">
-                  <stat.icon className="w-10 h-10 text-primary mx-auto mb-6" />
-                  <div className="text-4xl font-black text-primary mb-2">
-                    {stat.value}
-                  </div>
-                  <div className="text-sm font-semibold uppercase tracking-wider mb-2">
-                    {stat.label}
-                  </div>
-                  <p className="text-sm text-muted-foreground">{stat.desc}</p>
-                </CardContent>
-              </Card>
+              <div key={index} className="text-center">
+                <stat.icon className="w-8 h-8 mx-auto mb-4 text-white/60" />
+                <div className="text-4xl font-bold text-white mb-2">
+                  {stat.value}
+                </div>
+                <div className="text-sm text-white/60">{stat.label}</div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-32">
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-6">
-          <Card className="max-w-4xl mx-auto shadow-xl">
-            <CardContent className="p-12 md:p-16 text-center">
-              <h2 className="text-3xl md:text-5xl font-black mb-6">
-                ZATAŃCZ Z <span className="text-primary">NAMI</span>
-              </h2>
-              <p className="text-xl text-muted-foreground mb-10 max-w-2xl mx-auto">
-                Dołącz do największej społeczności tanecznej w Polsce. Pierwsze
-                30 dni premium gratis!
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-                <Button
-                  size="lg"
-                  className="px-8 py-6 text-lg"
-                  onClick={() => navigate("/register")}
-                >
-                  Dołącz za darmo
-                </Button>
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-4xl font-bold mb-6">
+              Gotowy na naukę, która{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#CE0477] to-[#604A97]">
+                wciąga
+              </span>
+              ?
+            </h2>
+            <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+              Dołącz do tysięcy uczniów, którzy odkryli radość z nauki dzięki
+              gamifikacji. Pierwsze 30 dni gratis.
+            </p>
 
-                <Button
-                  onClick={() => navigate("/app-preview")}
-                  size="lg"
-                  variant="outline"
-                  className="px-8 py-6 text-lg"
-                >
-                  Zobacz aplikację
-                </Button>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Bez zobowiązań • Premium 30 dni gratis • Anuluj w każdej chwili
-              </p>
-            </CardContent>
-          </Card>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+              <Input
+                type="email"
+                placeholder="twoj@email.pl"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="max-w-xs h-12"
+              />
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-[#CE0477] to-[#604A97] hover:opacity-90 text-white px-8 h-12"
+                onClick={() => navigate("/register")}
+              >
+                Rozpocznij za darmo
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+
+            <p className="text-sm text-gray-500">
+              Bez karty kredytowej • Anuluj w każdej chwili • Pełny dostęp
+            </p>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t">
-        <div className="container mx-auto px-6 py-12">
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="text-2xl font-black tracking-tighter flex items-center gap-2">
-              <Music className="w-6 h-6 text-primary" />
-              SMART UP<span className="text-primary">.</span>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
+                <Trophy className="w-4 h-4" />
+              </div>
+              <span className="text-lg font-bold">Smart Up</span>
             </div>
-            <div className="text-sm text-muted-foreground">
-              © 2025 Smart Up. Stworzone z pasją dla tańca.
+            <div className="text-sm text-white/60">
+              © 2025 Smart Up. Wszystkie prawa zastrzeżone.
             </div>
           </div>
         </div>

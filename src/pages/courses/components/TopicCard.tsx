@@ -9,7 +9,6 @@ import {
   ChevronRight,
   GripVertical,
   FileText,
-  Clock,
 } from "lucide-react";
 import { Button, Badge } from "@/components/ui";
 import { FlexBox } from "@/components/shared";
@@ -55,17 +54,17 @@ export const TopicCard = ({
   };
 
   return (
-    <div className={`border-2 rounded-lg overflow-hidden transition-all duration-200 group ${
+    <div className={`border-2 rounded-lg overflow-hidden group ${
       isExpanded ? 'shadow-lg border-primary' : 'border-border hover:border-primary/50'
     }`}>
-      <div className={`p-4 transition-colors duration-200 ${
+      <div className={`p-4 ${
         isExpanded ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-muted'
       }`}>
         <FlexBox>
           <div className="flex items-center gap-3 flex-1">
             <button
               onClick={onToggle}
-              className={`p-1 rounded transition-colors ${
+              className={`p-1 rounded ${
                 isExpanded ? 'text-primary-foreground hover:bg-primary-foreground/20' : 'hover:bg-muted'
               }`}
               aria-label={isExpanded ? "Zwiń temat" : "Rozwiń temat"}
@@ -88,7 +87,7 @@ export const TopicCard = ({
               onClick={onToggle}
             >
               <div className="flex items-center gap-3">
-                <h4 className={`font-semibold text-base transition-colors ${
+                <h4 className={`font-semibold text-base ${
                   isExpanded ? 'text-primary-foreground' : 'group-hover:text-primary'
                 }`}>
                   Temat {topic.position}: {topic.title}
