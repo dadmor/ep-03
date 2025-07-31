@@ -7,7 +7,8 @@ import {
   Trash2, 
   Eye,
   Calendar,
-  MoreVertical
+  MoreVertical,
+  BookOpen
 } from "lucide-react";
 import { FlexBox, GridBox } from "@/components/shared";
 import { PaginationSwith } from "@/components/navigation";
@@ -29,6 +30,8 @@ interface Group {
   is_active: boolean;
   created_at: string;
   vendor_id: number;
+  group_members?: Array<{ count: number }>;
+  course_access?: Array<{ count: number }>;
   _count?: {
     group_members: number;
     course_access: number;
@@ -55,7 +58,7 @@ export const GroupsList = () => {
       ],
     },
     meta: {
-      select: '*, group_members(count), course_access(count)'
+      select: '*, group_members:group_members(count), course_access:course_access(count)'
     }
   });
   
@@ -102,7 +105,16 @@ export const GroupsList = () => {
 
       <GridBox>
         {data?.data?.map((group) => (
-          <Card key={group.id}>
+          <Card 
+            key={group.id} 
+            className="cursor-pointer transition-shadow hover:shadow-lg"
+            onClick={(e) => {
+              // Sprawdź czy nie kliknięto w dropdown menu
+              if (!(e.target as HTMLElement).closest('[role="menu"]')) {
+                show("groups", group.id);
+              }
+            }}
+          >
             <CardHeader>
               <FlexBox>
                 <CardTitle className="flex items-center gap-2">
@@ -112,7 +124,11 @@ export const GroupsList = () => {
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -137,21 +153,47 @@ export const GroupsList = () => {
               </FlexBox>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {group.academic_year}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    {group._count?.group_members || 0} uczniów
-                  </span>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="w-4 h-4" />
+                  <span>Rok akademicki: {group.academic_year}</span>
                 </div>
                 
-                <Badge variant={group.is_active ? "default" : "secondary"}>
-                  {group.is_active ? "Aktywna" : "Nieaktywna"}
-                </Badge>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-background rounded-md">
+                        <Users className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Uczniowie</p>
+                        <p className="text-lg font-semibold">
+                          {group.group_members?.[0]?.count || group._count?.group_members || 0}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-background rounded-md">
+                        <BookOpen className="w-4 h-4 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Kursy</p>
+                        <p className="text-lg font-semibold">
+                          {group.course_access?.[0]?.count || group._count?.course_access || 0}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end">
+                  <Badge variant={group.is_active ? "default" : "secondary"}>
+                    {group.is_active ? "Aktywna" : "Nieaktywna"}
+                  </Badge>
+                </div>
               </div>
             </CardContent>
           </Card>
