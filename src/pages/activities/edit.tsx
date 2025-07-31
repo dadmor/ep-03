@@ -20,6 +20,20 @@ import { toast } from "sonner";
 import { BackToCourseButton } from "../courses/components/BackToCourseButton";
 import { useEffect } from "react";
 
+interface ActivityFormData {
+  id: number;
+  topic_id: number;
+  type: string;
+  title: string;
+  content?: string;
+  position: number;
+  duration_min?: number;
+  is_published: boolean;
+  passing_score?: number;
+  time_limit?: number;
+  max_attempts?: number;
+}
+
 export const ActivitiesEdit = () => {
   const { list } = useNavigation();
   const { id } = useParams();
@@ -30,7 +44,20 @@ export const ActivitiesEdit = () => {
     id: id as string,
     liveMode: "off",
     meta: {
-      select: "*, topics(*, courses(*)), questions(count)",
+      select: "*, topics(*, courses(*))",
+    },
+  });
+
+  // Pobierz liczbę pytań osobno
+  const { data: questionsCount } = useOne({
+    resource: "questions",
+    id: id as string,
+    meta: {
+      select: "count",
+      filter: `activity_id.eq.${id}`,
+    },
+    queryOptions: {
+      enabled: !!id && data?.data?.type === "quiz",
     },
   });
 
@@ -42,7 +69,7 @@ export const ActivitiesEdit = () => {
     watch,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm({
+  } = useForm<ActivityFormData>({
     refineCoreProps: {
       resource: "activities",
       id: id as string,
@@ -67,13 +94,31 @@ export const ActivitiesEdit = () => {
           list("activities");
         }
       },
+      onMutationError: (error: any) => {
+        console.error("Błąd podczas aktualizacji:", error);
+        
+        // Obsługa błędów
+        if (error?.code === "PGRST204") {
+          toast.error("Błąd konfiguracji - skontaktuj się z administratorem");
+        } else if (error?.code === "23505") {
+          toast.error("Aktywność o tej pozycji już istnieje w tym temacie");
+        } else if (error?.code === "23503") {
+          toast.error("Nieprawidłowe powiązanie z tematem");
+        } else if (error?.message) {
+          toast.error(`Błąd: ${error.message}`);
+        } else {
+          toast.error("Wystąpił nieoczekiwany błąd. Spróbuj ponownie.");
+        }
+      },
     },
   });
 
   // Ustaw wartości formularza gdy dane się załadują
   useEffect(() => {
     if (data?.data) {
-      reset(data.data);
+      // Wyczyść dane z niepotrzebnych pól
+      const { topics, _count, questions, ...activityData } = data.data;
+      reset(activityData);
     }
   }, [data, reset]);
 
@@ -124,6 +169,9 @@ export const ActivitiesEdit = () => {
     navigate(`/questions/manage/${activity?.id}`);
   };
 
+  // Oblicz liczbę pytań z różnych możliwych formatów
+  const numberOfQuestions = questionsCount?.data?.[0]?.count || 0;
+
   return (
     <SubPage>
       <BackToCourseButton />
@@ -151,7 +199,7 @@ export const ActivitiesEdit = () => {
             variant="outline"
           >
             <ListChecks className="w-4 h-4 mr-2" />
-            Zarządzaj pytaniami ({activity?._count?.questions || 0})
+            Zarządzaj pytaniami ({numberOfQuestions})
           </Button>
         )}
       </FlexBox>
@@ -348,14 +396,14 @@ export const ActivitiesEdit = () => {
                   </FormControl>
                 </GridBox>
 
-                {activity?._count?.questions !== undefined && (
+                {numberOfQuestions > 0 && (
                   <Card className="mt-4 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
                     <CardContent className="pt-6">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium">
-                            Ten quiz zawiera {activity._count.questions}{" "}
-                            {activity._count.questions === 1
+                            Ten quiz zawiera {numberOfQuestions}{" "}
+                            {numberOfQuestions === 1
                               ? "pytanie"
                               : "pytań"}
                           </p>
@@ -364,7 +412,7 @@ export const ActivitiesEdit = () => {
                           </p>
                         </div>
                         <Badge variant="outline" className="text-lg px-3 py-1">
-                          {activity._count.questions}
+                          {numberOfQuestions}
                         </Badge>
                       </div>
                     </CardContent>
