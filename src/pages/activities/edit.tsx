@@ -18,9 +18,10 @@ import { SubPage } from "@/components/layout";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { BackToCourseButton } from "../courses/components/BackToCourseButton";
+import { useEffect } from "react";
 
 export const ActivitiesEdit = () => {
-  const { list, show } = useNavigation();
+  const { list } = useNavigation();
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -34,11 +35,12 @@ export const ActivitiesEdit = () => {
   });
 
   const {
-    refineCore: { onFinish },
+    refineCore: { onFinish, formLoading },
     register,
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm({
     refineCoreProps: {
@@ -68,9 +70,16 @@ export const ActivitiesEdit = () => {
     },
   });
 
+  // Ustaw wartości formularza gdy dane się załadują
+  useEffect(() => {
+    if (data?.data) {
+      reset(data.data);
+    }
+  }, [data, reset]);
+
   const activityType = watch("type") || data?.data?.type || "material";
 
-  if (isLoading) {
+  if (isLoading || formLoading) {
     return (
       <SubPage>
         <div className="flex items-center justify-center min-h-[400px]">
@@ -108,6 +117,13 @@ export const ActivitiesEdit = () => {
     );
   };
 
+  const handleManageQuestions = () => {
+    // Zapisz obecny URL przed przejściem do pytań
+    const currentUrl = window.location.pathname + window.location.search;
+    sessionStorage.setItem('returnUrl', currentUrl);
+    navigate(`/questions/manage/${activity?.id}`);
+  };
+
   return (
     <SubPage>
       <BackToCourseButton />
@@ -131,7 +147,7 @@ export const ActivitiesEdit = () => {
         />
         {activityType === "quiz" && (
           <Button
-            onClick={() => navigate(`/questions/manage/${activity?.id}`)}
+            onClick={handleManageQuestions}
             variant="outline"
           >
             <ListChecks className="w-4 h-4 mr-2" />

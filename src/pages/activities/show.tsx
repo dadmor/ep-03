@@ -1,4 +1,4 @@
-import { useOne, useNavigation } from "@refinedev/core";
+import { useOne, useNavigation, useList } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Edit,
@@ -10,6 +10,9 @@ import {
   RefreshCw,
   ListChecks,
   Plus,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
 } from "lucide-react";
 import { Button, Badge } from "@/components/ui";
 import { FlexBox, GridBox } from "@/components/shared";
@@ -28,7 +31,28 @@ export const ActivitiesShow = () => {
     resource: "activities",
     id: id as string,
     meta: {
-      select: "*, topics(*, courses(*)), questions(count)",
+      select: "*, topics(*, courses(*)), questions:questions(count)",
+    },
+  });
+
+  // Pobierz listę pytań dla quizu
+  const { data: questionsData, isLoading: questionsLoading } = useList({
+    resource: "questions",
+    filters: [
+      {
+        field: "activity_id",
+        operator: "eq",
+        value: parseInt(id as string),
+      },
+    ],
+    sorters: [
+      {
+        field: "position",
+        order: "asc",
+      },
+    ],
+    queryOptions: {
+      enabled: activityData?.data?.type === "quiz" && !!id,
     },
   });
 
@@ -45,8 +69,9 @@ export const ActivitiesShow = () => {
   const activity = activityData?.data;
   const topic = activity?.topics;
   const course = topic?.courses;
-  const courseId = course?.id;
-  const topicId = activity?.topic_id;
+  
+  // Obsługa różnych formatów odpowiedzi Supabase dla count
+  const questionsCount = activity?.questions?.[0]?.count || activity?._count?.questions || 0;
 
   const handleEdit = () => {
     // Zapisz obecny stan przed edycją
@@ -108,7 +133,7 @@ export const ActivitiesShow = () => {
               onClick={() => handleNavigateWithState(`/questions/manage/${activity.id}`)}
             >
               <ListChecks className="w-4 h-4 mr-2" />
-              Pytania ({activity._count?.questions || 0})
+              Pytania ({questionsCount})
             </Button>
           )}
           <Button onClick={handleEdit}>
@@ -198,68 +223,137 @@ export const ActivitiesShow = () => {
 
       {/* Informacje o quizie */}
       {activity?.type === "quiz" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Informacje o quizie</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {activity._count?.questions === 0 ? (
-                <div className="text-center py-8">
-                  <HelpCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p className="text-lg font-medium text-muted-foreground mb-4">
-                    Ten quiz nie ma jeszcze pytań
-                  </p>
-                  <Button
-                    onClick={() => handleNavigateWithState(`/questions/manage/${activity.id}`)}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Dodaj pytania
-                  </Button>
-                </div>
-              ) : (
-                <div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">
-                        Liczba pytań
-                      </p>
-                      <p className="text-2xl font-bold">
-                        {activity._count?.questions || 0}
-                      </p>
-                    </div>
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">
-                        Wymagany wynik
-                      </p>
-                      <p className="text-2xl font-bold">
-                        {activity.passing_score || 70}%
-                      </p>
-                    </div>
-                    <div className="p-4 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">
-                        Limit czasu
-                      </p>
-                      <p className="text-2xl font-bold">
-                        {activity.time_limit
-                          ? `${activity.time_limit} min`
-                          : "Brak"}
-                      </p>
-                    </div>
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Informacje o quizie</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {questionsCount === 0 ? (
+                  <div className="text-center py-8">
+                    <HelpCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <p className="text-lg font-medium text-muted-foreground mb-4">
+                      Ten quiz nie ma jeszcze pytań
+                    </p>
+                    <Button
+                      onClick={() => handleNavigateWithState(`/questions/manage/${activity.id}`)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Dodaj pytania
+                    </Button>
                   </div>
+                ) : (
+                  <div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div className="p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          Liczba pytań
+                        </p>
+                        <p className="text-2xl font-bold">
+                          {questionsCount}
+                        </p>
+                      </div>
+                      <div className="p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          Wymagany wynik
+                        </p>
+                        <p className="text-2xl font-bold">
+                          {activity.passing_score || 70}%
+                        </p>
+                      </div>
+                      <div className="p-4 bg-muted rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          Limit czasu
+                        </p>
+                        <p className="text-2xl font-bold">
+                          {activity.time_limit
+                            ? `${activity.time_limit} min`
+                            : "Brak"}
+                        </p>
+                      </div>
+                    </div>
 
-                  <Button
-                    className="w-full"
-                    onClick={() => handleNavigateWithState(`/questions/manage/${activity.id}`)}
-                  >
-                    <ListChecks className="w-4 h-4 mr-2" />
-                    Zarządzaj pytaniami
-                  </Button>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                    <Button
+                      className="w-full"
+                      onClick={() => handleNavigateWithState(`/questions/manage/${activity.id}`)}
+                    >
+                      <ListChecks className="w-4 h-4 mr-2" />
+                      Zarządzaj pytaniami
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Lista pytań */}
+          {questionsCount > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Pytania w quizie</span>
+                  <Badge variant="outline">
+                    {questionsData?.data?.length || 0} pytań
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {questionsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {questionsData?.data?.map((question, index) => (
+                      <div 
+                        key={question.id} 
+                        className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium">
+                            {index + 1}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              {question.type === 'single_choice' && (
+                                <Badge variant="outline" className="text-xs">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Jednokrotny wybór
+                                </Badge>
+                              )}
+                              {question.type === 'multiple_choice' && (
+                                <Badge variant="outline" className="text-xs">
+                                  <ListChecks className="w-3 h-3 mr-1" />
+                                  Wielokrotny wybór
+                                </Badge>
+                              )}
+                              {question.type === 'true_false' && (
+                                <Badge variant="outline" className="text-xs">
+                                  <AlertCircle className="w-3 h-3 mr-1" />
+                                  Prawda/Fałsz
+                                </Badge>
+                              )}
+                              <Badge variant="secondary" className="text-xs">
+                                {question.points} pkt
+                              </Badge>
+                            </div>
+                            <p className="font-medium">{question.content}</p>
+                            {question.explanation && (
+                              <p className="text-sm text-muted-foreground mt-1">
+                                <span className="font-medium">Wyjaśnienie:</span> {question.explanation}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
       {/* Metadane */}
