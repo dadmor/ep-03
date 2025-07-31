@@ -1,7 +1,6 @@
-// src/pages/student/components/StudentCourseDetail.tsx
+// src/pages/student/components/StudentCourseDetail.tsx - POPRAWIONY
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useOne, useList } from "@refinedev/core";
 import { ChevronLeft, Clock, Target, BookOpen, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,72 +10,74 @@ import { SubPage } from "@/components/layout";
 import { FlexBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
 import { ActivityCard } from "./ActivityCard";
+import { useRPC } from "../hooks/useRPC";
+import { useSupabaseQuery } from "../hooks/useSupabaseQuery";
 
 export const StudentCourseDetail = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
 
+  // Pobierz strukturę kursu przez RPC
+  const { data: courseStructure, isLoading } = useRPC<any[]>(
+    'get_course_structure',
+    { p_course_id: parseInt(courseId!) },
+    { enabled: !!courseId }
+  );
+
   // Pobierz dane kursu
-  const { data: courseData, isLoading: courseLoading } = useOne({
-    resource: "courses",
-    id: courseId!,
+  const { data: courseData } = useSupabaseQuery('courses', {
+    filters: [{ field: 'id', operator: 'eq', value: parseInt(courseId!) }],
+    enabled: !!courseId
   });
 
-  // Pobierz tematy kursu
-  const { data: topicsData, isLoading: topicsLoading } = useList({
-    resource: "topics",
-    filters: [
-      {
-        field: "course_id",
-        operator: "eq",
-        value: courseId,
-      },
-    ],
-    sorters: [
-      {
-        field: "position",
-        order: "asc",
-      },
-    ],
-  });
+  // Grupuj aktywności według tematów - PRZENIESIONE PRZED WARUNKIEM
+  const topicsWithActivities = React.useMemo(() => {
+    if (!courseStructure) return [];
+    
+    const grouped = courseStructure.reduce((acc, item) => {
+      const topicKey = `${item.topic_id}-${item.topic_title}`;
+      if (!acc[topicKey]) {
+        acc[topicKey] = {
+          id: item.topic_id,
+          title: item.topic_title,
+          position: item.topic_position,
+          activities: []
+        };
+      }
+      
+      if (item.activity_id) {
+        acc[topicKey].activities.push({
+          id: item.activity_id,
+          title: item.activity_title,
+          type: item.activity_type,
+          position: item.activity_position,
+          completed: item.is_completed,
+          score: item.score
+        });
+      }
+      
+      return acc;
+    }, {} as Record<string, any>);
+    
+    return Object.values(grouped).sort((a, b) => a.position - b.position);
+  }, [courseStructure]);
 
-  // Pobierz aktywności
-  const { data: activitiesData } = useList({
-    resource: "activities",
-    filters: [
-      {
-        field: "topic_id",
-        operator: "in",
-        value: topicsData?.data?.map(t => t.id) || [],
-      },
-    ],
-    sorters: [
-      {
-        field: "position",
-        order: "asc",
-      },
-    ],
-    queryOptions: {
-      enabled: !!topicsData?.data?.length,
-    },
-  });
+  // Oblicz statystyki - PRZENIESIONE PRZED WARUNKIEM
+  const stats = React.useMemo(() => {
+    const allActivities = topicsWithActivities.flatMap(t => t.activities);
+    const completed = allActivities.filter(a => a.completed).length;
+    const total = allActivities.length;
+    
+    return {
+      totalActivities: total,
+      completedActivities: completed,
+      progress: total > 0 ? Math.round((completed / total) * 100) : 0,
+      topics: topicsWithActivities.length
+    };
+  }, [topicsWithActivities]);
 
-  // Pobierz postępy użytkownika
-  const { data: progressData } = useList({
-    resource: "activity_progress",
-    filters: [
-      {
-        field: "activity_id",
-        operator: "in",
-        value: activitiesData?.data?.map(a => a.id) || [],
-      },
-    ],
-    queryOptions: {
-      enabled: !!activitiesData?.data?.length,
-    },
-  });
-
-  if (courseLoading || topicsLoading) {
+  // WARUNEK LOADING PO WSZYSTKICH HOOKACH
+  if (isLoading) {
     return (
       <SubPage>
         <div className="flex items-center justify-center min-h-[400px]">
@@ -86,15 +87,7 @@ export const StudentCourseDetail = () => {
     );
   }
 
-  const course = courseData?.data;
-  const topics = topicsData?.data || [];
-  const activities = activitiesData?.data || [];
-  const progress = progressData?.data || [];
-
-  // Oblicz postęp kursu
-  const completedActivities = progress.filter(p => p.completed_at).length;
-  const totalActivities = activities.length;
-  const courseProgress = totalActivities > 0 ? Math.round((completedActivities / totalActivities) * 100) : 0;
+  const course = courseData?.[0];
 
   return (
     <SubPage>
@@ -121,35 +114,33 @@ export const StudentCourseDetail = () => {
               <p className="text-white/80 max-w-2xl">{course?.description}</p>
             </div>
             <Badge className="bg-white/20 text-white border-white/30">
-              {courseProgress}% ukończone
+              {stats.progress}% ukończone
             </Badge>
           </div>
 
           <div className="grid grid-cols-3 gap-6 mt-8">
             <div>
               <p className="text-sm text-white/60">Postęp</p>
-              <p className="text-2xl font-bold">{completedActivities}/{totalActivities}</p>
+              <p className="text-2xl font-bold">{stats.completedActivities}/{stats.totalActivities}</p>
             </div>
             <div>
               <p className="text-sm text-white/60">Tematy</p>
-              <p className="text-2xl font-bold">{topics.length}</p>
+              <p className="text-2xl font-bold">{stats.topics}</p>
             </div>
             <div>
               <p className="text-sm text-white/60">Czas trwania</p>
-              <p className="text-2xl font-bold">~{Math.ceil(totalActivities * 15 / 60)}h</p>
+              <p className="text-2xl font-bold">~{Math.ceil(stats.totalActivities * 15 / 60)}h</p>
             </div>
           </div>
 
-          <Progress value={courseProgress} className="mt-6 h-3 bg-white/20" />
+          <Progress value={stats.progress} className="mt-6 h-3 bg-white/20" />
         </div>
 
         {/* Tematy i aktywności */}
         <div className="space-y-6">
-          {topics.map((topic) => {
-            const topicActivities = activities.filter(a => a.topic_id === topic.id);
-            const topicProgress = progress.filter(p => 
-              topicActivities.some(a => a.id === p.activity_id) && p.completed_at
-            ).length;
+          {topicsWithActivities.map((topic) => {
+            const topicCompleted = topic.activities.filter((a: any) => a.completed).length;
+            const isTopicComplete = topicCompleted === topic.activities.length;
 
             return (
               <Card key={topic.id}>
@@ -160,10 +151,10 @@ export const StudentCourseDetail = () => {
                         Temat {topic.position}: {topic.title}
                       </CardTitle>
                       <p className="text-sm text-muted-foreground mt-1">
-                        {topicProgress}/{topicActivities.length} aktywności ukończonych
+                        {topicCompleted}/{topic.activities.length} aktywności ukończonych
                       </p>
                     </div>
-                    {topicProgress === topicActivities.length && (
+                    {isTopicComplete && (
                       <Badge variant="secondary" className="gap-1">
                         <CheckCircle2 className="w-3 h-3" />
                         Ukończony
@@ -172,31 +163,26 @@ export const StudentCourseDetail = () => {
                   </FlexBox>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {topicActivities.map((activity) => {
-                    const activityProgress = progress.find(p => p.activity_id === activity.id);
-                    
-                    return (
-                      <ActivityCard
-                        key={activity.id}
-                        activity={{
-                          id: activity.id,
-                          title: activity.title,
-                          type: activity.type,
-                          completed: !!activityProgress?.completed_at,
-                          score: activityProgress?.score,
-                          duration: activity.duration_min,
-                          points: activity.type === 'quiz' ? 20 : 10,
-                        }}
-                        onStart={() => {
-                          if (activity.type === 'quiz') {
-                            navigate(`/student/courses/${courseId}/quiz/${activity.id}`);
-                          } else {
-                            navigate(`/student/courses/${courseId}/lesson/${activity.id}`);
-                          }
-                        }}
-                      />
-                    );
-                  })}
+                  {topic.activities.map((activity: any) => (
+                    <ActivityCard
+                      key={activity.id}
+                      activity={{
+                        id: activity.id,
+                        title: activity.title,
+                        type: activity.type,
+                        completed: activity.completed,
+                        score: activity.score,
+                        points: activity.type === 'quiz' ? 20 : 10,
+                      }}
+                      onStart={() => {
+                        if (activity.type === 'quiz') {
+                          navigate(`/student/courses/${courseId}/quiz/${activity.id}`);
+                        } else {
+                          navigate(`/student/courses/${courseId}/lesson/${activity.id}`);
+                        }
+                      }}
+                    />
+                  ))}
                 </CardContent>
               </Card>
             );

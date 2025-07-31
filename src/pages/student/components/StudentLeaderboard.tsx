@@ -1,12 +1,13 @@
-// src/pages/student/components/StudentLeaderboard.tsx
+// src/pages/student/components/StudentLeaderboard.tsx - POPRAWIONY
 import React from "react";
-import { useCustom, useGetIdentity } from "@refinedev/core";
+import { useGetIdentity } from "@refinedev/core";
 import { Trophy, Medal, Award } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SubPage } from "@/components/layout";
 import { Lead } from "@/components/reader";
+import { useRPC } from "../hooks/useRPC";
 
 interface LeaderboardEntry {
   rank: number;
@@ -21,16 +22,18 @@ export const StudentLeaderboard = () => {
   const { data: identity } = useGetIdentity<any>();
   const [filter, setFilter] = React.useState<"all" | "students" | "teachers">("all");
 
-  const { data: leaderboardData, isLoading } = useCustom({
-    url: "rpc/get_leaderboard",
-    method: "post",
-    config: {
-      payload: {
-        p_limit: 20,
-        p_filter: filter
-      }
+  const { data: leaderboardData, isLoading, refetch } = useRPC<LeaderboardEntry[]>(
+    'get_leaderboard',
+    { 
+      p_limit: 20,
+      p_filter: filter 
     }
-  });
+  );
+
+  // Refetch when filter changes
+  React.useEffect(() => {
+    refetch();
+  }, [filter]);
 
   const getRankIcon = (rank: number) => {
     switch(rank) {
@@ -60,7 +63,7 @@ export const StudentLeaderboard = () => {
     );
   }
 
-  const leaderboard: LeaderboardEntry[] = leaderboardData?.data || [];
+  const leaderboard = leaderboardData || [];
 
   return (
     <SubPage>

@@ -1,6 +1,5 @@
-// src/pages/student/components/StudentGamification.tsx
+// src/pages/student/components/StudentGamification.tsx - POPRAWIONY
 import React from "react";
-import { useCustom, useCustomMutation } from "@refinedev/core";
 import { Coins, Zap, Rocket, Brain, Coffee, Book } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,15 +9,17 @@ import { GridBox, FlexBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
 import { toast } from "sonner";
 import { useStudentStats } from "../hooks";
+import { useRPC } from "../hooks/useRPC";
+import { supabaseClient } from "@/utility";
 
 interface IdleUpgrade {
   id: number;
   name: string;
-  icon_emoji: string;
-  base_cost: number;
-  cost_mult: number;
-  points_bonus: number;
-  level?: number;
+  icon: string;
+  current_level: number;
+  next_cost: number;
+  bonus_per_level: number;
+  total_bonus: number;
 }
 
 const iconMap: Record<string, any> = {
@@ -31,24 +32,21 @@ const iconMap: Record<string, any> = {
 
 export const StudentGamification = () => {
   const { stats, refetch: refetchStats } = useStudentStats();
-  const { mutate: buyUpgrade } = useCustomMutation();
-
-  const { data: upgradesData, isLoading, refetch: refetchUpgrades } = useCustom({
-    url: "rpc/get_idle_upgrades",
-    method: "post",
-  });
+  const { data: upgradesData, isLoading, refetch: refetchUpgrades } = useRPC<IdleUpgrade[]>(
+    'get_idle_upgrades'
+  );
 
   const handleBuyUpgrade = async (upgradeId: number) => {
     try {
-      const result = await buyUpgrade({
-        url: "rpc/buy_idle_upgrade",
-        method: "post",
-        values: { p_upgrade_id: upgradeId },
+      const { data, error } = await supabaseClient.rpc('buy_idle_upgrade', {
+        p_upgrade_id: upgradeId
       });
 
-      if (result.data) {
+      if (error) throw error;
+
+      if (data) {
         toast.success("Ulepszenie zakupione!", {
-          description: `Nowy poziom: ${result.data.new_level}`
+          description: `Nowy poziom: ${data.new_level}`
         });
         refetchStats();
         refetchUpgrades();
@@ -60,12 +58,7 @@ export const StudentGamification = () => {
     }
   };
 
-  const upgrades: IdleUpgrade[] = upgradesData?.data || [];
-
-  const calculateCost = (upgrade: IdleUpgrade) => {
-    const level = upgrade.level || 0;
-    return Math.floor(upgrade.base_cost * Math.pow(upgrade.cost_mult, level));
-  };
+  const upgrades = upgradesData || [];
 
   if (isLoading) {
     return (
@@ -109,9 +102,8 @@ export const StudentGamification = () => {
           <h2 className="text-xl font-bold mb-4">Ulepszenia</h2>
           <GridBox>
             {upgrades.map((upgrade) => {
-              const cost = calculateCost(upgrade);
-              const canAfford = stats.points >= cost;
-              const Icon = iconMap[upgrade.icon_emoji] || Coins;
+              const canAfford = stats.points >= upgrade.next_cost;
+              const Icon = iconMap[upgrade.icon] || Coins;
 
               return (
                 <Card key={upgrade.id} className="relative overflow-hidden">
@@ -124,12 +116,12 @@ export const StudentGamification = () => {
                         <div>
                           <CardTitle className="text-lg">{upgrade.name}</CardTitle>
                           <p className="text-sm text-muted-foreground">
-                            +{upgrade.points_bonus} pkt/h za poziom
+                            +{upgrade.bonus_per_level} pkt/h za poziom
                           </p>
                         </div>
                       </div>
                       <Badge variant="secondary">
-                        Lvl {upgrade.level || 0}
+                        Lvl {upgrade.current_level}
                       </Badge>
                     </FlexBox>
                   </CardHeader>
@@ -138,7 +130,7 @@ export const StudentGamification = () => {
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Aktualny bonus</span>
                         <span className="font-bold text-green-600">
-                          +{(upgrade.level || 0) * upgrade.points_bonus} pkt/h
+                          +{upgrade.total_bonus} pkt/h
                         </span>
                       </div>
                       
@@ -149,7 +141,7 @@ export const StudentGamification = () => {
                         variant={canAfford ? "default" : "secondary"}
                       >
                         <Coins className="w-4 h-4 mr-2" />
-                        Ulepsz ({cost} pkt)
+                        Ulepsz ({upgrade.next_cost} pkt)
                       </Button>
                     </div>
                   </CardContent>

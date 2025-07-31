@@ -1,32 +1,28 @@
-// src/pages/student/components/StudentCourses.tsx
+// src/pages/student/components/StudentCourses.tsx - POPRAWIONY
 import React from "react";
-import { useList } from "@refinedev/core";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Search } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-
 import { SubPage } from "@/components/layout";
-import { GridBox, FlexBox } from "@/components/shared";
+import { GridBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
+import { CourseCard } from "./CourseCard";
+import { useRPC } from "../hooks/useRPC";
 
 export const StudentCourses = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = React.useState("");
+  
+  const { data: coursesData, isLoading } = useRPC<any[]>('get_my_courses');
 
-  const { data: coursesData, isLoading } = useList({
-    resource: "courses",
-    filters: searchTerm ? [
-      {
-        field: "title",
-        operator: "contains",
-        value: searchTerm,
-      }
-    ] : undefined,
-    meta: {
-      select: "*, topics(count), activities(count)"
-    }
-  });
+  const filteredCourses = React.useMemo(() => {
+    if (!coursesData || !searchTerm) return coursesData || [];
+    
+    return coursesData.filter(course => 
+      course.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [coursesData, searchTerm]);
 
   if (isLoading) {
     return (
@@ -57,22 +53,24 @@ export const StudentCourses = () => {
         </div>
 
         <GridBox>
-          {coursesData?.data?.map((course: any) => (
+          {filteredCourses.map((course) => (
             <CourseCard 
-              key={course.id}
+              key={course.course_id}
               course={{
-                id: course.id,
+                id: course.course_id,
                 title: course.title,
                 emoji: course.icon_emoji || '📚',
-                progress: 0, // TODO: Calculate real progress
-                lastActivity: null
+                progress: course.progress_percent || 0,
+                lastActivity: course.last_activity 
+                  ? new Date(course.last_activity).toLocaleDateString('pl-PL')
+                  : null
               }}
-              onClick={() => navigate(`/student/courses/${course.id}`)}
+              onClick={() => navigate(`/student/courses/${course.course_id}`)}
             />
           ))}
         </GridBox>
 
-        {(!coursesData?.data || coursesData.data.length === 0) && (
+        {(!filteredCourses || filteredCourses.length === 0) && (
           <Card>
             <CardContent className="text-center py-12">
               <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-300" />

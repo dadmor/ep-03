@@ -1,6 +1,6 @@
 // src/pages/student/components/StudentDashboard.tsx - FINALNIE POPRAWIONY
 import React from "react";
-import { useList, useGetIdentity } from "@refinedev/core";
+import { useGetIdentity } from "@refinedev/core";
 import { useNavigate } from "react-router-dom";
 import { Trophy, Flame, Target, Clock, Gift } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,109 +14,52 @@ import { supabaseClient } from "@/utility";
 import { StatCard } from "./StatCard";
 import { CourseCard } from "./CourseCard";
 import { ActivityCard } from "./ActivityCard";
-
-// Hook dla statystyk studenta
-const useStudentStats = () => {
-  const [stats, setStats] = React.useState({
-    points: 0,
-    level: 1,
-    streak: 0,
-    idle_rate: 1,
-    next_level_points: 200,
-    quizzes_completed: 0,
-    perfect_scores: 0,
-    total_time: 0,
-    rank: 0
-  });
-  const [isLoading, setIsLoading] = React.useState(true);
-
-  const fetchStats = React.useCallback(async () => {
-    try {
-      const { data, error } = await supabaseClient.rpc('get_my_stats');
-      if (error) throw error;
-      
-      if (data) {
-        setStats({
-          points: data.points || 0,
-          level: data.level || 1,
-          streak: data.streak || 0,
-          idle_rate: data.idle_rate || 1,
-          next_level_points: data.next_level_points || 200,
-          quizzes_completed: data.quizzes_completed || 0,
-          perfect_scores: data.perfect_scores || 0,
-          total_time: data.total_time || 0,
-          rank: data.rank || 0
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching stats:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
-
-  return { stats, isLoading, refetch: fetchStats };
-};
-
-// Hook dla kursów
-const useStudentCourses = () => {
-  const [courses, setCourses] = React.useState<any[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const { data, error } = await supabaseClient.rpc('get_my_courses');
-        if (error) throw error;
-        setCourses(data || []);
-      } catch (error) {
-        console.error("Error fetching courses:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCourses();
-  }, []);
-
-  return { data: courses, isLoading };
-};
+import { useStudentStats } from "../hooks";
+import { useRPC } from "../hooks/useRPC";
+import { useSupabaseQuery } from "../hooks/useSupabaseQuery";
 
 export const StudentDashboard = () => {
   const navigate = useNavigate();
   const { data: identity } = useGetIdentity<any>();
   const { stats, isLoading: statsLoading, refetch: refetchStats } = useStudentStats();
-  const { data: coursesData, isLoading: coursesLoading } = useStudentCourses();
+  
+  // Pobierz kursy ucznia używając RPC
+  const { data: coursesData, isLoading: coursesLoading } = useRPC<any[]>('get_my_courses');
 
-  // Pobierz ostatnie aktywności - używamy standardowego useList
-  const { data: activitiesData } = useList({
-    resource: "activity_progress",
+  // Pobierz ostatnie aktywności używając Supabase query
+  const { data: activitiesData } = useSupabaseQuery('activity_progress', {
+    select: `
+      *,
+      activities!inner(
+        id,
+        title,
+        type,
+        topics!inner(
+          id,
+          title,
+          courses!inner(
+            id,
+            title,
+            icon_emoji
+          )
+        )
+      )
+    `,
     filters: identity?.id ? [
       {
-        field: "user_id",
-        operator: "eq",
+        field: 'user_id',
+        operator: 'eq',
         value: identity.id,
       },
     ] : [],
-    sorters: [
+    sorts: [
       {
-        field: "started_at",
-        order: "desc",
+        field: 'started_at',
+        order: 'desc',
       },
     ],
-    pagination: {
-      pageSize: 5,
-    },
-    meta: {
-      select: "*, activities(title, type, topic_id, topics(title, course_id, courses(title, icon_emoji)))"
-    },
-    queryOptions: {
-      enabled: !!identity?.id,
-    },
+    limit: 5,
+    enabled: !!identity?.id,
   });
 
   const handleClaimRewards = async () => {
@@ -153,6 +96,9 @@ export const StudentDashboard = () => {
       </SubPage>
     );
   }
+
+  const courses = coursesData || [];
+  const activities = activitiesData || [];
 
   return (
     <SubPage>
@@ -227,7 +173,7 @@ export const StudentDashboard = () => {
         </Card>
 
         {/* Aktywne kursy */}
-        {coursesData && coursesData.length > 0 && (
+        {courses.length > 0 && (
           <div>
             <FlexBox className="mb-4">
               <h2 className="text-xl font-bold">Twoje kursy</h2>
@@ -241,7 +187,7 @@ export const StudentDashboard = () => {
             </FlexBox>
             
             <GridBox>
-              {coursesData.slice(0, 3).map((course: any) => (
+              {courses.slice(0, 3).map((course: any) => (
                 <CourseCard 
                   key={course.course_id}
                   course={{
@@ -261,13 +207,13 @@ export const StudentDashboard = () => {
         )}
 
         {/* Ostatnie aktywności */}
-        {activitiesData?.data && activitiesData.data.length > 0 && (
+        {activities.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Ostatnie aktywności</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {activitiesData.data.map((progress: any) => (
+              {activities.map((progress: any) => (
                 <ActivityCard
                   key={progress.activity_id}
                   activity={{
@@ -280,7 +226,7 @@ export const StudentDashboard = () => {
                     courseEmoji: progress.activities?.topics?.courses?.icon_emoji
                   }}
                   onStart={() => {
-                    const courseId = progress.activities?.topics?.course_id;
+                    const courseId = progress.activities?.topics?.courses?.id;
                     const activityId = progress.activity_id;
                     if (courseId && activityId) {
                       if (progress.activities?.type === 'quiz') {

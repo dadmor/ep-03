@@ -1,4 +1,4 @@
-// src/pages/student/components/index.tsx
+// src/pages/student/components/index.ts - POPRAWIONY
 export { StudentDashboard } from './StudentDashboard';
 export { StudentCourses } from './StudentCourses';
 export { StudentCourseDetail } from './StudentCourseDetail';
@@ -12,3 +12,4 @@ export { CourseCard } from './CourseCard';
 export { ProgressBar } from './ProgressBar';
 export { StatCard } from './StatCard';
 export { ActivityCard } from './ActivityCard';
+
