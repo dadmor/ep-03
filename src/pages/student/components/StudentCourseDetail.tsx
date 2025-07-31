@@ -1,7 +1,13 @@
 // src/pages/student/components/StudentCourseDetail.tsx - POPRAWIONY
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, Clock, Target, BookOpen, CheckCircle2 } from "lucide-react";
+import {
+  ChevronLeft,
+  Clock,
+  Target,
+  BookOpen,
+  CheckCircle2,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -19,21 +25,21 @@ export const StudentCourseDetail = () => {
 
   // Pobierz strukturę kursu przez RPC
   const { data: courseStructure, isLoading } = useRPC<any[]>(
-    'get_course_structure',
+    "get_course_structure",
     { p_course_id: parseInt(courseId!) },
     { enabled: !!courseId }
   );
 
   // Pobierz dane kursu
-  const { data: courseData } = useSupabaseQuery('courses', {
-    filters: [{ field: 'id', operator: 'eq', value: parseInt(courseId!) }],
-    enabled: !!courseId
+  const { data: courseData } = useSupabaseQuery("courses", {
+    filters: [{ field: "id", operator: "eq", value: parseInt(courseId!) }],
+    enabled: !!courseId,
   });
 
   // Grupuj aktywności według tematów - PRZENIESIONE PRZED WARUNKIEM
   const topicsWithActivities = React.useMemo(() => {
     if (!courseStructure) return [];
-    
+
     const grouped = courseStructure.reduce((acc, item) => {
       const topicKey = `${item.topic_id}-${item.topic_title}`;
       if (!acc[topicKey]) {
@@ -41,10 +47,10 @@ export const StudentCourseDetail = () => {
           id: item.topic_id,
           title: item.topic_title,
           position: item.topic_position,
-          activities: []
+          activities: [],
         };
       }
-      
+
       if (item.activity_id) {
         acc[topicKey].activities.push({
           id: item.activity_id,
@@ -52,27 +58,27 @@ export const StudentCourseDetail = () => {
           type: item.activity_type,
           position: item.activity_position,
           completed: item.is_completed,
-          score: item.score
+          score: item.score,
         });
       }
-      
+
       return acc;
     }, {} as Record<string, any>);
-    
+
     return Object.values(grouped).sort((a, b) => a.position - b.position);
   }, [courseStructure]);
 
   // Oblicz statystyki - PRZENIESIONE PRZED WARUNKIEM
   const stats = React.useMemo(() => {
-    const allActivities = topicsWithActivities.flatMap(t => t.activities);
-    const completed = allActivities.filter(a => a.completed).length;
+    const allActivities = topicsWithActivities.flatMap((t) => t.activities);
+    const completed = allActivities.filter((a) => a.completed).length;
     const total = allActivities.length;
-    
+
     return {
       totalActivities: total,
       completedActivities: completed,
       progress: total > 0 ? Math.round((completed / total) * 100) : 0,
-      topics: topicsWithActivities.length
+      topics: topicsWithActivities.length,
     };
   }, [topicsWithActivities]);
 
@@ -108,7 +114,7 @@ export const StudentCourseDetail = () => {
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-5xl">{course?.icon_emoji || '📚'}</span>
+                <span className="text-5xl">{course?.icon_emoji || "📚"}</span>
                 <h1 className="text-3xl font-bold">{course?.title}</h1>
               </div>
               <p className="text-white/80 max-w-2xl">{course?.description}</p>
@@ -121,7 +127,9 @@ export const StudentCourseDetail = () => {
           <div className="grid grid-cols-3 gap-6 mt-8">
             <div>
               <p className="text-sm text-white/60">Postęp</p>
-              <p className="text-2xl font-bold">{stats.completedActivities}/{stats.totalActivities}</p>
+              <p className="text-2xl font-bold">
+                {stats.completedActivities}/{stats.totalActivities}
+              </p>
             </div>
             <div>
               <p className="text-sm text-white/60">Tematy</p>
@@ -129,7 +137,9 @@ export const StudentCourseDetail = () => {
             </div>
             <div>
               <p className="text-sm text-white/60">Czas trwania</p>
-              <p className="text-2xl font-bold">~{Math.ceil(stats.totalActivities * 15 / 60)}h</p>
+              <p className="text-2xl font-bold">
+                ~{Math.ceil((stats.totalActivities * 15) / 60)}h
+              </p>
             </div>
           </div>
 
@@ -139,7 +149,9 @@ export const StudentCourseDetail = () => {
         {/* Tematy i aktywności */}
         <div className="space-y-6">
           {topicsWithActivities.map((topic) => {
-            const topicCompleted = topic.activities.filter((a: any) => a.completed).length;
+            const topicCompleted = topic.activities.filter(
+              (a: any) => a.completed
+            ).length;
             const isTopicComplete = topicCompleted === topic.activities.length;
 
             return (
@@ -151,7 +163,8 @@ export const StudentCourseDetail = () => {
                         Temat {topic.position}: {topic.title}
                       </CardTitle>
                       <p className="text-sm text-muted-foreground mt-1">
-                        {topicCompleted}/{topic.activities.length} aktywności ukończonych
+                        {topicCompleted}/{topic.activities.length} aktywności
+                        ukończonych
                       </p>
                     </div>
                     {isTopicComplete && (
@@ -172,13 +185,17 @@ export const StudentCourseDetail = () => {
                         type: activity.type,
                         completed: activity.completed,
                         score: activity.score,
-                        points: activity.type === 'quiz' ? 20 : 10,
+                        points: activity.type === "quiz" ? 20 : 10,
                       }}
                       onStart={() => {
-                        if (activity.type === 'quiz') {
-                          navigate(`/student/courses/${courseId}/quiz/${activity.id}`);
+                        if (activity.type === "quiz") {
+                          navigate(
+                            `/student/courses/${courseId}/quiz/${activity.id}`
+                          );
                         } else {
-                          navigate(`/student/courses/${courseId}/lesson/${activity.id}`);
+                          navigate(
+                            `/student/courses/${courseId}/lesson/${activity.id}`
+                          );
                         }
                       }}
                     />
