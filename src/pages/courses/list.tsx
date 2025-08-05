@@ -143,12 +143,26 @@ export const CoursesList = () => {
           >
             <CardHeader>
               <FlexBox>
-                <CardTitle className="flex items-center gap-2">
-                  {course.icon_emoji && (
-                    <span className="text-2xl">{course.icon_emoji}</span>
-                  )}
-                  {!course.icon_emoji && <BookOpen className="w-5 h-5" />}
-                  <span className="truncate">{course.title}</span>
+                <CardTitle className="flex items-center gap-2 min-w-0">
+                  <span className="flex-shrink-0">
+                    {course.icon_emoji ? (
+                      <span className="text-2xl">{course.icon_emoji}</span>
+                    ) : (
+                      <BookOpen className="w-5 h-5" />
+                    )}
+                  </span>
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="truncate">{course.title}</span>
+                      </TooltipTrigger>
+                      {course.title.length > 30 && (
+                        <TooltipContent>
+                          <p className="max-w-xs">{course.title}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                 </CardTitle>
                 
                 <DropdownMenu>
