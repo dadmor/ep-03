@@ -294,7 +294,7 @@ export const CoursesShow = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Button
               variant="outline"
-              className="justify-start h-auto py-3 px-4 bg-white hover:bg-gray-50"
+              className="justify-start h-auto py-3 px-4 bg-white"
               onClick={() => navigateToWizard("/course-structure/step1")}
             >
               <div className="flex items-start gap-3">
@@ -310,7 +310,7 @@ export const CoursesShow = () => {
 
             <Button
               variant="outline"
-              className="justify-start h-auto py-3 px-4 bg-white hover:bg-gray-50"
+              className="justify-start h-auto py-3 px-4 bg-white"
               onClick={() =>
                 navigateToWizard("/educational-material/step1", {
                   courseId: course?.id,
@@ -331,7 +331,7 @@ export const CoursesShow = () => {
 
             <Button
               variant="outline"
-              className="justify-start h-auto py-3 px-4 bg-white hover:bg-gray-50"
+              className="justify-start h-auto py-3 px-4 bg-white"
               onClick={() =>
                 navigateToWizard("/quiz-wizard/step1", {
                   courseId: course?.id,
