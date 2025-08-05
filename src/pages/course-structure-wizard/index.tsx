@@ -7,7 +7,8 @@ import { CourseWizardStep2 } from "./CourseWizardStep2";
 import { CourseWizardStep3 } from "./CourseWizardStep3";
 import { CourseWizardStep4 } from "./CourseWizardStep4";
 import { CourseWizardStep5 } from "./CourseWizardStep5";
-import { Layout } from "lucide-react";
+import { Wand } from "lucide-react";
+
 
 // Eksport komponentów
 export { CourseWizardDashboard } from './CourseWizardDashboard';
@@ -35,6 +36,6 @@ export const courseStructureResource = {
   meta: {
     canDelete: false,
     label: "Generator kursów",
-    icon: <Layout className="h-4 w-4" />, // Używamy rzeczywistego komponentu React
+    icon: <Wand className="h-4 w-4" />, // Używamy rzeczywistego komponentu React
   },
 };
