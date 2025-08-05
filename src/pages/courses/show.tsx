@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { useOne, useNavigation, useList, useDelete } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  ArrowLeft, Edit, Users, FileText, Plus
+import {
+  ArrowLeft,
+  Edit,
+  Users,
+  FileText,
+  Plus,
+  Wand,
+  Brain,
+  Layout,
+  Sparkles,
 } from "lucide-react";
 import { Button, Badge } from "@/components/ui";
 import { FlexBox, GridBox } from "@/components/shared";
@@ -26,7 +34,7 @@ interface Topic {
 interface Activity {
   id: number;
   title: string;
-  type: 'material' | 'quiz';
+  type: "material" | "quiz";
   position: number;
   is_published: boolean;
   duration_min?: number;
@@ -41,10 +49,10 @@ export const CoursesShow = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
   // Pobierz ID rozwinietego tematu z URL
-  const expandedTopicId = searchParams.get('expanded');
-  
+  const expandedTopicId = searchParams.get("expanded");
+
   const { mutate: deleteTopic } = useDelete();
   const { mutate: deleteActivity } = useDelete();
 
@@ -53,7 +61,11 @@ export const CoursesShow = () => {
     id: id as string,
   });
 
-  const { data: topicsData, isLoading: topicsLoading, refetch: refetchTopics } = useList<Topic>({
+  const {
+    data: topicsData,
+    isLoading: topicsLoading,
+    refetch: refetchTopics,
+  } = useList<Topic>({
     resource: "topics",
     filters: [
       {
@@ -69,32 +81,33 @@ export const CoursesShow = () => {
       },
     ],
     meta: {
-      select: '*, activities(count)'
-    }
+      select: "*, activities(count)",
+    },
   });
 
-  const { data: activitiesData, refetch: refetchActivities } = useList<Activity>({
-    resource: "activities",
-    filters: [
-      {
-        field: "topic_id",
-        operator: "in",
-        value: topicsData?.data?.map(t => t.id) || [],
+  const { data: activitiesData, refetch: refetchActivities } =
+    useList<Activity>({
+      resource: "activities",
+      filters: [
+        {
+          field: "topic_id",
+          operator: "in",
+          value: topicsData?.data?.map((t) => t.id) || [],
+        },
+      ],
+      sorters: [
+        {
+          field: "position",
+          order: "asc",
+        },
+      ],
+      meta: {
+        select: "*, questions(count)",
       },
-    ],
-    sorters: [
-      {
-        field: "position",
-        order: "asc",
+      queryOptions: {
+        enabled: !!topicsData?.data?.length,
       },
-    ],
-    meta: {
-      select: '*, questions(count)'
-    },
-    queryOptions: {
-      enabled: !!topicsData?.data?.length,
-    },
-  });
+    });
 
   const { data: accessData } = useList({
     resource: "course_access",
@@ -123,7 +136,7 @@ export const CoursesShow = () => {
   const toggleTopic = (topicId: number) => {
     if (expandedTopicId === topicId.toString()) {
       // Jeśli klikamy na już rozwinięty temat, zwiń go
-      searchParams.delete('expanded');
+      searchParams.delete("expanded");
       setSearchParams(searchParams);
     } else {
       // Rozwiń nowy temat
@@ -132,7 +145,11 @@ export const CoursesShow = () => {
   };
 
   const handleDeleteTopic = (topicId: number, title: string) => {
-    if (confirm(`Czy na pewno chcesz usunąć temat "${title}" wraz ze wszystkimi aktywnościami?`)) {
+    if (
+      confirm(
+        `Czy na pewno chcesz usunąć temat "${title}" wraz ze wszystkimi aktywnościami?`
+      )
+    ) {
       deleteTopic(
         {
           resource: "topics",
@@ -145,7 +162,7 @@ export const CoursesShow = () => {
             refetchActivities();
             // Usuń z URL jeśli to był rozwinięty temat
             if (expandedTopicId === topicId.toString()) {
-              searchParams.delete('expanded');
+              searchParams.delete("expanded");
               setSearchParams(searchParams);
             }
           },
@@ -173,14 +190,28 @@ export const CoursesShow = () => {
   };
 
   const getActivitiesForTopic = (topicId: number) => {
-    return activitiesData?.data?.filter(activity => activity.topic_id === topicId) || [];
+    return (
+      activitiesData?.data?.filter(
+        (activity) => activity.topic_id === topicId
+      ) || []
+    );
   };
 
   // Funkcja do nawigacji z URL powrotu
   const navigateWithReturn = (path: string) => {
     const currentUrl = `${window.location.pathname}${window.location.search}`;
     const returnUrl = encodeURIComponent(currentUrl);
-    navigate(`${path}${path.includes('?') ? '&' : '?'}returnUrl=${returnUrl}`);
+    navigate(`${path}${path.includes("?") ? "&" : "?"}returnUrl=${returnUrl}`);
+  };
+
+  // Funkcja do nawigacji do wizarda z kontekstem
+  const navigateToWizard = (wizardPath: string, context?: any) => {
+    if (context) {
+      sessionStorage.setItem("wizardContext", JSON.stringify(context));
+    }
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    sessionStorage.setItem("returnUrl", currentUrl);
+    navigate(wizardPath);
   };
 
   return (
@@ -235,7 +266,9 @@ export const CoursesShow = () => {
             <CardTitle className="text-sm font-medium">Aktywności</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activitiesData?.total || 0}</div>
+            <div className="text-2xl font-bold">
+              {activitiesData?.total || 0}
+            </div>
           </CardContent>
         </Card>
 
@@ -249,6 +282,77 @@ export const CoursesShow = () => {
         </Card>
       </GridBox>
 
+      {/* Szybkie akcje AI */}
+      <Card className="border-dashed border-2 bg-gradient-to-r from-purple-50 to-blue-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-600" />
+            Szybkie akcje AI
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Button
+              variant="outline"
+              className="justify-start h-auto py-3 px-4 bg-white hover:bg-gray-50"
+              onClick={() => navigateToWizard("/course-structure/step1")}
+            >
+              <div className="flex items-start gap-3">
+                <Layout className="w-5 h-5 text-indigo-600 mt-0.5" />
+                <div className="text-left">
+                  <div className="font-medium">Rozbuduj strukturę kursu</div>
+                  <div className="text-xs text-muted-foreground">
+                    Dodaj nowe tematy z AI
+                  </div>
+                </div>
+              </div>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="justify-start h-auto py-3 px-4 bg-white hover:bg-gray-50"
+              onClick={() =>
+                navigateToWizard("/educational-material/step1", {
+                  courseId: course?.id,
+                  courseTitle: course?.title,
+                })
+              }
+            >
+              <div className="flex items-start gap-3">
+                <Wand className="w-5 h-5 text-purple-600 mt-0.5" />
+                <div className="text-left">
+                  <div className="font-medium">Generuj materiał</div>
+                  <div className="text-xs text-muted-foreground">
+                    Stwórz treści z AI
+                  </div>
+                </div>
+              </div>
+            </Button>
+
+            <Button
+              variant="outline"
+              className="justify-start h-auto py-3 px-4 bg-white hover:bg-gray-50"
+              onClick={() =>
+                navigateToWizard("/quiz-wizard/step1", {
+                  courseId: course?.id,
+                  courseTitle: course?.title,
+                })
+              }
+            >
+              <div className="flex items-start gap-3">
+                <Brain className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div className="text-left">
+                  <div className="font-medium">Stwórz quiz</div>
+                  <div className="text-xs text-muted-foreground">
+                    Quiz sprawdzający z AI
+                  </div>
+                </div>
+              </div>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Struktura kursu */}
       <Card>
         <CardHeader>
@@ -256,7 +360,9 @@ export const CoursesShow = () => {
             <CardTitle>Struktura kursu</CardTitle>
             <Button
               size="sm"
-              onClick={() => navigateWithReturn(`/topics/create?course_id=${id}`)}
+              onClick={() =>
+                navigateWithReturn(`/topics/create?course_id=${id}`)
+              }
             >
               <Plus className="w-4 h-4 mr-2" />
               Dodaj temat
@@ -273,7 +379,7 @@ export const CoursesShow = () => {
               {topicsData.data.map((topic: Topic) => {
                 const activities = getActivitiesForTopic(topic.id);
                 const isExpanded = expandedTopicId === topic.id.toString();
-                
+
                 return (
                   <TopicCard
                     key={topic.id}
@@ -281,8 +387,13 @@ export const CoursesShow = () => {
                     isExpanded={isExpanded}
                     onToggle={() => toggleTopic(topic.id)}
                     onDelete={handleDeleteTopic}
-                    onEdit={(resource, id) => navigateWithReturn(`/${resource}/edit/${id}`)}
+                    onEdit={(resource, id) =>
+                      navigateWithReturn(`/${resource}/edit/${id}`)
+                    }
                     activitiesCount={activities.length}
+                    onNavigateToWizard={navigateToWizard}
+                    courseId={Number(course?.id)}
+                    courseTitle={course?.title}
                   >
                     {activities.length > 0 ? (
                       activities.map((activity: Activity) => (
@@ -291,20 +402,57 @@ export const CoursesShow = () => {
                           activity={activity}
                           topicPosition={topic.position}
                           onDelete={handleDeleteActivity}
-                          onEdit={(resource, id) => navigateWithReturn(`/${resource}/edit/${id}`)}
+                          onEdit={(resource, id) =>
+                            navigateWithReturn(`/${resource}/edit/${id}`)
+                          }
                         />
                       ))
                     ) : (
                       <div className="text-center py-6 text-muted-foreground">
                         <p>Brak aktywności w tym temacie</p>
-                        <Button
-                          size="sm"
-                          className="mt-2"
-                          onClick={() => navigateWithReturn(`/activities/create?topic_id=${topic.id}`)}
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Dodaj pierwszą aktywność
-                        </Button>
+                        <div className="flex flex-col sm:flex-row gap-2 justify-center mt-4">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              navigateWithReturn(
+                                `/activities/create?topic_id=${topic.id}`
+                              )
+                            }
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Dodaj ręcznie
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              navigateToWizard("/educational-material/step1", {
+                                courseId: course?.id,
+                                courseTitle: course?.title,
+                                topicId: topic.id,
+                                topicTitle: topic.title,
+                              })
+                            }
+                          >
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Generuj materiał z AI
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() =>
+                              navigateToWizard("/quiz-wizard/step1", {
+                                courseId: course?.id,
+                                courseTitle: course?.title,
+                                topicId: topic.id,
+                                topicTitle: topic.title,
+                              })
+                            }
+                          >
+                            <Brain className="w-4 h-4 mr-2" />
+                            Generuj quiz z AI
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </TopicCard>
@@ -315,13 +463,29 @@ export const CoursesShow = () => {
             <div className="text-center py-8 text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-20" />
               <p>Brak tematów w tym kursie</p>
-              <Button
-                className="mt-4"
-                onClick={() => navigateWithReturn(`/topics/create?course_id=${id}`)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Dodaj pierwszy temat
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4">
+                <Button
+                  onClick={() =>
+                    navigateWithReturn(`/topics/create?course_id=${id}`)
+                  }
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Dodaj pierwszy temat
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    navigateToWizard("/course-structure/step1", {
+                      courseId: course?.id,
+                      courseTitle: course?.title,
+                      mode: "extend", // Tryb rozszerzania istniejącego kursu
+                    })
+                  }
+                >
+                  <Layout className="w-4 h-4 mr-2" />
+                  Wygeneruj strukturę z AI
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

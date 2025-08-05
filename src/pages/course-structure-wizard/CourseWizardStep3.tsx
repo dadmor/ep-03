@@ -22,14 +22,16 @@ import {
   COURSE_PATHS,
   COURSE_VALIDATION,
   COURSE_TYPE_CONFIG,
+  CourseFormData,
+  CourseType,
 } from "./courseStructureWizard.constants";
 import { SubPage } from "@/components/layout";
 
 export const CourseWizardStep3: React.FC = () => {
   const navigate = useNavigate();
   const { getData, setData } = useFormSchemaStore();
-  const formData = getData("course-structure-wizard");
-  
+  const formData = getData("course-structure-wizard") as CourseFormData;
+
   const [courseTitle, setCourseTitle] = useState(formData.courseTitle || "");
   const [description, setDescription] = useState(formData.description || "");
   const [topicsPerWeek, setTopicsPerWeek] = useState(2);
@@ -38,15 +40,19 @@ export const CourseWizardStep3: React.FC = () => {
   const [quizFrequency, setQuizFrequency] = useState("weekly");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const llmGeneration = useLLMOperation("course-structure-wizard", "generate-course-structure");
+  const llmGeneration = useLLMOperation(
+    "course-structure-wizard",
+    "generate-course-structure"
+  );
   const { steps, errors: errorTexts } = COURSE_UI_TEXTS;
 
   useEffect(() => {
     llmGeneration.registerOperation(STRUCTURE_GENERATION_OPERATION);
 
     // Ustaw domyślne wartości na podstawie typu kursu
-    if (formData.courseType && COURSE_TYPE_CONFIG[formData.courseType]) {
-      const config = COURSE_TYPE_CONFIG[formData.courseType];
+    if (formData.courseType && formData.courseType in COURSE_TYPE_CONFIG) {
+      const courseType = formData.courseType as CourseType;
+      const config = COURSE_TYPE_CONFIG[courseType];
       setIncludeExercises(config.includeExercises);
       setIncludeQuizzes(config.includeQuizzes);
       setQuizFrequency(config.defaultQuizFrequency);
@@ -60,13 +66,23 @@ export const CourseWizardStep3: React.FC = () => {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!courseTitle.trim() || courseTitle.length < COURSE_VALIDATION.courseTitle.minLength) {
+    if (
+      !courseTitle.trim() ||
+      courseTitle.length < COURSE_VALIDATION.courseTitle.minLength
+    ) {
       newErrors.courseTitle = COURSE_VALIDATION.courseTitle.errorMessage;
     }
-    if (!description.trim() || description.length < COURSE_VALIDATION.description.minLength) {
+    if (
+      !description.trim() ||
+      description.length < COURSE_VALIDATION.description.minLength
+    ) {
       newErrors.description = COURSE_VALIDATION.description.errorMessage;
     }
-    if (!topicsPerWeek || topicsPerWeek < COURSE_VALIDATION.topicsPerWeek.min || topicsPerWeek > COURSE_VALIDATION.topicsPerWeek.max) {
+    if (
+      !topicsPerWeek ||
+      topicsPerWeek < COURSE_VALIDATION.topicsPerWeek.min ||
+      topicsPerWeek > COURSE_VALIDATION.topicsPerWeek.max
+    ) {
       newErrors.topicsPerWeek = COURSE_VALIDATION.topicsPerWeek.errorMessage;
     }
 
@@ -87,7 +103,7 @@ export const CourseWizardStep3: React.FC = () => {
         includeQuizzes,
         quizFrequency,
       };
-      
+
       setData("course-structure-wizard", updatedData);
       await llmGeneration.executeOperation(updatedData);
       navigate(COURSE_PATHS.step4);
@@ -108,7 +124,9 @@ export const CourseWizardStep3: React.FC = () => {
 
           <div className="space-y-6">
             <div>
-              <Label htmlFor="courseTitle">Tytuł kursu <span className="text-red-500">*</span></Label>
+              <Label htmlFor="courseTitle">
+                Tytuł kursu <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="courseTitle"
                 value={courseTitle}
@@ -117,12 +135,16 @@ export const CourseWizardStep3: React.FC = () => {
                 className={`mt-1 ${errors.courseTitle ? "border-red-300" : ""}`}
               />
               {errors.courseTitle && (
-                <p className="text-sm text-red-600 mt-1">{errors.courseTitle}</p>
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.courseTitle}
+                </p>
               )}
             </div>
 
             <div>
-              <Label htmlFor="description">Opis kursu <span className="text-red-500">*</span></Label>
+              <Label htmlFor="description">
+                Opis kursu <span className="text-red-500">*</span>
+              </Label>
               <Textarea
                 id="description"
                 value={description}
@@ -132,26 +154,38 @@ export const CourseWizardStep3: React.FC = () => {
                 className={`mt-1 ${errors.description ? "border-red-300" : ""}`}
               />
               {errors.description && (
-                <p className="text-sm text-red-600 mt-1">{errors.description}</p>
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.description}
+                </p>
               )}
               <p className="text-sm text-gray-500 mt-1">
-                {description.length} / {COURSE_VALIDATION.description.minLength} znaków minimum
+                {description.length} / {COURSE_VALIDATION.description.minLength}{" "}
+                znaków minimum
               </p>
             </div>
 
             <div>
-              <Label htmlFor="topicsPerWeek">Liczba tematów na tydzień <span className="text-red-500">*</span></Label>
+              <Label htmlFor="topicsPerWeek">
+                Liczba tematów na tydzień{" "}
+                <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="topicsPerWeek"
                 type="number"
                 value={topicsPerWeek}
-                onChange={(e) => setTopicsPerWeek(parseInt(e.target.value) || 0)}
+                onChange={(e) =>
+                  setTopicsPerWeek(parseInt(e.target.value) || 0)
+                }
                 min={COURSE_VALIDATION.topicsPerWeek.min}
                 max={COURSE_VALIDATION.topicsPerWeek.max}
-                className={`mt-1 ${errors.topicsPerWeek ? "border-red-300" : ""}`}
+                className={`mt-1 ${
+                  errors.topicsPerWeek ? "border-red-300" : ""
+                }`}
               />
               {errors.topicsPerWeek && (
-                <p className="text-sm text-red-600 mt-1">{errors.topicsPerWeek}</p>
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.topicsPerWeek}
+                </p>
               )}
               <p className="text-sm text-gray-500 mt-1">
                 Określa tempo realizacji kursu
@@ -163,9 +197,14 @@ export const CourseWizardStep3: React.FC = () => {
                 <Checkbox
                   id="includeExercises"
                   checked={includeExercises}
-                  onCheckedChange={(checked) => setIncludeExercises(checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    setIncludeExercises(checked as boolean)
+                  }
                 />
-                <label htmlFor="includeExercises" className="text-sm cursor-pointer">
+                <label
+                  htmlFor="includeExercises"
+                  className="text-sm cursor-pointer"
+                >
                   Dodaj ćwiczenia do każdego tematu
                 </label>
               </div>
@@ -174,9 +213,14 @@ export const CourseWizardStep3: React.FC = () => {
                 <Checkbox
                   id="includeQuizzes"
                   checked={includeQuizzes}
-                  onCheckedChange={(checked) => setIncludeQuizzes(checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    setIncludeQuizzes(checked as boolean)
+                  }
                 />
-                <label htmlFor="includeQuizzes" className="text-sm cursor-pointer">
+                <label
+                  htmlFor="includeQuizzes"
+                  className="text-sm cursor-pointer"
+                >
                   Dodaj quizy sprawdzające
                 </label>
               </div>
@@ -192,11 +236,15 @@ export const CourseWizardStep3: React.FC = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="after_each">Po każdym temacie</SelectItem>
+                      <SelectItem value="after_each">
+                        Po każdym temacie
+                      </SelectItem>
                       <SelectItem value="weekly">Co tydzień</SelectItem>
                       <SelectItem value="biweekly">Co dwa tygodnie</SelectItem>
                       <SelectItem value="monthly">Co miesiąc</SelectItem>
-                      <SelectItem value="chapter_end">Na koniec działu</SelectItem>
+                      <SelectItem value="chapter_end">
+                        Na koniec działu
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -211,10 +259,7 @@ export const CourseWizardStep3: React.FC = () => {
                 Wstecz
               </Button>
 
-              <Button
-                onClick={handleNext}
-                disabled={llmGeneration.loading}
-              >
+              <Button onClick={handleNext} disabled={llmGeneration.loading}>
                 {llmGeneration.loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

@@ -2,6 +2,34 @@
 
 import { LLMOperation } from "@/utility/llmFormWizard";
 
+// ===== TYPES =====
+export type CourseType = 'matura' | 'academic' | 'professional' | 'hobby' | 'certification';
+
+export interface CourseFormData {
+  courseType?: CourseType;
+  subject?: string;
+  level?: string;
+  duration?: string;
+  courseTitle?: string;
+  description?: string;
+  objectives?: string[];
+  targetAudience?: string;
+  prerequisites?: string[];
+  estimatedHours?: number;
+  topicsCount?: number;
+  topicsPerWeek?: number;
+  includeExercises?: boolean;
+  includeQuizzes?: boolean;
+  quizFrequency?: string;
+  structure?: any[];
+  summary?: {
+    totalWeeks: number;
+    totalTopics: number;
+    totalActivities: number;
+    totalQuizzes: number;
+  };
+}
+
 // ===== FORM SCHEMA =====
 export const COURSE_STRUCTURE_SCHEMA = {
   id: "course-structure-wizard",
@@ -389,7 +417,12 @@ export const COURSE_PATHS = {
 };
 
 // ===== COURSE TYPE CONFIGS =====
-export const COURSE_TYPE_CONFIG = {
+export const COURSE_TYPE_CONFIG: Record<CourseType, {
+  defaultTopics?: string[];
+  defaultQuizFrequency: string;
+  includeExercises: boolean;
+  includeQuizzes: boolean;
+}> = {
   matura: {
     defaultTopics: [
       "Wprowadzenie i powtórka",

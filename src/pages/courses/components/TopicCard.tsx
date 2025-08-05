@@ -9,6 +9,8 @@ import {
   ChevronRight,
   GripVertical,
   FileText,
+  Sparkles,
+  Brain,
 } from "lucide-react";
 import { Button, Badge } from "@/components/ui";
 import { FlexBox } from "@/components/shared";
@@ -18,6 +20,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 
 interface TopicCardProps {
@@ -31,6 +34,9 @@ interface TopicCardProps {
   onToggle: () => void;
   onDelete: (id: number, title: string) => void;
   onEdit: (resource: string, id: number) => void;
+  onNavigateToWizard?: (wizardPath: string, context: any) => void;
+  courseId?: number;
+  courseTitle?: string;
   children?: React.ReactNode;
   activitiesCount: number;
 }
@@ -41,6 +47,9 @@ export const TopicCard = ({
   onToggle,
   onDelete,
   onEdit,
+  onNavigateToWizard,
+  courseId,
+  courseTitle,
   children,
   activitiesCount,
 }: TopicCardProps) => {
@@ -51,6 +60,18 @@ export const TopicCard = ({
     const currentUrl = window.location.pathname + window.location.search;
     sessionStorage.setItem("returnUrl", currentUrl);
     navigate(path);
+  };
+
+  const handleWizardNavigation = (wizardPath: string, additionalContext?: any) => {
+    if (onNavigateToWizard) {
+      onNavigateToWizard(wizardPath, {
+        courseId,
+        courseTitle,
+        topicId: topic.id,
+        topicTitle: topic.title,
+        ...additionalContext
+      });
+    }
   };
 
   return (
@@ -111,21 +132,44 @@ export const TopicCard = ({
           </div>
 
           <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant={isExpanded ? "secondary" : "ghost"}
-              onClick={() =>
-                handleNavigateWithState(
-                  `/activities/create?topic_id=${topic.id}`
-                )
-              }
-              title="Dodaj aktywność"
-              className={`h-8 w-8 p-0 ${
-                isExpanded ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground' : ''
-              }`}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant={isExpanded ? "secondary" : "ghost"}
+                  title="Dodaj aktywność"
+                  className={`h-8 w-8 p-0 ${
+                    isExpanded ? 'bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground' : ''
+                  }`}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Dodaj treść</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => handleNavigateWithState(`/activities/create?topic_id=${topic.id}`)}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Dodaj ręcznie
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleWizardNavigation('/educational-material/step1')}
+                  className="text-purple-600 focus:text-purple-600"
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Generuj materiał z AI
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleWizardNavigation('/quiz-wizard/step1')}
+                  className="text-blue-600 focus:text-blue-600"
+                >
+                  <Brain className="mr-2 h-4 w-4" />
+                  Generuj quiz z AI
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -143,17 +187,6 @@ export const TopicCard = ({
                 <DropdownMenuItem onClick={() => onEdit("topics", topic.id)}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edytuj temat
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() =>
-                    handleNavigateWithState(
-                      `/activities/create?topic_id=${topic.id}`
-                    )
-                  }
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Dodaj aktywność
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
