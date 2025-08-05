@@ -23,6 +23,7 @@ import {
   QUIZ_UI_TEXTS,
   QUIZ_PATHS,
 } from "./quizWizard.constants";
+import { SubPage } from "@/components/layout";
 
 // Definicje typów dla lepszej kontroli TypeScript
 interface Course extends BaseRecord {
@@ -246,7 +247,7 @@ export const QuizWizardStep5: React.FC = () => {
     return topic.id !== undefined && topic.title !== undefined && topic.position !== undefined;
   };
 
-  return (
+  return (<SubPage>
     <div className="border rounded-lg bg-white shadow relative">
       <StepsHero step={5} />
 
@@ -448,6 +449,6 @@ export const QuizWizardStep5: React.FC = () => {
           </footer>
         </form>
       </div>
-    </div>
+    </div></SubPage>
   );
 };

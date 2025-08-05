@@ -6,6 +6,7 @@ import { QuizWizardStep2 } from "./QuizWizardStep2";
 import { QuizWizardStep3 } from "./QuizWizardStep3";
 import { QuizWizardStep4 } from "./QuizWizardStep4";
 import { QuizWizardStep5 } from "./QuizWizardStep5";
+import { Wand } from "lucide-react";
 
 // Eksport komponentów
 export { QuizWizardDashboard } from './QuizWizardDashboard';
@@ -33,5 +34,6 @@ export const quizWizardResource = {
   meta: {
     canDelete: false,
     label: "Kreator quizów",
+    icon: <Wand className="h-4 w-4" />, // Używamy rzeczywistego komponentu React
   },
 };

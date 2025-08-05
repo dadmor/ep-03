@@ -21,6 +21,7 @@ import {
   QUIZ_PATHS,
   QUIZ_VALIDATION,
 } from "./quizWizard.constants";
+import { SubPage } from "@/components/layout";
 
 export const QuizWizardStep1: React.FC = () => {
   const navigate = useNavigate();
@@ -96,144 +97,148 @@ export const QuizWizardStep1: React.FC = () => {
   };
 
   return (
-    <div className="border rounded-lg bg-white shadow relative pb-6">
-      <StepsHero step={1} />
+    <SubPage>
+      <div className="border rounded-lg bg-white shadow relative pb-6">
+        <StepsHero step={1} />
 
-      <div className="p-6">
-        <StepsHeader
-          title={steps[1].title}
-          description={steps[1].description}
-        />
+        <div className="p-6">
+          <StepsHeader
+            title={steps[1].title}
+            description={steps[1].description}
+          />
 
-        {llmAnalysis.error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <span className="text-red-800 text-sm">
-              {errorTexts.analysisError} {llmAnalysis.error}
-            </span>
-          </div>
-        )}
-
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="topic">Temat quizu</Label>
-            <Input
-              id="topic"
-              type="text"
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder={
-                QUIZ_WIZARD_SCHEMA.schema.step1.properties.topic.placeholder
-              }
-              disabled={llmAnalysis.loading}
-              className={errors.topic ? "border-red-300" : ""}
-            />
-            {errors.topic && (
-              <p className="text-sm text-red-600 mt-1">{errors.topic}</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="difficulty">Poziom trudności</Label>
-            <Select
-              value={difficulty}
-              onValueChange={setDifficulty}
-              disabled={llmAnalysis.loading}
-            >
-              <SelectTrigger
-                className={errors.difficulty ? "border-red-300" : ""}
-              >
-                <SelectValue placeholder="Wybierz poziom..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="easy">Łatwy</SelectItem>
-                <SelectItem value="medium">Średni</SelectItem>
-                <SelectItem value="hard">Trudny</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.difficulty && (
-              <p className="text-sm text-red-600 mt-1">{errors.difficulty}</p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="questionsCount">Liczba pytań</Label>
-            <Input
-              id="questionsCount"
-              type="number"
-              value={questionsCount}
-              onChange={(e) => setQuestionsCount(parseInt(e.target.value) || 0)}
-              min={QUIZ_VALIDATION.questionsCount.min}
-              max={QUIZ_VALIDATION.questionsCount.max}
-              disabled={llmAnalysis.loading}
-              className={errors.questionsCount ? "border-red-300" : ""}
-            />
-            {errors.questionsCount && (
-              <p className="text-sm text-red-600 mt-1">
-                {errors.questionsCount}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <Label>Typy pytań</Label>
-            <div className="space-y-2 mt-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="single"
-                  checked={questionTypes.includes("single")}
-                  onCheckedChange={() => toggleQuestionType("single")}
-                  disabled={llmAnalysis.loading}
-                />
-                <label htmlFor="single" className="text-sm cursor-pointer">
-                  Jednokrotny wybór
-                </label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="multiple"
-                  checked={questionTypes.includes("multiple")}
-                  onCheckedChange={() => toggleQuestionType("multiple")}
-                  disabled={llmAnalysis.loading}
-                />
-                <label htmlFor="multiple" className="text-sm cursor-pointer">
-                  Wielokrotny wybór
-                </label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="truefalse"
-                  checked={questionTypes.includes("truefalse")}
-                  onCheckedChange={() => toggleQuestionType("truefalse")}
-                  disabled={llmAnalysis.loading}
-                />
-                <label htmlFor="truefalse" className="text-sm cursor-pointer">
-                  Prawda/Fałsz
-                </label>
-              </div>
+          {llmAnalysis.error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <span className="text-red-800 text-sm">
+                {errorTexts.analysisError} {llmAnalysis.error}
+              </span>
             </div>
-            {errors.questionTypes && (
-              <p className="text-sm text-red-600 mt-1">
-                {errors.questionTypes}
-              </p>
-            )}
-          </div>
+          )}
 
-          <button
-            onClick={handleAnalyze}
-            disabled={llmAnalysis.loading}
-            className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg flex items-center justify-center gap-2"
-          >
-            {llmAnalysis.loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                {steps[1].loading}
-              </>
-            ) : (
-              steps[1].button
-            )}
-          </button>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="topic">Temat quizu</Label>
+              <Input
+                id="topic"
+                type="text"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder={
+                  QUIZ_WIZARD_SCHEMA.schema.step1.properties.topic.placeholder
+                }
+                disabled={llmAnalysis.loading}
+                className={errors.topic ? "border-red-300" : ""}
+              />
+              {errors.topic && (
+                <p className="text-sm text-red-600 mt-1">{errors.topic}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="difficulty">Poziom trudności</Label>
+              <Select
+                value={difficulty}
+                onValueChange={setDifficulty}
+                disabled={llmAnalysis.loading}
+              >
+                <SelectTrigger
+                  className={errors.difficulty ? "border-red-300" : ""}
+                >
+                  <SelectValue placeholder="Wybierz poziom..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="easy">Łatwy</SelectItem>
+                  <SelectItem value="medium">Średni</SelectItem>
+                  <SelectItem value="hard">Trudny</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.difficulty && (
+                <p className="text-sm text-red-600 mt-1">{errors.difficulty}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="questionsCount">Liczba pytań</Label>
+              <Input
+                id="questionsCount"
+                type="number"
+                value={questionsCount}
+                onChange={(e) =>
+                  setQuestionsCount(parseInt(e.target.value) || 0)
+                }
+                min={QUIZ_VALIDATION.questionsCount.min}
+                max={QUIZ_VALIDATION.questionsCount.max}
+                disabled={llmAnalysis.loading}
+                className={errors.questionsCount ? "border-red-300" : ""}
+              />
+              {errors.questionsCount && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.questionsCount}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <Label>Typy pytań</Label>
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="single"
+                    checked={questionTypes.includes("single")}
+                    onCheckedChange={() => toggleQuestionType("single")}
+                    disabled={llmAnalysis.loading}
+                  />
+                  <label htmlFor="single" className="text-sm cursor-pointer">
+                    Jednokrotny wybór
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="multiple"
+                    checked={questionTypes.includes("multiple")}
+                    onCheckedChange={() => toggleQuestionType("multiple")}
+                    disabled={llmAnalysis.loading}
+                  />
+                  <label htmlFor="multiple" className="text-sm cursor-pointer">
+                    Wielokrotny wybór
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="truefalse"
+                    checked={questionTypes.includes("truefalse")}
+                    onCheckedChange={() => toggleQuestionType("truefalse")}
+                    disabled={llmAnalysis.loading}
+                  />
+                  <label htmlFor="truefalse" className="text-sm cursor-pointer">
+                    Prawda/Fałsz
+                  </label>
+                </div>
+              </div>
+              {errors.questionTypes && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.questionTypes}
+                </p>
+              )}
+            </div>
+
+            <button
+              onClick={handleAnalyze}
+              disabled={llmAnalysis.loading}
+              className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg flex items-center justify-center gap-2"
+            >
+              {llmAnalysis.loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  {steps[1].loading}
+                </>
+              ) : (
+                steps[1].button
+              )}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </SubPage>
   );
 };

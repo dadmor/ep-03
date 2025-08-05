@@ -65,9 +65,7 @@ function App() {
           topicsResource,
           activitiesResource,
           
-          // Kreatory AI
-          educationalMaterialResource,
-          quizWizardResource,
+         
           
           // Zarządzanie użytkownikami
           groupsResource,
@@ -76,6 +74,10 @@ function App() {
           // Administracja
           vendorsResource,
           reportsResource,
+
+           // Kreatory AI
+           educationalMaterialResource,
+           quizWizardResource,
         ]}
         options={{
           syncWithLocation: true,

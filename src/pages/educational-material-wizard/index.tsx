@@ -6,6 +6,7 @@ import { MaterialWizardStep2 } from "./MaterialWizardStep2";
 import { MaterialWizardStep3 } from "./MaterialWizardStep3";
 import { MaterialWizardStep4 } from "./MaterialWizardStep4";
 import { MaterialWizardStep5 } from "./MaterialWizardStep5";
+import { Wand } from "lucide-react";
 
 // Eksport komponentów
 export { MaterialWizardDashboard } from './MaterialWizardDashboard';
@@ -33,5 +34,6 @@ export const educationalMaterialResource = {
   meta: {
     canDelete: false,
     label: "Kreator materiałów",
+    icon: <Wand className="h-4 w-4" />, // Używamy rzeczywistego komponentu React
   },
 };

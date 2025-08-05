@@ -17,6 +17,7 @@ import {
   Rocket
 } from "lucide-react";
 import { QUIZ_UI_TEXTS, QUIZ_PATHS } from "./quizWizard.constants";
+import { SubPage } from "@/components/layout";
 
 export const QuizWizardDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ export const QuizWizardDashboard: React.FC = () => {
   const hasSavedQuiz = quizData && quizData.quizTitle;
 
   return (
-    <>
+    <SubPage>
       <Lead
         title={dashboard.title}
         description={dashboard.description}
@@ -174,6 +175,6 @@ export const QuizWizardDashboard: React.FC = () => {
           </GridBox>
         </div>
       </div>
-    </>
+    </SubPage>
   );
 };

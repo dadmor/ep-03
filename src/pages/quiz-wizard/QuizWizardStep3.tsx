@@ -14,6 +14,7 @@ import {
   QUIZ_PATHS,
   QUIZ_VALIDATION,
 } from "./quizWizard.constants";
+import { SubPage } from "@/components/layout";
 
 export const QuizWizardStep3: React.FC = () => {
   const navigate = useNavigate();
@@ -81,7 +82,7 @@ export const QuizWizardStep3: React.FC = () => {
     }
   };
 
-  return (
+  return (<SubPage>
     <div className="border rounded-lg bg-white shadow relative pb-6">
       <StepsHero step={3} />
       <div className="space-y-6 p-8">
@@ -213,6 +214,6 @@ export const QuizWizardStep3: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+    </div></SubPage>
   );
 };

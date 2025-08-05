@@ -8,6 +8,7 @@ import StepsHero from "./StepsHero";
 import { Eye, Check, X } from "lucide-react";
 import StepsHeader from "./StepsHeader";
 import { QUIZ_UI_TEXTS, QUIZ_PATHS } from "./quizWizard.constants";
+import { SubPage } from "@/components/layout";
 
 export const QuizWizardStep4: React.FC = () => {
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ export const QuizWizardStep4: React.FC = () => {
     }
   };
 
-  return (
+  return (<SubPage>
     <div className="border rounded-lg bg-white shadow relative pb-6">
       <StepsHero step={4} />
       <div className="space-y-6 p-8">
@@ -143,6 +144,6 @@ export const QuizWizardStep4: React.FC = () => {
           </Button>
         </div>
       </div>
-    </div>
+    </div></SubPage>
   );
 };

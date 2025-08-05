@@ -6,6 +6,8 @@ import { useFormSchemaStore } from "@/utility/llmFormWizard";
 import StepsHero from "./StepsHero";
 import StepsHeader from "./StepsHeader";
 import { QUIZ_UI_TEXTS, QUIZ_PATHS } from "./quizWizard.constants";
+import { Sub } from "@radix-ui/react-dropdown-menu";
+import { SubPage } from "@/components/layout";
 
 export const QuizWizardStep2: React.FC = () => {
   const navigate = useNavigate();
@@ -32,6 +34,7 @@ export const QuizWizardStep2: React.FC = () => {
   };
 
   return (
+    <SubPage>
     <div className="border rounded-lg bg-white shadow relative pb-6">
       <StepsHero step={2} />
       <div className="space-y-6 p-8">
@@ -122,5 +125,6 @@ export const QuizWizardStep2: React.FC = () => {
         </div>
       </div>
     </div>
+    </SubPage>
   );
 };
