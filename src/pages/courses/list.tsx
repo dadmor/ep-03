@@ -10,7 +10,8 @@ import {
   FileText,
   MoreVertical,
   Layout,
-  Sparkles
+  Sparkles,
+  Brain
 } from "lucide-react";
 import { FlexBox, GridBox } from "@/components/shared";
 import { PaginationSwith } from "@/components/navigation";
@@ -23,6 +24,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
@@ -184,9 +186,38 @@ export const CoursesList = () => {
                       <Edit className="mr-2 h-4 w-4" />
                       Edytuj
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+      
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        sessionStorage.setItem("wizardContext", JSON.stringify({
+                          courseId: course.id,
+                          courseTitle: course.title
+                        }));
+                        window.location.href = '/educational-material/step1';
+                      }}
+                      className="text-purple-600 focus:text-purple-600"
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generuj materiał z AI
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => {
+                        sessionStorage.setItem("wizardContext", JSON.stringify({
+                          courseId: course.id,
+                          courseTitle: course.title
+                        }));
+                        window.location.href = '/quiz-wizard/step1';
+                      }}
+                      className="text-blue-600 focus:text-blue-600"
+                    >
+                      <Brain className="mr-2 h-4 w-4" />
+                      Generuj quiz z AI
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       onClick={() => handleDelete(course.id, course.title)}
-                      className="text-red-600"
+                      className="text-red-600 focus:text-red-600"
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Usuń
