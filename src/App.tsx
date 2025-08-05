@@ -1,4 +1,4 @@
-// src/App.tsx - poprawiony z importem useGetIdentity
+// src/App.tsx - kompletny z oboma wizardami
 import { Authenticated, ErrorComponent, Refine, useGetIdentity } from "@refinedev/core";
 import routerBindings, {
   CatchAllNavigate,
@@ -20,6 +20,16 @@ import { groupsResource, groupsRoutes } from "./pages/groups";
 import { usersResource, usersRoutes } from "./pages/users";
 import { vendorsResource, vendorsRoutes } from "./pages/vendors";
 import { reportsResource, reportsRoutes } from "./pages/reports";
+
+// Import wizardów
+import { 
+  educationalMaterialResource, 
+  educationalMaterialRoutes 
+} from "./pages/educational-material-wizard";
+import { 
+  quizWizardResource, 
+  quizWizardRoutes 
+} from "./pages/quiz-wizard";
 
 // Import panelu ucznia
 import { studentRoutes } from "./pages/student";
@@ -54,6 +64,10 @@ function App() {
           coursesResource,
           topicsResource,
           activitiesResource,
+          
+          // Kreatory AI
+          educationalMaterialResource,
+          quizWizardResource,
           
           // Zarządzanie użytkownikami
           groupsResource,
@@ -107,6 +121,10 @@ function App() {
             {...topicsRoutes}
             {...activitiesRoutes}
             {...questionsRoutes}
+            
+            {/* Kreatory AI */}
+            {...educationalMaterialRoutes}
+            {...quizWizardRoutes}
             
             {/* Zarządzanie użytkownikami */}
             {...groupsRoutes}
