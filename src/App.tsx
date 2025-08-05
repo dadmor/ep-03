@@ -1,4 +1,4 @@
-// src/App.tsx - kompletny z oboma wizardami
+// src/App.tsx - kompletny z trzema wizardami
 import { Authenticated, ErrorComponent, Refine, useGetIdentity } from "@refinedev/core";
 import routerBindings, {
   CatchAllNavigate,
@@ -30,6 +30,10 @@ import {
   quizWizardResource, 
   quizWizardRoutes 
 } from "./pages/quiz-wizard";
+import { 
+  courseStructureResource, 
+  courseStructureRoutes 
+} from "./pages/course-structure-wizard";
 
 // Import panelu ucznia
 import { studentRoutes } from "./pages/student";
@@ -65,8 +69,6 @@ function App() {
           topicsResource,
           activitiesResource,
           
-         
-          
           // Zarządzanie użytkownikami
           groupsResource,
           usersResource,
@@ -75,9 +77,10 @@ function App() {
           vendorsResource,
           reportsResource,
 
-           // Kreatory AI
-           educationalMaterialResource,
-           quizWizardResource,
+          // Kreatory AI
+          courseStructureResource,     // Generator struktury kursu
+          educationalMaterialResource, // Kreator materiałów
+          quizWizardResource,         // Kreator quizów
         ]}
         options={{
           syncWithLocation: true,
@@ -125,6 +128,7 @@ function App() {
             {...questionsRoutes}
             
             {/* Kreatory AI */}
+            {...courseStructureRoutes}
             {...educationalMaterialRoutes}
             {...quizWizardRoutes}
             

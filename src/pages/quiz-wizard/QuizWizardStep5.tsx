@@ -4,10 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useFormSchemaStore } from "@/utility/llmFormWizard";
 import { useCreate, useList, BaseRecord } from "@refinedev/core";
 import { Save, ArrowLeft, HelpCircle, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Button, Input, Label, Separator } from "@/components/ui";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
@@ -24,6 +21,7 @@ import {
   QUIZ_PATHS,
 } from "./quizWizard.constants";
 import { SubPage } from "@/components/layout";
+import { toast } from "sonner";
 
 // Definicje typów dla lepszej kontroli TypeScript
 interface Course extends BaseRecord {
@@ -148,6 +146,7 @@ export const QuizWizardStep5: React.FC = () => {
     if (!validateForm()) return;
 
     setSaving(true);
+    setSaved(false); // Reset saved state
 
     try {
       // 1. Najpierw utwórz aktywność typu quiz
@@ -170,10 +169,11 @@ export const QuizWizardStep5: React.FC = () => {
           onSuccess: async (activityData) => {
             const activityId = activityData.data.id;
 
-            // 2. Następnie dodaj wszystkie pytania
+            // 2. Następnie dodaj wszystkie pytania sekwencyjnie
             try {
-              const questionPromises = formData.questions.map((question: any, index: number) => 
-                new Promise((resolve, reject) => {
+              for (let index = 0; index < formData.questions.length; index++) {
+                const question = formData.questions[index];
+                await new Promise((resolve, reject) => {
                   createQuestion(
                     {
                       resource: "questions",
@@ -195,10 +195,8 @@ export const QuizWizardStep5: React.FC = () => {
                       onError: reject,
                     }
                   );
-                })
-              );
-
-              await Promise.all(questionPromises);
+                });
+              }
 
               // 3. Zapisz w lokalnym store
               setData("quiz-wizard", {
@@ -219,21 +217,24 @@ export const QuizWizardStep5: React.FC = () => {
               }, 2000);
             } catch (error) {
               setSaving(false);
+              setSaved(false);
               console.error("Błąd podczas zapisywania pytań:", error);
-              alert("Błąd podczas zapisywania pytań");
+              toast.error("Wystąpił błąd podczas zapisywania pytań. Spróbuj ponownie.");
             }
           },
           onError: (error) => {
             setSaving(false);
+            setSaved(false);
             console.error(errorTexts.saveError, error);
-            alert(errorTexts.saveError);
+            toast.error(errorTexts.saveError);
           },
         }
       );
     } catch (error) {
       setSaving(false);
+      setSaved(false);
       console.error(errorTexts.unexpectedError, error);
-      alert(errorTexts.unexpectedError);
+      toast.error(errorTexts.unexpectedError);
     }
   };
 
