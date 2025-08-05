@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFormSchemaStore } from "@/utility/llmFormWizard";
-import { useCreate, useList } from "@refinedev/core";
+import { useCreate, useList, BaseRecord } from "@refinedev/core";
 import { Save, ArrowLeft, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,25 @@ import StepsHero from "./StepsHero";
 import StepsHeader from "./StepsHeader";
 import { SubPage } from "@/components/layout";
 
+// Definicje typów dla lepszej kontroli TypeScript
+interface Course extends BaseRecord {
+  id: number;
+  title: string;
+  is_published: boolean;
+}
+
+interface Topic extends BaseRecord {
+  id: number;
+  title: string;
+  position: number;
+  course_id: number;
+}
+
+interface Activity extends BaseRecord {
+  id: number;
+  position: number;
+}
+
 export const MaterialWizardStep5: React.FC = () => {
   const navigate = useNavigate();
   const { getData, setData } = useFormSchemaStore();
@@ -50,7 +69,7 @@ export const MaterialWizardStep5: React.FC = () => {
   const { steps, errors: errorTexts } = MATERIAL_UI_TEXTS;
 
   // Pobierz listę kursów
-  const { data: coursesData } = useList({
+  const { data: coursesData } = useList<Course>({
     resource: "courses",
     meta: {
       select: "id, title, is_published",
@@ -65,7 +84,7 @@ export const MaterialWizardStep5: React.FC = () => {
   });
 
   // Pobierz listę tematów dla wybranego kursu
-  const { data: topicsData } = useList({
+  const { data: topicsData } = useList<Topic>({
     resource: "topics",
     filters: [
       {
@@ -86,7 +105,7 @@ export const MaterialWizardStep5: React.FC = () => {
   });
 
   // Pobierz ostatnią pozycję dla wybranego tematu
-  const { data: activitiesData } = useList({
+  const { data: activitiesData } = useList<Activity>({
     resource: "activities",
     filters: [
       {
@@ -190,214 +209,238 @@ export const MaterialWizardStep5: React.FC = () => {
     }
   };
 
-  return (<SubPage>
-    <div className="border rounded-lg bg-white shadow relative">
-      <StepsHero step={5} />
+  // Type guard do sprawdzenia czy course ma wymagane właściwości
+  const isCourseValid = (course: BaseRecord): course is Course => {
+    return course.id !== undefined && course.title !== undefined;
+  };
 
-      <div className="p-8">
-        <StepsHeader
-          title={
-            <>
-              <FileText className="w-8 h-8 text-purple-500" />
-              <span>{steps[5].title}</span>
-            </>
-          }
-          description={steps[5].description}
-        />
+  // Type guard do sprawdzenia czy topic ma wymagane właściwości
+  const isTopicValid = (topic: BaseRecord): topic is Topic => {
+    return topic.id !== undefined && topic.title !== undefined && topic.position !== undefined;
+  };
 
-        {saved && (
-          <Alert className="mb-6 bg-green-50 border-green-200">
-            <AlertDescription className="text-green-800">
-              {steps[5].success}
-            </AlertDescription>
-          </Alert>
-        )}
+  return (
+    <SubPage>
+      <div className="border rounded-lg bg-white shadow relative">
+        <StepsHero step={5} />
 
-        <form
-          className="space-y-6"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSave();
-          }}
-        >
-          {/* Wybór kursu i tematu */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="courseId">Kurs <span className="text-red-500">*</span></Label>
-              <Select
-                value={courseId}
-                onValueChange={(value) => {
-                  setCourseId(value);
-                  setTopicId(""); // Reset topic selection
-                }}
-              >
-                <SelectTrigger className={errors.courseId ? "border-red-300" : ""}>
-                  <SelectValue placeholder="Wybierz kurs..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {coursesData?.data?.map((course) => (
-                    <SelectItem key={course.id} value={course.id.toString()}>
-                      {course.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.courseId && (
-                <p className="text-sm text-red-600 mt-1">{errors.courseId}</p>
-              )}
-            </div>
+        <div className="p-8">
+          <StepsHeader
+            title={
+              <>
+                <FileText className="w-8 h-8 text-purple-500" />
+                <span>{steps[5].title}</span>
+              </>
+            }
+            description={steps[5].description}
+          />
 
-            <div>
-              <Label htmlFor="topicId">Temat <span className="text-red-500">*</span></Label>
-              <Select
-                value={topicId}
-                onValueChange={setTopicId}
-                disabled={!courseId}
-              >
-                <SelectTrigger className={errors.topicId ? "border-red-300" : ""}>
-                  <SelectValue placeholder={courseId ? "Wybierz temat..." : "Najpierw wybierz kurs..."} />
-                </SelectTrigger>
-                <SelectContent>
-                  {topicsData?.data?.map((topic) => (
-                    <SelectItem key={topic.id} value={topic.id.toString()}>
-                      {topic.position}. {topic.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.topicId && (
-                <p className="text-sm text-red-600 mt-1">{errors.topicId}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Tytuł aktywności */}
-          <div>
-            <Label htmlFor="activityTitle">
-              Tytuł aktywności <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="activityTitle"
-              type="text"
-              value={activityTitle}
-              onChange={(e) => setActivityTitle(e.target.value)}
-              placeholder="np. Wprowadzenie do zmiennych"
-              maxLength={MATERIAL_VALIDATION.activityTitle.maxLength}
-              className={errors.activityTitle ? "border-red-300" : ""}
-            />
-            {errors.activityTitle && (
-              <p className="text-sm text-red-600 mt-1">{errors.activityTitle}</p>
-            )}
-          </div>
-
-          {/* Typ aktywności i czas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="activityType">Typ aktywności</Label>
-              <Select
-                value={activityType}
-                onValueChange={setActivityType}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="material">Materiał edukacyjny</SelectItem>
-                  <SelectItem value="quiz">Quiz sprawdzający</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="duration">
-                Czas trwania (min) <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="duration"
-                type="number"
-                value={duration}
-                onChange={(e) => setDuration(parseInt(e.target.value) || 0)}
-                min={MATERIAL_VALIDATION.duration.min}
-                max={MATERIAL_VALIDATION.duration.max}
-                className={errors.duration ? "border-red-300" : ""}
-              />
-              {errors.duration && (
-                <p className="text-sm text-red-600 mt-1">{errors.duration}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Treść materiału */}
-          {activityType === "material" && (
-            <div>
-              <Label htmlFor="content">
-                Treść materiału <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Treść materiału w formacie Markdown..."
-                rows={15}
-                className={`font-mono text-sm ${errors.content ? "border-red-300" : ""}`}
-              />
-              {errors.content && (
-                <p className="text-sm text-red-600 mt-1">{errors.content}</p>
-              )}
-              <p className="text-sm text-gray-500 mt-1">
-                {content.length} znaków (minimum {MATERIAL_VALIDATION.content.minLength})
-              </p>
-            </div>
-          )}
-
-          {activityType === "quiz" && (
-            <Alert className="bg-blue-50 border-blue-200">
-              <AlertDescription className="text-blue-800">
-                💡 Po zapisaniu zostaniesz przekierowany do kreatora pytań quizowych
+          {saved && (
+            <Alert className="mb-6 bg-green-50 border-green-200">
+              <AlertDescription className="text-green-800">
+                {steps[5].success}
               </AlertDescription>
             </Alert>
           )}
 
-          {/* Informacja o zapisie */}
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <p className="text-purple-800 text-sm">{steps[5].saveInfo}</p>
-          </div>
+          <form
+            className="space-y-6"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSave();
+            }}
+          >
+            {/* Wybór kursu i tematu */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="courseId">Kurs <span className="text-red-500">*</span></Label>
+                <Select
+                  value={courseId}
+                  onValueChange={(value) => {
+                    setCourseId(value);
+                    setTopicId(""); // Reset topic selection
+                  }}
+                >
+                  <SelectTrigger className={errors.courseId ? "border-red-300" : ""}>
+                    <SelectValue placeholder="Wybierz kurs..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {coursesData?.data?.map((course) => {
+                      if (!isCourseValid(course)) return null;
+                      return (
+                        <SelectItem 
+                          key={course.id} 
+                          value={course.id.toString()}
+                        >
+                          {course.title}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                {errors.courseId && (
+                  <p className="text-sm text-red-600 mt-1">{errors.courseId}</p>
+                )}
+              </div>
 
-          <Separator />
+              <div>
+                <Label htmlFor="topicId">Temat <span className="text-red-500">*</span></Label>
+                <Select
+                  value={topicId}
+                  onValueChange={setTopicId}
+                  disabled={!courseId}
+                >
+                  <SelectTrigger className={errors.topicId ? "border-red-300" : ""}>
+                    <SelectValue placeholder={courseId ? "Wybierz temat..." : "Najpierw wybierz kurs..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {topicsData?.data?.map((topic) => {
+                      if (!isTopicValid(topic)) return null;
+                      return (
+                        <SelectItem 
+                          key={topic.id} 
+                          value={topic.id.toString()}
+                        >
+                          {topic.position}. {topic.title}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                {errors.topicId && (
+                  <p className="text-sm text-red-600 mt-1">{errors.topicId}</p>
+                )}
+              </div>
+            </div>
 
-          {/* Przyciski nawigacji */}
-          <footer className="flex justify-between gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate(MATERIAL_PATHS.step4)}
-              disabled={saving}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Wstecz
-            </Button>
-
-            <Button
-              type="submit"
-              disabled={saving || saved}
-              className="flex items-center gap-2 min-w-[160px]"
-            >
-              {saving ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  {steps[5].loading}
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  {steps[5].button}
-                </>
+            {/* Tytuł aktywności */}
+            <div>
+              <Label htmlFor="activityTitle">
+                Tytuł aktywności <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="activityTitle"
+                type="text"
+                value={activityTitle}
+                onChange={(e) => setActivityTitle(e.target.value)}
+                placeholder="np. Wprowadzenie do zmiennych"
+                maxLength={MATERIAL_VALIDATION.activityTitle.maxLength}
+                className={errors.activityTitle ? "border-red-300" : ""}
+              />
+              {errors.activityTitle && (
+                <p className="text-sm text-red-600 mt-1">{errors.activityTitle}</p>
               )}
-            </Button>
-          </footer>
-        </form>
+            </div>
+
+            {/* Typ aktywności i czas */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="activityType">Typ aktywności</Label>
+                <Select
+                  value={activityType}
+                  onValueChange={setActivityType}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="material">Materiał edukacyjny</SelectItem>
+                    <SelectItem value="quiz">Quiz sprawdzający</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="duration">
+                  Czas trwania (min) <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  value={duration}
+                  onChange={(e) => setDuration(parseInt(e.target.value) || 0)}
+                  min={MATERIAL_VALIDATION.duration.min}
+                  max={MATERIAL_VALIDATION.duration.max}
+                  className={errors.duration ? "border-red-300" : ""}
+                />
+                {errors.duration && (
+                  <p className="text-sm text-red-600 mt-1">{errors.duration}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Treść materiału */}
+            {activityType === "material" && (
+              <div>
+                <Label htmlFor="content">
+                  Treść materiału <span className="text-red-500">*</span>
+                </Label>
+                <Textarea
+                  id="content"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Treść materiału w formacie Markdown..."
+                  rows={15}
+                  className={`font-mono text-sm ${errors.content ? "border-red-300" : ""}`}
+                />
+                {errors.content && (
+                  <p className="text-sm text-red-600 mt-1">{errors.content}</p>
+                )}
+                <p className="text-sm text-gray-500 mt-1">
+                  {content.length} znaków (minimum {MATERIAL_VALIDATION.content.minLength})
+                </p>
+              </div>
+            )}
+
+            {activityType === "quiz" && (
+              <Alert className="bg-blue-50 border-blue-200">
+                <AlertDescription className="text-blue-800">
+                  💡 Po zapisaniu zostaniesz przekierowany do kreatora pytań quizowych
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Informacja o zapisie */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <p className="text-purple-800 text-sm">{steps[5].saveInfo}</p>
+            </div>
+
+            <Separator />
+
+            {/* Przyciski nawigacji */}
+            <footer className="flex justify-between gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate(MATERIAL_PATHS.step4)}
+                disabled={saving}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Wstecz
+              </Button>
+
+              <Button
+                type="submit"
+                disabled={saving || saved}
+                className="flex items-center gap-2 min-w-[160px]"
+              >
+                {saving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    {steps[5].loading}
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    {steps[5].button}
+                  </>
+                )}
+              </Button>
+            </footer>
+          </form>
+        </div>
       </div>
-    </div></SubPage>
+    </SubPage>
   );
 };
