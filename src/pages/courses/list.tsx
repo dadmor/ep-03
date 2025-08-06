@@ -1,11 +1,11 @@
 // pages/courses/list.tsx
 import { useTable, useNavigation, useDelete } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  BookOpen, 
-  Plus, 
-  Edit, 
-  Trash2, 
+import {
+  BookOpen,
+  Plus,
+  Edit,
+  Trash2,
   Eye,
   EyeOff,
   Users,
@@ -15,7 +15,6 @@ import {
   Sparkles,
   Brain,
   Clock,
-
 } from "lucide-react";
 import { FlexBox, GridBox } from "@/components/shared";
 import { PaginationSwith } from "@/components/navigation";
@@ -54,8 +53,8 @@ interface Course {
 export const CoursesList = () => {
   const { create, edit, show } = useNavigation();
   const { mutate: deleteCourse } = useDelete();
-  const { togglePublish } = usePublishToggle('courses');
-  
+  const { togglePublish } = usePublishToggle("courses");
+
   const {
     tableQuery: { data, isLoading, isError, refetch },
     current,
@@ -72,10 +71,10 @@ export const CoursesList = () => {
       ],
     },
     meta: {
-      select: '*, topics(count), course_access(count)'
-    }
+      select: "*, topics(count), course_access(count)",
+    },
   });
-  
+
   const init = useLoading({ isLoading, isError });
   if (init) return init;
 
@@ -96,12 +95,19 @@ export const CoursesList = () => {
     }
   };
 
-  const handleNavigateToWizard = (wizardPath: string, courseId?: number, courseTitle?: string) => {
+  const handleNavigateToWizard = (
+    wizardPath: string,
+    courseId?: number,
+    courseTitle?: string
+  ) => {
     if (courseId && courseTitle) {
-      sessionStorage.setItem("wizardContext", JSON.stringify({
-        courseId,
-        courseTitle
-      }));
+      sessionStorage.setItem(
+        "wizardContext",
+        JSON.stringify({
+          courseId,
+          courseTitle,
+        })
+      );
     }
     window.location.href = wizardPath;
   };
@@ -109,17 +115,16 @@ export const CoursesList = () => {
   return (
     <SubPage>
       <FlexBox>
-        <Lead
-          title="Kursy"
-          description="Zarządzaj kursami w systemie"
-        />
+        <Lead title="Kursy" description="Zarządzaj kursami w systemie" />
         <div className="flex gap-2">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
+                <Button
                   variant="outline"
-                  onClick={() => handleNavigateToWizard('/course-structure/step1')}
+                  onClick={() =>
+                    handleNavigateToWizard("/course-structure/step1")
+                  }
                 >
                   <Layout className="w-4 h-4 mr-2" />
                   <Sparkles className="w-3 h-3" />
@@ -130,7 +135,7 @@ export const CoursesList = () => {
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          
+
           <Button onClick={() => create("courses")}>
             <Plus className="w-4 h-4 mr-2" />
             Dodaj kurs
@@ -156,12 +161,12 @@ export const CoursesList = () => {
 
       <GridBox>
         {data?.data?.map((course) => (
-          <Card 
-            key={course.id} 
+          <Card
+            key={course.id}
             className={`relative cursor-pointer transition-all duration-200 ${
-              !course.is_published 
-                ? 'opacity-80 hover:opacity-90 ' 
-                : 'hover:shadow-lg'
+              !course.is_published
+                ? "opacity-80 hover:opacity-90 "
+                : "hover:shadow-lg"
             }`}
             onClick={(e) => {
               if (!(e.target as HTMLElement).closest('[role="menu"]')) {
@@ -169,7 +174,6 @@ export const CoursesList = () => {
               }
             }}
           >
-            
             <CardHeader>
               <FlexBox>
                 <CardTitle className="flex items-center gap-2 min-w-0">
@@ -193,11 +197,11 @@ export const CoursesList = () => {
                     </Tooltip>
                   </TooltipProvider>
                 </CardTitle>
-                
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="sm"
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -205,17 +209,28 @@ export const CoursesList = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => show("courses", course.id)}>
+                    <DropdownMenuItem
+                      onClick={() => show("courses", course.id)}
+                    >
                       <Eye className="mr-2 h-4 w-4" />
                       Podgląd
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => edit("courses", course.id)}>
+                    <DropdownMenuItem
+                      onClick={() => edit("courses", course.id)}
+                    >
                       <Edit className="mr-2 h-4 w-4" />
                       Edytuj
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => togglePublish(course.id, course.is_published, course.title, refetch)}
+                    <DropdownMenuItem
+                      onClick={() =>
+                        togglePublish(
+                          course.id,
+                          course.is_published,
+                          course.title,
+                          refetch
+                        )
+                      }
                     >
                       {course.is_published ? (
                         <>
@@ -230,22 +245,34 @@ export const CoursesList = () => {
                       )}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => handleNavigateToWizard('/educational-material/step1', course.id, course.title)}
+                    <DropdownMenuItem
+                      onClick={() =>
+                        handleNavigateToWizard(
+                          "/educational-material/step1",
+                          course.id,
+                          course.title
+                        )
+                      }
                       className="text-purple-600 focus:text-purple-600"
                     >
                       <Sparkles className="mr-2 h-4 w-4" />
                       Generuj materiał z AI
                     </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => handleNavigateToWizard('/quiz-wizard/step1', course.id, course.title)}
+                    <DropdownMenuItem
+                      onClick={() =>
+                        handleNavigateToWizard(
+                          "/quiz-wizard/step1",
+                          course.id,
+                          course.title
+                        )
+                      }
                       className="text-blue-600 focus:text-blue-600"
                     >
                       <Brain className="mr-2 h-4 w-4" />
                       Generuj quiz z AI
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => handleDelete(course.id, course.title)}
                       className="text-red-600 focus:text-red-600"
                     >
@@ -262,17 +289,17 @@ export const CoursesList = () => {
                   {course.description}
                 </p>
               )}
-              
+
               <div className="flex items-center justify-between">
                 <div className="flex gap-2">
-                  <Badge 
+                  <Badge
                     variant={course.is_published ? "default" : "secondary"}
                     className={course.is_published ? "bg-green-600" : ""}
                   >
                     {course.is_published ? "Opublikowany" : "Szkic"}
                   </Badge>
                 </div>
-                
+
                 <div className="flex gap-3 text-sm text-muted-foreground">
                   <TooltipProvider>
                     <Tooltip>
@@ -287,7 +314,7 @@ export const CoursesList = () => {
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  
+
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -303,12 +330,13 @@ export const CoursesList = () => {
                   </TooltipProvider>
                 </div>
               </div>
-              
+
               {course.created_at && (
                 <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                   <Clock className="w-3 h-3" />
                   <span>
-                    Utworzono: {new Date(course.created_at).toLocaleDateString('pl-PL')}
+                    Utworzono:{" "}
+                    {new Date(course.created_at).toLocaleDateString("pl-PL")}
                   </span>
                 </div>
               )}
@@ -331,8 +359,10 @@ export const CoursesList = () => {
                 <Plus className="w-4 h-4 mr-2" />
                 Dodaj ręcznie
               </Button>
-              <Button 
-                onClick={() => handleNavigateToWizard('/course-structure/step1')}
+              <Button
+                onClick={() =>
+                  handleNavigateToWizard("/course-structure/step1")
+                }
                 className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
@@ -360,7 +390,9 @@ export const CoursesList = () => {
                 <Button
                   size="lg"
                   className="rounded-full shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                  onClick={() => handleNavigateToWizard('/course-structure/step1')}
+                  onClick={() =>
+                    handleNavigateToWizard("/course-structure/step1")
+                  }
                 >
                   <Layout className="w-5 h-5 mr-2" />
                   <Sparkles className="w-4 h-4" />

@@ -6,6 +6,7 @@ import {
   Calendar,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface ActivityMaterialViewProps {
   activity: {
@@ -30,7 +31,11 @@ export const ActivityMaterialView = ({ activity }: ActivityMaterialViewProps) =>
         <CardContent>
           {activity.content ? (
             <div className="prose max-w-none">
-              <ReactMarkdown>{activity.content}</ReactMarkdown>
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm]}
+              >
+                {activity.content}
+              </ReactMarkdown>
             </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground">

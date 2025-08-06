@@ -232,63 +232,67 @@ export const STRUCTURE_GENERATION_OPERATION: LLMOperation = {
   prompt: {
     system: "Jesteś ekspertem od tworzenia szczegółowych programów nauczania. Tworzysz logiczną, progresywną strukturę kursu.",
     user: `
-Stwórz szczegółową strukturę kursu:
-
-Tytuł: {{courseTitle}}
-Opis: {{description}}
-Przedmiot: {{subject}}
-Poziom: {{level}}
-Typ: {{courseType}}
-Cele: {{objectives}}
-Liczba tematów: {{topicsCount}}
-Tematy na tydzień: {{topicsPerWeek}}
-Ćwiczenia: {{includeExercises}}
-Quizy: {{includeQuizzes}}
-Częstotliwość quizów: {{quizFrequency}}
-
-Wygeneruj JSON ze strukturą:
-{
-  "structure": [
+    Stwórz szczegółową strukturę kursu:
+    
+    Tytuł: {{courseTitle}}
+    Opis: {{description}}
+    Przedmiot: {{subject}}
+    Poziom: {{level}}
+    Typ: {{courseType}}
+    Cele: {{objectives}}
+    Liczba tematów: {{topicsCount}}
+    Tematy na tydzień: {{topicsPerWeek}}
+    Ćwiczenia: {{includeExercises}}
+    Quizy: {{includeQuizzes}}
+    Częstotliwość quizów: {{quizFrequency}}
+    
+    WAŻNE: Wygeneruj KOMPLETNY JSON dla pierwszych 4 tygodni kursu. NIE UŻYWAJ komentarzy w JSON. NIE UŻYWAJ "...". Każdy tydzień musi być w pełni wypełniony.
+    
+    Wygeneruj JSON ze strukturą:
     {
-      "weekNumber": 1,
-      "topics": [
+      "structure": [
         {
-          "title": "<tytuł tematu>",
-          "description": "<opis tematu>",
-          "objectives": ["cel1", "cel2"],
-          "activities": [
+          "weekNumber": 1,
+          "topics": [
             {
-              "type": "material",
-              "title": "<tytuł materiału>",
-              "duration": <czas w minutach>
-            },
-            {
-              "type": "quiz",
-              "title": "<tytuł quizu>",
-              "questionsCount": <liczba pytań>
+              "title": "<tytuł tematu>",
+              "description": "<opis tematu>",
+              "objectives": ["cel1", "cel2"],
+              "activities": [
+                {
+                  "type": "material",
+                  "title": "<tytuł materiału>",
+                  "duration": <czas w minutach>
+                },
+                {
+                  "type": "quiz",
+                  "title": "<tytuł quizu>",
+                  "questionsCount": <liczba pytań>
+                }
+              ],
+              "keywords": ["słowo1", "słowo2"]
             }
-          ],
-          "keywords": ["słowo1", "słowo2"]
+          ]
         }
-      ]
+      ],
+      "summary": {
+        "totalWeeks": 4,
+        "totalTopics": <liczba tematów w 4 tygodniach>,
+        "totalActivities": <suma wszystkich aktywności>,
+        "totalQuizzes": <suma wszystkich quizów>
+      }
     }
-  ],
-  "summary": {
-    "totalWeeks": <liczba>,
-    "totalTopics": <liczba>,
-    "totalActivities": <liczba>,
-    "totalQuizzes": <liczba>
-  }
-}
-
-Wymagania:
-- Logiczna progresja trudności
-- Dla kursów maturalnych: zgodność z wymaganiami egzaminacyjnymi
-- Każdy temat ma jasno określone cele
-- Realistyczne czasy trwania (30-90 min na materiał)
-- Quizy dostosowane do poziomu (5-15 pytań)
-- Równomierne rozłożenie materiału
-    `,
+    
+    Wymagania:
+    - Wygeneruj DOKŁADNIE 4 tygodnie
+    - Każdy tydzień ma {{topicsPerWeek}} tematów
+    - Logiczna progresja trudności
+    - Dla kursów maturalnych: zgodność z wymaganiami egzaminacyjnymi
+    - Każdy temat ma jasno określone cele
+    - Realistyczne czasy trwania (30-90 min na materiał)
+    - Quizy dostosowane do poziomu (5-15 pytań)
+    - NIE UŻYWAJ komentarzy ani "..." w JSON
+        `,
     responseFormat: "json",
   },
   inputMapping: (data) => ({

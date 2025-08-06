@@ -104,12 +104,11 @@ class GenericLLMService {
       body: JSON.stringify(payload),
     });
 
-    // Zawsze próbuj odczytać odpowiedź JSON, nawet przy błędzie
+    // Zawsze próbuj odczytać odpowiedź JSON
     let result;
     try {
       result = await response.json();
     } catch (e) {
-      // Jeśli nie można sparsować JSON, rzuć ogólny błąd
       throw new Error(
         `LLM API Error: ${response.status} ${response.statusText}`
       );
@@ -117,40 +116,21 @@ class GenericLLMService {
 
     // Sprawdź czy odpowiedź zawiera błąd
     if (!response.ok || result.error) {
-      // Jeśli API zwróciło przyjazny komunikat, użyj go
-      if (result.message || result.error) {
-        const errorMessage = result.message || result.error;
-        const suggestion = result.suggestion ? ` ${result.suggestion}` : "";
-        throw new Error(`${errorMessage}${suggestion}`);
-      }
-      
-      // Fallback na ogólny komunikat
-      throw new Error(
-        `LLM API Error: ${response.status} ${response.statusText}`
-      );
+      const errorMessage = result.message || result.error || "Nieznany błąd";
+      const suggestion = result.suggestion ? ` ${result.suggestion}` : "";
+      throw new Error(`${errorMessage}${suggestion}`);
     }
     
-    // Wyciągnij tekst odpowiedzi z różnych możliwych struktur
-    let responseText = "";
+    // API zwraca odpowiedź w polu "response"
+    const content = result.response || result;
     
-    if (result.response) {
-      responseText = result.response;
-    } else if (result.data) {
-      responseText = result.data;
-    } else if (result.text) {
-      responseText = result.text;
-    } else if (typeof result === "string") {
-      responseText = result;
-    } else {
-      responseText = JSON.stringify(result);
-    }
-
-    // Jeśli oczekujemy JSON, parsuj odpowiedź
+    // Jeśli oczekujemy JSON
     if (prompt.responseFormat === "json") {
-      return this.parseJsonResponse(responseText);
+      return this.parseJsonResponse(content);
     }
 
-    return responseText;
+    // Dla odpowiedzi tekstowych
+    return content;
   }
 
   private static interpolateTemplate(
@@ -163,7 +143,17 @@ class GenericLLMService {
   }
 
   private static cleanJsonResponse(text: string): string {
-    return text.replace(/```(?:json)?\s*([\s\S]*?)\s*```/, "$1").trim();
+    // Usuń markdown code blocks - obsługuj różne warianty
+    let cleaned = text;
+    
+    // Wariant 1: ```json ... ```
+    cleaned = cleaned.replace(/```json\s*\n?([\s\S]*?)\n?```/g, "$1");
+    
+    // Wariant 2: ``` ... ```
+    cleaned = cleaned.replace(/```\s*\n?([\s\S]*?)\n?```/g, "$1");
+    
+    // Usuń białe znaki na początku i końcu
+    return cleaned.trim();
   }
 
   private static parseJsonResponse(text: string): any {
@@ -173,11 +163,24 @@ class GenericLLMService {
     // Spróbuj sparsować oczyszczony tekst
     try {
       return JSON.parse(cleaned);
-    } catch (e) {
-      // Jeśli się nie udało, spróbuj sparsować oryginalny tekst
+    } catch (e: any) {
+      // Jeśli się nie udało, spróbuj z poprawkami dla błędnych escape'ów
       try {
-        return JSON.parse(text);
-      } catch (e2) {
+        // Napraw problematyczne escape'y w numerowanych listach
+        const fixed = cleaned.replace(/\\(\d+)\./g, '$1.');
+        return JSON.parse(fixed);
+      } catch (e2: any) {
+        // Spróbuj znaleźć JSON w tekście
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            const fixedMatch = jsonMatch[0].replace(/\\(\d+)\./g, '$1.');
+            return JSON.parse(fixedMatch);
+          } catch (e3: any) {
+            console.error("Failed to parse JSON response:", text);
+            throw new Error("Nie udało się przetworzyć odpowiedzi JSON z API");
+          }
+        }
         console.error("Failed to parse JSON response:", text);
         throw new Error("Nie udało się przetworzyć odpowiedzi JSON z API");
       }
