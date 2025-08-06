@@ -107,15 +107,17 @@ export const SortableItem = ({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+    cursor: isDragging ? 'grabbing' : 'grab',
   };
 
   const dragHandleProps = disabled ? {} : {
     ...attributes,
     ...listeners,
+    style: { cursor: isDragging ? 'grabbing' : 'grab' }
   };
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style} className={isDragging ? 'z-50' : ''}>
       {children({ dragHandleProps, isDragging })}
     </div>
   );
@@ -139,10 +141,22 @@ export const DraggableList = <T extends { id: number; position: number }>({
 }: DraggableListProps<T>) => {
   const [localItems, setLocalItems] = useState<T[]>(items);
   const [activeId, setActiveId] = useState<number | null>(null);
+  const [pendingUpdate, setPendingUpdate] = useState<{id: number, position: number} | null>(null);
   
   // Aktualizuj lokalny stan gdy zmienią się elementy z API
+  // ale zachowaj optimistic update jeśli jest w trakcie
   useEffect(() => {
-    setLocalItems(items);
+    if (!pendingUpdate) {
+      setLocalItems(items);
+    } else {
+      // Jeśli mamy pending update, zachowaj lokalną kolejność
+      // ale zaktualizuj inne właściwości elementów
+      const updatedItems = localItems.map(localItem => {
+        const serverItem = items.find(item => item.id === localItem.id);
+        return serverItem ? { ...serverItem, position: localItem.position } : localItem;
+      });
+      setLocalItems(updatedItems);
+    }
   }, [items]);
 
   const sensors = useSensors(
@@ -169,11 +183,7 @@ export const DraggableList = <T extends { id: number; position: number }>({
       const newIndex = localItems.findIndex((item) => item.id === Number(over.id));
       
       if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-        // Najpierw zaktualizuj lokalny stan dla natychmiastowego feedbacku
-        const newItems = arrayMove(localItems, oldIndex, newIndex);
-        setLocalItems(newItems);
-        
-        // Oblicz nową pozycję float
+        // Oblicz nową pozycję float PRZED zmianą kolejności
         let newPosition: number;
         const movedItem = localItems[oldIndex];
         
@@ -208,8 +218,23 @@ export const DraggableList = <T extends { id: number; position: number }>({
           }
         }
         
-        // Wywołaj callback tylko dla przenoszonego elementu
+        // Optimistic update - natychmiast zaktualizuj lokalny stan
+        const newItems = arrayMove(localItems, oldIndex, newIndex);
+        // Zaktualizuj pozycję przenoszonego elementu
+        const updatedItems = newItems.map(item => 
+          item.id === movedItem.id 
+            ? { ...item, position: newPosition }
+            : item
+        );
+        
+        setLocalItems(updatedItems);
+        setPendingUpdate({ id: movedItem.id, position: newPosition });
+        
+        // Wywołaj callback do zapisania w bazie
         onReorder(movedItem.id, newPosition);
+        
+        // Wyczyść pending update po czasie
+        setTimeout(() => setPendingUpdate(null), 2000);
       }
     }
   };
@@ -230,7 +255,7 @@ export const DraggableList = <T extends { id: number; position: number }>({
             <SortableItem 
               key={item.id} 
               id={item.id}
-              disabled={disabled}
+              disabled={disabled || (pendingUpdate !== null && pendingUpdate.id !== item.id)}
             >
               {(props: any) => renderItem(item, index, props.dragHandleProps)}
             </SortableItem>

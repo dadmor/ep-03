@@ -120,19 +120,22 @@ export const usePositionManager = (resource: string) => {
         });
       });
       
-      toast.success("Kolejność została zaktualizowana");
+      // Nie pokazuj toastu - to rozprasza użytkownika
+      // toast.success("Kolejność została zaktualizowana");
       
-      // Odśwież dane
-      await invalidate({
-        resource,
-        invalidates: ["list"],
-      });
+      // Delikatne odświeżenie danych po chwili
+      setTimeout(() => {
+        invalidate({
+          resource,
+          invalidates: ["list"],
+        });
+      }, 1000);
       
     } catch (error: any) {
       console.error("Position update error:", error);
       toast.error("Nie udało się zaktualizować pozycji");
       
-      // W razie błędu odśwież dane
+      // W razie błędu natychmiast odśwież dane
       await invalidate({
         resource,
         invalidates: ["list"],

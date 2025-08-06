@@ -172,7 +172,15 @@ export const CoursesShow = () => {
       <Card>
         <CardHeader>
           <FlexBox>
-            <CardTitle>Struktura kursu</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              Struktura kursu
+              {(isUpdatingTopics || isUpdatingActivities) && (
+                <span className="text-sm font-normal text-muted-foreground flex items-center gap-1">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                  Zapisywanie...
+                </span>
+              )}
+            </CardTitle>
             <Button
               size="sm"
               onClick={() => navigateWithReturn(`/topics/create?course_id=${id}`)}
