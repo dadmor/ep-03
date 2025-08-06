@@ -121,15 +121,9 @@ export const CoursesShow = () => {
   };
 
   // Handler dla zmiany kolejności tematów
-  const handleTopicReorder = async (reorderedTopics: any[]) => {
+  const handleTopicReorder = async (reorderedTopics: any[], dragInfo?: any) => {
     try {
-      // Dodaj course_id do każdego tematu dla bezpieczeństwa
-      const topicsWithCourseId = reorderedTopics.map(topic => ({
-        ...topic,
-        course_id: Number(id)
-      }));
-      
-      await updateTopicPositions(topicsWithCourseId);
+      await updateTopicPositions(reorderedTopics, dragInfo);
       await refetchTopics();
     } catch (error) {
       console.error("Failed to reorder topics:", error);
@@ -137,9 +131,9 @@ export const CoursesShow = () => {
   };
 
   // Handler dla zmiany kolejności aktywności
-  const handleActivityReorder = async (reorderedActivities: any[]) => {
+  const handleActivityReorder = async (reorderedActivities: any[], dragInfo?: any) => {
     try {
-      await updateActivityPositions(reorderedActivities);
+      await updateActivityPositions(reorderedActivities, dragInfo);
       await refetchActivities();
     } catch (error) {
       console.error("Failed to reorder activities:", error);

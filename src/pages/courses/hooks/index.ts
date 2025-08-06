@@ -96,51 +96,112 @@ export const usePositionManager = (resource: string) => {
   const invalidate = useInvalidate();
   const [isUpdating, setIsUpdating] = useState(false);
   
-  const updatePositions = useCallback(async (items: PositionItem[]) => {
+  const updatePositions = useCallback(async (items: PositionItem[], dragInfo?: any) => {
     if (isUpdating || items.length === 0) return;
     
     setIsUpdating(true);
     
     try {
-      const tempBase = 1000;
-      
-      // Krok 1: Przenieś na tymczasowe pozycje (sekwencyjnie)
-      for (let i = 0; i < items.length; i++) {
-        await new Promise<void>((resolve, reject) => {
-          update({
-            resource,
-            id: items[i].id,
-            values: { position: tempBase + i },
-            mutationMode: "pessimistic",
-          }, {
-            onSuccess: () => resolve(),
-            onError: (error) => reject(error),
+      if (dragInfo) {
+        const { fromIndex, toIndex } = dragInfo;
+        
+        // Prosta zamiana dwóch sąsiednich elementów
+        if (Math.abs(fromIndex - toIndex) === 1) {
+          const item1 = items[fromIndex];
+          const item2 = items[toIndex];
+          
+          // Użyj bardzo wysokiej tymczasowej wartości
+          await new Promise<void>((resolve, reject) => {
+            update({
+              resource,
+              id: item1.id,
+              values: { position: 9999 },
+              mutationMode: "pessimistic",
+            }, {
+              onSuccess: () => resolve(),
+              onError: (error) => reject(error),
+            });
           });
-        });
+          
+          // Ustaw pozycje
+          await new Promise<void>((resolve, reject) => {
+            update({
+              resource,
+              id: item2.id,
+              values: { position: fromIndex + 1 },
+              mutationMode: "pessimistic",
+            }, {
+              onSuccess: () => resolve(),
+              onError: (error) => reject(error),
+            });
+          });
+          
+          await new Promise<void>((resolve, reject) => {
+            update({
+              resource,
+              id: item1.id,
+              values: { position: toIndex + 1 },
+              mutationMode: "pessimistic",
+            }, {
+              onSuccess: () => resolve(),
+              onError: (error) => reject(error),
+            });
+          });
+          
+          console.log(`Swapped adjacent items at positions ${fromIndex + 1} and ${toIndex + 1}`);
+        } else {
+          // Dla bardziej skomplikowanych przesunięć
+          const minIndex = Math.min(fromIndex, toIndex);
+          const maxIndex = Math.max(fromIndex, toIndex);
+          const affectedItems = items.slice(minIndex, maxIndex + 1);
+          
+          // Użyj unikalnego base dla tej operacji
+          const tempBase = 5000 + Math.floor(Math.random() * 1000);
+          
+          // Przenieś affected items na tymczasowe pozycje
+          for (let i = 0; i < affectedItems.length; i++) {
+            await new Promise<void>((resolve, reject) => {
+              update({
+                resource,
+                id: affectedItems[i].id,
+                values: { position: tempBase + i },
+                mutationMode: "pessimistic",
+              }, {
+                onSuccess: () => resolve(),
+                onError: (error) => reject(error),
+              });
+            });
+          }
+          
+          // Ustaw finalne pozycje
+          for (let i = 0; i < affectedItems.length; i++) {
+            await new Promise<void>((resolve, reject) => {
+              update({
+                resource,
+                id: affectedItems[i].id,
+                values: { position: minIndex + i + 1 },
+                mutationMode: "pessimistic",
+              }, {
+                onSuccess: () => resolve(),
+                onError: (error) => reject(error),
+              });
+            });
+          }
+          
+          console.log(`Updated ${affectedItems.length} items from position ${minIndex + 1} to ${maxIndex + 1}`);
+        }
+      } else {
+        // Fallback - nie powinno się wydarzyć
+        console.error("No drag info provided!");
       }
       
-      // Krok 2: Ustaw finalne pozycje
-      for (let i = 0; i < items.length; i++) {
-        await new Promise<void>((resolve, reject) => {
-          update({
-            resource,
-            id: items[i].id,
-            values: { position: i + 1 },
-            mutationMode: "pessimistic",
-          }, {
-            onSuccess: () => resolve(),
-            onError: (error) => reject(error),
-          });
-        });
-      }
+      toast.success("Kolejność została zaktualizowana");
       
-      // Odśwież dane
+      // Zawsze odśwież dane po zakończeniu
       await invalidate({
         resource,
         invalidates: ["list"],
       });
-      
-      toast.success("Kolejność została zaktualizowana");
     } catch (error: any) {
       console.error("Position update error:", error);
       toast.error("Nie udało się zaktualizować kolejności");
