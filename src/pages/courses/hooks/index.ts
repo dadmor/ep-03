@@ -88,6 +88,7 @@ export const usePublishToggle = (resource: string) => {
 interface PositionItem {
   id: number;
   position: number;
+  [key: string]: any;
 }
 
 export const usePositionManager = (resource: string) => {
@@ -96,25 +97,43 @@ export const usePositionManager = (resource: string) => {
   const [isUpdating, setIsUpdating] = useState(false);
   
   const updatePositions = useCallback(async (items: PositionItem[]) => {
-    if (isUpdating) return;
+    if (isUpdating || items.length === 0) return;
     
     setIsUpdating(true);
     
     try {
-      // Wykonaj wszystkie aktualizacje równolegle
-      const updatePromises = items.map((item, index) =>
-        update({
+      // Użyj MAŁYCH wartości tymczasowych - smallint ma zakres do 32767
+      const tempBase = 1000;
+      
+      // Krok 1: Przenieś wszystkie na tymczasowe pozycje
+      for (let i = 0; i < items.length; i++) {
+        await update({
           resource,
-          id: item.id,
-          values: { position: index + 1 },
+          id: items[i].id,
+          values: { 
+            position: tempBase + i
+          },
           mutationMode: "pessimistic",
         }, {
           successNotification: false,
           errorNotification: false,
-        })
-      );
+        });
+      }
       
-      await Promise.all(updatePromises);
+      // Krok 2: Ustaw właściwe pozycje
+      for (let i = 0; i < items.length; i++) {
+        await update({
+          resource,
+          id: items[i].id,
+          values: { 
+            position: i + 1
+          },
+          mutationMode: "pessimistic",
+        }, {
+          successNotification: false,
+          errorNotification: false,
+        });
+      }
       
       // Odśwież dane
       await invalidate({
@@ -124,8 +143,8 @@ export const usePositionManager = (resource: string) => {
       
       toast.success("Kolejność została zaktualizowana");
     } catch (error: any) {
-      toast.error("Nie udało się zaktualizować kolejności");
       console.error("Position update error:", error);
+      toast.error("Nie udało się zaktualizować kolejności");
       
       // Odśwież dane w przypadku błędu
       await invalidate({

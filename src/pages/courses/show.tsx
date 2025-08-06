@@ -25,9 +25,8 @@ import {
   useCourseData, 
   useNavigationHelper, 
   usePublishToggle,
-  usePositionManager
+  usePositionManager,
 } from "./hooks";
-import { useSequentialPositionManager } from "./hooks/useSequentialPositionManager";
 
 export const CoursesShow = () => {
   const { list, edit } = useNavigation();
@@ -47,8 +46,10 @@ export const CoursesShow = () => {
   } = useCourseData(id);
   const { togglePublish: toggleTopicPublish } = usePublishToggle('topics');
   const { togglePublish: toggleActivityPublish } = usePublishToggle('activities');
+  
+  // Użyj hooka do zarządzania pozycjami
   const { updatePositions: updateTopicPositions, isUpdating: isUpdatingTopics } = usePositionManager('topics');
-  const { updatePositions: updateActivityPositions, isUpdating: isUpdatingActivities } = useSequentialPositionManager('activities');
+  const { updatePositions: updateActivityPositions, isUpdating: isUpdatingActivities } = usePositionManager('activities');
 
   // Delete mutations
   const { mutate: deleteTopic } = useDelete();
@@ -119,18 +120,30 @@ export const CoursesShow = () => {
     }
   };
 
-  // Simplified handlers for drag & drop
+  // Handler dla zmiany kolejności tematów
   const handleTopicReorder = async (reorderedTopics: any[]) => {
-    await updateTopicPositions(reorderedTopics);
+    try {
+      // Dodaj course_id do każdego tematu dla bezpieczeństwa
+      const topicsWithCourseId = reorderedTopics.map(topic => ({
+        ...topic,
+        course_id: Number(id)
+      }));
+      
+      await updateTopicPositions(topicsWithCourseId);
+      await refetchTopics();
+    } catch (error) {
+      console.error("Failed to reorder topics:", error);
+    }
   };
 
+  // Handler dla zmiany kolejności aktywności
   const handleActivityReorder = async (reorderedActivities: any[]) => {
-    // Upewnij się, że przekazujemy topic_id z aktywnościami
-    const activitiesWithTopicId = reorderedActivities.map(activity => ({
-      ...activity,
-      topic_id: activity.topic_id // Zachowaj topic_id
-    }));
-    await updateActivityPositions(activitiesWithTopicId);
+    try {
+      await updateActivityPositions(reorderedActivities);
+      await refetchActivities();
+    } catch (error) {
+      console.error("Failed to reorder activities:", error);
+    }
   };
 
   return (

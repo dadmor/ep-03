@@ -6,6 +6,7 @@ import { useState, useCallback } from "react";
 interface PositionItem {
   id: number;
   position: number;
+  [key: string]: any;
 }
 
 export const usePositionManager = (resource: string) => {
@@ -14,65 +15,64 @@ export const usePositionManager = (resource: string) => {
   const [isUpdating, setIsUpdating] = useState(false);
   
   const updatePositions = useCallback(async (items: PositionItem[]) => {
-    if (isUpdating) return; // Zapobiegaj wielokrotnym wywołaniom
+    if (isUpdating || items.length === 0) return;
     
     setIsUpdating(true);
     
     try {
-      // Grupuj aktualizacje w batch
-      const updates = items.map((item, index) => ({
-        id: item.id,
-        newPosition: index + 1,
-        currentPosition: item.position
-      }));
+      // Generuj losowe wysokie liczby dla tymczasowych pozycji
+      const randomBase = Math.floor(Math.random() * 900000) + 100000;
       
-      // Sortuj aktualizacje, aby uniknąć konfliktów
-      const sortedUpdates = updates.sort((a, b) => {
-        // Najpierw przenieś elementy, które idą w dół
-        if (a.newPosition > a.currentPosition && b.newPosition <= b.currentPosition) return -1;
-        if (b.newPosition > b.currentPosition && a.newPosition <= a.currentPosition) return 1;
-        return 0;
-      });
+      // Krok 1: Przenieś wszystkie na losowe tymczasowe pozycje
+      for (let i = 0; i < items.length; i++) {
+        await update({
+          resource,
+          id: items[i].id,
+          values: { 
+            position: randomBase + i 
+          },
+          mutationMode: "pessimistic",
+        }, {
+          successNotification: false,
+          errorNotification: false,
+        });
+      }
       
-      // Wykonaj aktualizacje
-      for (const update of sortedUpdates) {
-        await updatePosition(update.id, update.newPosition);
+      // Krok 2: Ustaw właściwe pozycje
+      for (let i = 0; i < items.length; i++) {
+        await update({
+          resource,
+          id: items[i].id,
+          values: { 
+            position: i + 1 
+          },
+          mutationMode: "pessimistic",
+        }, {
+          successNotification: false,
+          errorNotification: false,
+        });
       }
       
       // Odśwież dane
       await invalidate({
         resource,
-        invalidates: ["list", "detail"],
+        invalidates: ["list"],
       });
       
       toast.success("Kolejność została zaktualizowana");
     } catch (error: any) {
-      toast.error("Nie udało się zaktualizować kolejności");
       console.error("Position update error:", error);
+      toast.error("Nie udało się zaktualizować kolejności");
       
       // Odśwież dane w przypadku błędu
       await invalidate({
         resource,
-        invalidates: ["list", "detail"],
+        invalidates: ["list"],
       });
-      
-      throw error; // Rzuć błąd dalej, aby obsłużyć w komponencie
     } finally {
       setIsUpdating(false);
     }
   }, [resource, update, invalidate, isUpdating]);
-  
-  const updatePosition = async (id: number, position: number) => {
-    return update({
-      resource,
-      id,
-      values: { position },
-      mutationMode: "optimistic", // Użyj trybu optimistic
-    }, {
-      successNotification: false,
-      errorNotification: false,
-    });
-  };
   
   return { 
     updatePositions,
