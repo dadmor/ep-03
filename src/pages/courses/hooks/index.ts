@@ -102,36 +102,35 @@ export const usePositionManager = (resource: string) => {
     setIsUpdating(true);
     
     try {
-      // Użyj MAŁYCH wartości tymczasowych - smallint ma zakres do 32767
       const tempBase = 1000;
       
-      // Krok 1: Przenieś wszystkie na tymczasowe pozycje
+      // Krok 1: Przenieś na tymczasowe pozycje (sekwencyjnie)
       for (let i = 0; i < items.length; i++) {
-        await update({
-          resource,
-          id: items[i].id,
-          values: { 
-            position: tempBase + i
-          },
-          mutationMode: "pessimistic",
-        }, {
-          successNotification: false,
-          errorNotification: false,
+        await new Promise<void>((resolve, reject) => {
+          update({
+            resource,
+            id: items[i].id,
+            values: { position: tempBase + i },
+            mutationMode: "pessimistic",
+          }, {
+            onSuccess: () => resolve(),
+            onError: (error) => reject(error),
+          });
         });
       }
       
-      // Krok 2: Ustaw właściwe pozycje
+      // Krok 2: Ustaw finalne pozycje
       for (let i = 0; i < items.length; i++) {
-        await update({
-          resource,
-          id: items[i].id,
-          values: { 
-            position: i + 1
-          },
-          mutationMode: "pessimistic",
-        }, {
-          successNotification: false,
-          errorNotification: false,
+        await new Promise<void>((resolve, reject) => {
+          update({
+            resource,
+            id: items[i].id,
+            values: { position: i + 1 },
+            mutationMode: "pessimistic",
+          }, {
+            onSuccess: () => resolve(),
+            onError: (error) => reject(error),
+          });
         });
       }
       
@@ -146,7 +145,7 @@ export const usePositionManager = (resource: string) => {
       console.error("Position update error:", error);
       toast.error("Nie udało się zaktualizować kolejności");
       
-      // Odśwież dane w przypadku błędu
+      // W razie błędu odśwież dane
       await invalidate({
         resource,
         invalidates: ["list"],
