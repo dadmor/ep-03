@@ -2,13 +2,19 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useOne, useList, useCreate } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, BookOpen, Check, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Check, X, Search, Eye } from "lucide-react";
 import { Button, Checkbox, Badge, Input } from "@/components/ui";
 import { FlexBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
 import { SubPage } from "@/components/layout";
 import { toast } from "sonner";
 import { supabaseClient } from "@/utility/supabaseClient";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Course {
   id: number;
@@ -16,6 +22,9 @@ interface Course {
   description?: string;
   icon_emoji?: string;
   is_published: boolean;
+  _count?: {
+    topics: number;
+  };
 }
 
 interface CourseAccess {
@@ -28,6 +37,7 @@ export const GroupsAssignCourses = () => {
   const navigate = useNavigate();
   const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showOnlyPublished, setShowOnlyPublished] = useState(false);
 
   // Pobierz dane grupy
   const { data: groupData, isLoading: groupLoading } = useOne({
@@ -35,12 +45,15 @@ export const GroupsAssignCourses = () => {
     id: id as string,
   });
 
-  // Pobierz wszystkie kursy
+  // Pobierz wszystkie kursy z dodatkowymi informacjami
   const { data: coursesData, isLoading: coursesLoading } = useList<Course>({
     resource: "courses",
     pagination: {
       mode: "off",
     },
+    meta: {
+      select: "*, topics(count)"
+    }
   });
 
   // Pobierz aktualnie przypisane kursy
@@ -95,7 +108,11 @@ export const GroupsAssignCourses = () => {
 
       await Promise.all(promises);
 
-      toast.success(`Przypisano ${selectedCourses.length} kursów do grupy`);
+      toast.success(
+        `Przypisano ${selectedCourses.length} ${
+          selectedCourses.length === 1 ? "kurs" : "kursów"
+        } do grupy`
+      );
       navigate(`/groups/show/${id}`);
     } catch (error) {
       toast.error("Błąd podczas przypisywania kursów");
@@ -118,14 +135,20 @@ export const GroupsAssignCourses = () => {
     assignedCoursesData?.data?.map((a) => a.course_id) || [];
 
   // Filtruj kursy - pokaż tylko te które nie są jeszcze przypisane
-  const availableCourses =
+  let availableCourses =
     coursesData?.data?.filter(
       (course) => !assignedCourseIds.includes(course.id)
     ) || [];
 
+  // Dodatkowe filtry
+  if (showOnlyPublished) {
+    availableCourses = availableCourses.filter(course => course.is_published);
+  }
+
   // Filtruj po wyszukiwaniu
   const filteredCourses = availableCourses.filter((course) =>
-    course.title.toLowerCase().includes(searchTerm.toLowerCase())
+    course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    course.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const toggleCourse = (courseId: number) => {
@@ -143,6 +166,9 @@ export const GroupsAssignCourses = () => {
   const deselectAll = () => {
     setSelectedCourses([]);
   };
+
+  const publishedCount = availableCourses.filter(c => c.is_published).length;
+  const draftCount = availableCourses.length - publishedCount;
 
   return (
     <SubPage>
@@ -165,8 +191,24 @@ export const GroupsAssignCourses = () => {
       <Card>
         <CardHeader>
           <FlexBox>
-            <CardTitle>Dostępne kursy</CardTitle>
+            <div>
+              <CardTitle>Dostępne kursy</CardTitle>
+              {availableCourses.length > 0 && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {publishedCount} opublikowanych, {draftCount} szkiców
+                </p>
+              )}
+            </div>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowOnlyPublished(!showOnlyPublished)}
+                className={showOnlyPublished ? "bg-primary text-primary-foreground" : ""}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Tylko opublikowane
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -189,55 +231,106 @@ export const GroupsAssignCourses = () => {
           </FlexBox>
         </CardHeader>
         <CardContent>
-          <Input
-            placeholder="Szukaj kursów..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="mb-4"
-          />
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Szukaj kursów po nazwie lub opisie..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
           {filteredCourses.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               {availableCourses.length === 0 ? (
                 <>
                   <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                  <p>Wszystkie kursy są już przypisane do tej grupy</p>
+                  <p className="font-medium mb-1">Wszystkie kursy są już przypisane</p>
+                  <p className="text-sm">Ta grupa ma dostęp do wszystkich dostępnych kursów</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => navigate("/courses")}
+                  >
+                    Przejdź do listy kursów
+                  </Button>
                 </>
               ) : (
                 <>
                   <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                  <p>Nie znaleziono kursów</p>
+                  <p>Nie znaleziono kursów spełniających kryteria</p>
                 </>
               )}
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredCourses.map((course) => (
-                <div
-                  key={course.id}
-                  className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
-                  onClick={() => toggleCourse(course.id)}
-                >
-                  <Checkbox
-                    checked={selectedCourses.includes(course.id)}
-                    onCheckedChange={() => toggleCourse(course.id)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      {course.icon_emoji && (
-                        <span className="text-xl">{course.icon_emoji}</span>
+              {filteredCourses.map((course) => {
+                const topicsCount = course._count?.topics || 0;
+                
+                return (
+                  <div
+                    key={course.id}
+                    className={`
+                      flex items-center space-x-3 p-3 border rounded-lg 
+                      cursor-pointer transition-all
+                      ${selectedCourses.includes(course.id) 
+                        ? 'border-primary bg-primary/5' 
+                        : 'hover:bg-muted/50'
+                      }
+                    `}
+                    onClick={() => toggleCourse(course.id)}
+                  >
+                    <Checkbox
+                      checked={selectedCourses.includes(course.id)}
+                      onCheckedChange={() => toggleCourse(course.id)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        {course.icon_emoji && (
+                          <span className="text-xl">{course.icon_emoji}</span>
+                        )}
+                        <span className="font-medium">{course.title}</span>
+                        <Badge 
+                          variant={course.is_published ? "default" : "secondary"}
+                          className="text-xs"
+                        >
+                          {course.is_published ? "Opublikowany" : "Szkic"}
+                        </Badge>
+                      </div>
+                      {course.description && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {course.description}
+                        </p>
                       )}
-                      <span className="font-medium">{course.title}</span>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <span>{topicsCount} {topicsCount === 1 ? 'temat' : 'tematów'}</span>
+                      </div>
                     </div>
-                    {course.description && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {course.description}
-                      </p>
-                    )}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/courses/show/${course.id}`);
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Zobacz kurs</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

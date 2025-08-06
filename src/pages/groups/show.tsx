@@ -8,6 +8,11 @@ import {
   Plus,
   UserPlus,
   Trash2,
+  Calendar,
+  Clock,
+  ExternalLink,
+  Mail,
+  AlertCircle,
 } from "lucide-react";
 import { Button, Badge } from "@/components/ui";
 import { FlexBox, GridBox } from "@/components/shared";
@@ -16,9 +21,16 @@ import { SubPage } from "@/components/layout";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabaseClient } from "@/utility/supabaseClient";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const GroupsShow = () => {
-  const { list, edit } = useNavigation();
+  const { list, edit, show } = useNavigation();
   const { id } = useParams();
   const navigate = useNavigate();
   const invalidate = useInvalidate();
@@ -29,7 +41,7 @@ export const GroupsShow = () => {
     liveMode: "off",
   });
 
-  const { data: membersData } = useList({
+  const { data: membersData, isLoading: membersLoading } = useList({
     resource: "group_members",
     filters: [
       {
@@ -47,7 +59,7 @@ export const GroupsShow = () => {
     liveMode: "off",
   });
 
-  const { data: coursesData } = useList({
+  const { data: coursesData, isLoading: coursesLoading } = useList({
     resource: "course_access",
     filters: [
       {
@@ -79,7 +91,6 @@ export const GroupsShow = () => {
         }
         
         toast.success("Kurs został odpięty od grupy");
-        // Odśwież listę kursów
         invalidate({
           resource: "course_access",
           invalidates: ["list"],
@@ -105,7 +116,6 @@ export const GroupsShow = () => {
         }
         
         toast.success("Uczeń został usunięty z grupy");
-        // Odśwież listę członków
         invalidate({
           resource: "group_members",
           invalidates: ["list"],
@@ -117,7 +127,7 @@ export const GroupsShow = () => {
     }
   };
 
-  if (groupLoading) {
+  if (groupLoading || membersLoading || coursesLoading) {
     return (
       <SubPage>
         <div className="flex items-center justify-center min-h-[400px]">
@@ -128,6 +138,8 @@ export const GroupsShow = () => {
   }
 
   const group = groupData?.data;
+  const membersCount = membersData?.total || 0;
+  const coursesCount = coursesData?.total || 0;
 
   return (
     <SubPage>
@@ -137,15 +149,31 @@ export const GroupsShow = () => {
       </Button>
 
       <FlexBox>
-        <Lead
-          title={group?.name}
-          description={`Rok akademicki: ${group?.academic_year}`}
-        />
+        <div>
+          <Lead
+            title={group?.name}
+            description={`Rok akademicki: ${group?.academic_year}`}
+          />
+          {!group?.is_active && (
+            <Badge variant="secondary" className="mt-2">
+              Grupa nieaktywna
+            </Badge>
+          )}
+        </div>
         <Button onClick={() => edit("groups", group?.id ?? "")}>
           <Edit className="w-4 h-4 mr-2" />
           Edytuj grupę
         </Button>
       </FlexBox>
+
+      {!group?.is_active && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Ta grupa jest nieaktywna. Uczniowie nie mają dostępu do przypisanych kursów.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <GridBox variant="2-2-4">
         <Card>
@@ -153,7 +181,10 @@ export const GroupsShow = () => {
             <CardTitle className="text-sm font-medium">Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <Badge variant={group?.is_active ? "default" : "secondary"}>
+            <Badge 
+              variant={group?.is_active ? "default" : "secondary"}
+              className={group?.is_active ? "bg-green-600" : ""}
+            >
               {group?.is_active ? "Aktywna" : "Nieaktywna"}
             </Badge>
           </CardContent>
@@ -164,7 +195,7 @@ export const GroupsShow = () => {
             <CardTitle className="text-sm font-medium">Uczniowie</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{membersData?.total || 0}</div>
+            <div className="text-2xl font-bold">{membersCount}</div>
           </CardContent>
         </Card>
 
@@ -173,7 +204,7 @@ export const GroupsShow = () => {
             <CardTitle className="text-sm font-medium">Kursy</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{coursesData?.total || 0}</div>
+            <div className="text-2xl font-bold">{coursesCount}</div>
           </CardContent>
         </Card>
 
@@ -189,117 +220,222 @@ export const GroupsShow = () => {
         </Card>
       </GridBox>
 
-<GridBox variant="1-2-2">
-      {/* Lista uczniów */}
-      <Card>
-        <CardHeader>
-          <FlexBox>
-            <CardTitle>Uczniowie grupy</CardTitle>
-            <Button 
-              size="sm"
-              onClick={() => navigate(`/groups/${id}/assign-students`)}
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              Dodaj ucznia
-            </Button>
-          </FlexBox>
-        </CardHeader>
-        <CardContent>
-          {membersData?.data?.length ? (
-            <div className="space-y-2">
-              {membersData.data.map((member: any) => (
-                <div
-                  key={member.user_id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                      <Users className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{member.users?.full_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {member.users?.email}
-                      </p>
+      <GridBox variant="1-2-2">
+        {/* Lista uczniów */}
+        <Card>
+          <CardHeader>
+            <FlexBox>
+              <CardTitle>Uczniowie grupy</CardTitle>
+              <Button 
+                size="sm"
+                onClick={() => navigate(`/groups/${id}/assign-students`)}
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Dodaj ucznia
+              </Button>
+            </FlexBox>
+          </CardHeader>
+          <CardContent>
+            {membersData?.data?.length ? (
+              <div className="space-y-2">
+                {membersData.data.map((member: any) => (
+                  <div
+                    key={member.user_id}
+                    className="p-4 border rounded-lg hover:bg-muted/30 transition-all duration-200 group"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex gap-3 flex-1 min-w-0">
+                        <div className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center flex-shrink-0">
+                          <Users className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-base leading-tight truncate pr-2">
+                            {member.users?.full_name}
+                          </h4>
+                          <div className="flex items-center gap-1 mt-1">
+                            <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground truncate">
+                              {member.users?.email}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => show("users", member.user_id)}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Zobacz profil</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8 hover:bg-red-50"
+                                onClick={() => handleRemoveMember(member.user_id, member.users?.full_name)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Usuń z grupy</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </div>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleRemoveMember(member.user_id, member.users?.full_name)}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="w-12 h-12 mx-auto mb-3 opacity-20" />
-              <p>Brak uczniów w grupie</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                <p>Brak uczniów w grupie</p>
+                <Button 
+                  size="sm"
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => navigate(`/groups/${id}/assign-students`)}
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Dodaj pierwszego ucznia
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Lista kursów */}
-      <Card>
-        <CardHeader>
-          <FlexBox>
-            <CardTitle>Przypisane kursy</CardTitle>
-            <Button
-              size="sm"
-              onClick={() => navigate(`/groups/${id}/assign-courses`)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Przypisz kurs
-            </Button>
-          </FlexBox>
-        </CardHeader>
-        <CardContent>
-          {coursesData?.data?.length ? (
-            <div className="space-y-2">
-              {coursesData.data.map((access: any) => (
-                <div
-                  key={access.course_id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    {access.courses?.icon_emoji ? (
-                      <span className="text-2xl">
-                        {access.courses.icon_emoji}
-                      </span>
-                    ) : (
-                      <BookOpen className="h-5 w-5 text-muted-foreground" />
-                    )}
-                    <div>
-                      <p className="font-medium">{access.courses?.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Przypisano:{" "}
-                        {new Date(access.assigned_at).toLocaleDateString(
-                          "pl-PL"
-                        )}
-                      </p>
+        {/* Lista kursów */}
+        <Card>
+          <CardHeader>
+            <FlexBox>
+              <CardTitle>Przypisane kursy</CardTitle>
+              <Button
+                size="sm"
+                onClick={() => navigate(`/groups/${id}/assign-courses`)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Przypisz kurs
+              </Button>
+            </FlexBox>
+          </CardHeader>
+          <CardContent>
+            {coursesData?.data?.length ? (
+              <div className="space-y-2">
+                {coursesData.data.map((access: any) => (
+                  <div
+                    key={access.course_id}
+                    className="p-4 border rounded-lg hover:bg-muted/30 transition-all duration-200 group"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex gap-3 flex-1 min-w-0">
+                        <div className="flex-shrink-0 mt-0.5">
+                          {access.courses?.icon_emoji ? (
+                            <div className="h-10 w-10 rounded-lg bg-muted/50 flex items-center justify-center">
+                              <span className="text-xl">
+                                {access.courses.icon_emoji}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="h-10 w-10 rounded-lg bg-muted/50 flex items-center justify-center">
+                              <BookOpen className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-base leading-tight truncate pr-2">
+                            {access.courses?.title}
+                          </h4>
+                          <div className="flex items-center gap-3 mt-2">
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Calendar className="h-3.5 w-3.5" />
+                              <span>
+                                {new Date(access.assigned_at).toLocaleDateString("pl-PL")}
+                              </span>
+                            </div>
+                            <Badge 
+                              variant={access.courses?.is_published ? "default" : "secondary"}
+                              className={`text-xs ${access.courses?.is_published ? "bg-green-100 text-green-700 hover:bg-green-100" : ""}`}
+                            >
+                              {access.courses?.is_published ? "Opublikowany" : "Szkic"}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => show("courses", access.course_id)}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Zobacz kurs</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="h-8 w-8 hover:bg-red-50"
+                                onClick={() => handleRemoveCourse(access.course_id, access.courses?.title)}
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Odepnij kurs</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </div>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleRemoveCourse(access.course_id, access.courses?.title)}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-20" />
-              <p>Brak przypisanych kursów</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                <p>Brak przypisanych kursów</p>
+                <Button 
+                  size="sm"
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => navigate(`/groups/${id}/assign-courses`)}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Przypisz pierwszy kurs
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </GridBox>
     </SubPage>
   );
