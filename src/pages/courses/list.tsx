@@ -13,7 +13,9 @@ import {
   MoreVertical,
   Layout,
   Sparkles,
-  Brain
+  Brain,
+  Clock,
+
 } from "lucide-react";
 import { FlexBox, GridBox } from "@/components/shared";
 import { PaginationSwith } from "@/components/navigation";
@@ -45,10 +47,8 @@ interface Course {
   is_published: boolean;
   created_at: string;
   vendor_id: number;
-  _count?: {
-    topics: number;
-    course_access: number;
-  };
+  topics?: Array<{ count: number }>;
+  course_access?: Array<{ count: number }>;
 }
 
 export const CoursesList = () => {
@@ -158,13 +158,18 @@ export const CoursesList = () => {
         {data?.data?.map((course) => (
           <Card 
             key={course.id} 
-            className="relative cursor-pointer transition-shadow hover:shadow-lg"
+            className={`relative cursor-pointer transition-all duration-200 ${
+              !course.is_published 
+                ? 'opacity-80 hover:opacity-90 ' 
+                : 'hover:shadow-lg'
+            }`}
             onClick={(e) => {
               if (!(e.target as HTMLElement).closest('[role="menu"]')) {
                 show("courses", course.id);
               }
             }}
           >
+            
             <CardHeader>
               <FlexBox>
                 <CardTitle className="flex items-center gap-2 min-w-0">
@@ -260,22 +265,53 @@ export const CoursesList = () => {
               
               <div className="flex items-center justify-between">
                 <div className="flex gap-2">
-                  <Badge variant={course.is_published ? "default" : "secondary"}>
+                  <Badge 
+                    variant={course.is_published ? "default" : "secondary"}
+                    className={course.is_published ? "bg-green-600" : ""}
+                  >
                     {course.is_published ? "Opublikowany" : "Szkic"}
                   </Badge>
                 </div>
                 
                 <div className="flex gap-3 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <FileText className="w-3 h-3" />
-                    {course._count?.topics || 0}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    {course._count?.course_access || 0}
-                  </span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="flex items-center gap-1">
+                          <FileText className="w-3 h-3" />
+                          {course.topics?.[0]?.count || 0}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Liczba tematów</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          {course.course_access?.[0]?.count || 0}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Liczba uczestników</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
+              
+              {course.created_at && (
+                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                  <Clock className="w-3 h-3" />
+                  <span>
+                    Utworzono: {new Date(course.created_at).toLocaleDateString('pl-PL')}
+                  </span>
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
