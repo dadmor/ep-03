@@ -42,11 +42,15 @@ interface Topic extends BaseRecord {
   title: string;
   position: number;
   course_id: number;
+  is_published: boolean;
 }
 
 export const MaterialWizardStep1: React.FC = () => {
   const navigate = useNavigate();
-  const { register, setData } = useFormSchemaStore();
+  const { register, setData, getData } = useFormSchemaStore();
+  
+  // Pobierz istniejące dane z formularza
+  const existingData = getData("educational-material-wizard");
   
   // Pola formularza
   const [courseId, setCourseId] = useState("");
@@ -56,20 +60,14 @@ export const MaterialWizardStep1: React.FC = () => {
   const [ageGroup, setAgeGroup] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [contextInfo, setContextInfo] = useState<any>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const llmAnalysis = useLLMOperation("educational-material-wizard", "analyze-topic");
   const { steps, errors: errorTexts } = MATERIAL_UI_TEXTS;
 
-  // Pobierz listę kursów z tematami
+  // Pobierz listę wszystkich kursów (nie tylko opublikowanych)
   const { data: coursesData, isLoading: coursesLoading } = useList<Course>({
     resource: "courses",
-    filters: [
-      {
-        field: "is_published",
-        operator: "eq",
-        value: true,
-      },
-    ],
     meta: {
       select: "*, topics(*)",
     },
@@ -89,38 +87,76 @@ export const MaterialWizardStep1: React.FC = () => {
     register(EDUCATIONAL_MATERIAL_SCHEMA);
     llmAnalysis.registerOperation(TOPIC_ANALYSIS_OPERATION);
 
-    // Sprawdź kontekst z sesji
-    const contextStr = sessionStorage.getItem('wizardContext');
-    if (contextStr) {
-      const context = JSON.parse(contextStr);
-      setContextInfo(context);
-      
-      // Ustaw wartości z kontekstu
-      if (context.courseId) {
-        setCourseId(context.courseId.toString());
-      }
-      if (context.topicId) {
-        setTopicId(context.topicId.toString());
-      }
-      if (context.topicTitle) {
-        setSubject(context.topicTitle);
-      }
-    }
-
     return () => {
       llmAnalysis.unregisterOperation();
     };
   }, []);
 
+  // Inicjalizacja danych z kontekstu i istniejących danych
+  useEffect(() => {
+    if (!isInitialized && coursesData?.data) {
+      let initialCourseId = "";
+      let initialTopicId = "";
+      let initialSubject = "";
+      
+      // Najpierw sprawdź kontekst z sesji
+      const contextStr = sessionStorage.getItem('wizardContext');
+      if (contextStr) {
+        try {
+          const context = JSON.parse(contextStr);
+          setContextInfo(context);
+          
+          if (context.courseId) {
+            initialCourseId = context.courseId.toString();
+          }
+          if (context.topicId) {
+            initialTopicId = context.topicId.toString();
+          }
+          if (context.topicTitle) {
+            initialSubject = context.topicTitle;
+          }
+        } catch (e) {
+          console.error("Error parsing wizard context:", e);
+        }
+      }
+      
+      // Jeśli nie ma kontekstu, sprawdź istniejące dane formularza
+      if (!initialCourseId && existingData) {
+        if (existingData.courseId) {
+          initialCourseId = existingData.courseId.toString();
+        }
+        if (existingData.topicId) {
+          initialTopicId = existingData.topicId.toString();
+        }
+        if (existingData.subject) {
+          initialSubject = existingData.subject;
+        }
+        if (existingData.targetLevel) {
+          setTargetLevel(existingData.targetLevel);
+        }
+        if (existingData.ageGroup) {
+          setAgeGroup(existingData.ageGroup);
+        }
+      }
+      
+      // Ustaw wartości
+      if (initialCourseId) setCourseId(initialCourseId);
+      if (initialTopicId) setTopicId(initialTopicId);
+      if (initialSubject) setSubject(initialSubject);
+      
+      setIsInitialized(true);
+    }
+  }, [coursesData, isInitialized, existingData]);
+
   // Automatycznie ustaw temat na podstawie wybranego tematu kursu
   useEffect(() => {
-    if (topicId && topics.length > 0) {
+    if (topicId && topics.length > 0 && !subject) {
       const selectedTopic = topics.find(t => t.id.toString() === topicId);
-      if (selectedTopic && !subject) {
+      if (selectedTopic) {
         setSubject(selectedTopic.title);
       }
     }
-  }, [topicId, topics]);
+  }, [topicId, topics, subject]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -217,8 +253,9 @@ export const MaterialWizardStep1: React.FC = () => {
                       onValueChange={(value) => {
                         setCourseId(value);
                         setTopicId(""); // Reset topic selection
+                        setSubject(""); // Reset subject
                       }}
-                      disabled={llmAnalysis.loading || coursesLoading || !!contextInfo?.courseId}
+                      disabled={llmAnalysis.loading || coursesLoading}
                     >
                       <SelectTrigger className={errors.courseId ? "border-red-300" : ""}>
                         <SelectValue placeholder="Wybierz kurs..." />
@@ -228,7 +265,10 @@ export const MaterialWizardStep1: React.FC = () => {
                           <SelectItem key={course.id} value={course.id.toString()}>
                             <div className="flex items-center gap-2">
                               {course.icon_emoji && <span>{course.icon_emoji}</span>}
-                              {course.title}
+                              <span>{course.title}</span>
+                              {!course.is_published && (
+                                <span className="text-xs text-muted-foreground">(szkic)</span>
+                              )}
                             </div>
                           </SelectItem>
                         ))}
@@ -246,7 +286,7 @@ export const MaterialWizardStep1: React.FC = () => {
                     <Select
                       value={topicId}
                       onValueChange={setTopicId}
-                      disabled={!courseId || llmAnalysis.loading || !!contextInfo?.topicId}
+                      disabled={!courseId || llmAnalysis.loading}
                     >
                       <SelectTrigger className={errors.topicId ? "border-red-300" : ""}>
                         <SelectValue placeholder={courseId ? "Wybierz temat..." : "Najpierw wybierz kurs..."} />
@@ -256,7 +296,12 @@ export const MaterialWizardStep1: React.FC = () => {
                           .sort((a, b) => a.position - b.position)
                           .map((topic) => (
                             <SelectItem key={topic.id} value={topic.id.toString()}>
-                              {topic.position}. {topic.title}
+                              <div className="flex items-center gap-2">
+                                <span>{topic.position}. {topic.title}</span>
+                                {topic.is_published === false && (
+                                  <span className="text-xs text-muted-foreground">(szkic)</span>
+                                )}
+                              </div>
                             </SelectItem>
                           ))}
                       </SelectContent>
