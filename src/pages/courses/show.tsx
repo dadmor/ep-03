@@ -203,7 +203,10 @@ export const CoursesShow = () => {
                 return (
                   <TopicCard
                     key={topic.id}
-                    topic={topic}
+                    topic={{
+                      ...topic,
+                      position: index + 1 // Przekazujemy numer wyświetlania
+                    }}
                     isExpanded={isExpanded}
                     onToggle={() => toggleTopic(topic.id)}
                     onDelete={handleDeleteTopic}
@@ -225,8 +228,11 @@ export const CoursesShow = () => {
                         renderItem={(activity, idx, activityDragProps) => (
                           <ActivityCard
                             key={activity.id}
-                            activity={activity}
-                            topicPosition={topic.position}
+                            activity={{
+                              ...activity,
+                              position: idx + 1 // Przekazujemy numer wyświetlania
+                            }}
+                            topicPosition={index + 1} // Używamy index tematu
                             onDelete={handleDeleteActivity}
                             onEdit={(resource, id) => navigateWithReturn(`/${resource}/edit/${id}`)}
                             onTogglePublish={(id, state, title) =>
