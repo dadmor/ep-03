@@ -11,6 +11,7 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -120,11 +121,11 @@ export const SortableItem = ({
   );
 };
 
-// Generyczny komponent drag & drop
+// Generyczny komponent drag & drop z pozycjami FLOAT
 interface DraggableListProps<T extends { id: number; position: number }> {
   items: T[];
   renderItem: (item: T, index: number, dragHandleProps?: any) => React.ReactNode;
-  onReorder: (items: T[]) => void;
+  onReorder: (itemId: number, newPosition: number) => void;
   className?: string;
   disabled?: boolean;
 }
@@ -136,8 +137,8 @@ export const DraggableList = <T extends { id: number; position: number }>({
   className = "space-y-2",
   disabled = false,
 }: DraggableListProps<T>) => {
-  // Lokalne elementy dla optimistic UI
   const [localItems, setLocalItems] = useState<T[]>(items);
+  const [activeId, setActiveId] = useState<number | null>(null);
   
   // Aktualizuj lokalny stan gdy zmienią się elementy z API
   useEffect(() => {
@@ -155,25 +156,60 @@ export const DraggableList = <T extends { id: number; position: number }>({
     })
   );
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(Number(event.active.id));
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
 
     if (over && active.id !== over.id) {
       const oldIndex = localItems.findIndex((item) => item.id === Number(active.id));
       const newIndex = localItems.findIndex((item) => item.id === Number(over.id));
       
-      if (oldIndex !== -1 && newIndex !== -1) {
-        // Najpierw zaktualizuj lokalny stan (optimistic UI)
+      if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        // Najpierw zaktualizuj lokalny stan dla natychmiastowego feedbacku
         const newItems = arrayMove(localItems, oldIndex, newIndex);
-        const itemsWithNewPositions = newItems.map((item, index) => ({
-          ...item,
-          position: index + 1,
-        }));
+        setLocalItems(newItems);
         
-        setLocalItems(itemsWithNewPositions);
+        // Oblicz nową pozycję float
+        let newPosition: number;
+        const movedItem = localItems[oldIndex];
         
-        // Wywołaj callback do zapisania w API
-        onReorder(itemsWithNewPositions);
+        if (newIndex === 0) {
+          // Przeniesiony na początek
+          newPosition = localItems[0].position / 2;
+        } else if (newIndex === localItems.length - 1) {
+          // Przeniesiony na koniec
+          newPosition = localItems[localItems.length - 1].position + 1000;
+        } else {
+          // Przeniesiony między dwa elementy
+          if (oldIndex < newIndex) {
+            // Przesuwamy w dół
+            const afterItem = localItems[newIndex];
+            const beforeItem = newIndex + 1 < localItems.length ? localItems[newIndex + 1] : null;
+            
+            if (beforeItem) {
+              newPosition = (afterItem.position + beforeItem.position) / 2;
+            } else {
+              newPosition = afterItem.position + 1000;
+            }
+          } else {
+            // Przesuwamy w górę
+            const beforeItem = newIndex > 0 ? localItems[newIndex - 1] : null;
+            const afterItem = localItems[newIndex];
+            
+            if (beforeItem) {
+              newPosition = (beforeItem.position + afterItem.position) / 2;
+            } else {
+              newPosition = afterItem.position / 2;
+            }
+          }
+        }
+        
+        // Wywołaj callback tylko dla przenoszonego elementu
+        onReorder(movedItem.id, newPosition);
       }
     }
   };
@@ -182,6 +218,7 @@ export const DraggableList = <T extends { id: number; position: number }>({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
       <SortableContext

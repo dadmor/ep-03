@@ -48,8 +48,8 @@ export const CoursesShow = () => {
   const { togglePublish: toggleActivityPublish } = usePublishToggle('activities');
   
   // Użyj hooka do zarządzania pozycjami
-  const { updatePositions: updateTopicPositions, isUpdating: isUpdatingTopics } = usePositionManager('topics');
-  const { updatePositions: updateActivityPositions, isUpdating: isUpdatingActivities } = usePositionManager('activities');
+  const { updatePosition: updateTopicPosition, isUpdating: isUpdatingTopics } = usePositionManager('topics');
+  const { updatePosition: updateActivityPosition, isUpdating: isUpdatingActivities } = usePositionManager('activities');
 
   // Delete mutations
   const { mutate: deleteTopic } = useDelete();
@@ -120,23 +120,21 @@ export const CoursesShow = () => {
     }
   };
 
-  // Handler dla zmiany kolejności tematów
-  const handleTopicReorder = async (reorderedTopics: any[], dragInfo?: any) => {
+  // Handler dla zmiany kolejności tematów - tylko jedna pozycja
+  const handleTopicReorder = async (topicId: number, newPosition: number) => {
     try {
-      await updateTopicPositions(reorderedTopics, dragInfo);
-      await refetchTopics();
+      await updateTopicPosition(topicId, newPosition);
     } catch (error) {
-      console.error("Failed to reorder topics:", error);
+      console.error("Failed to reorder topic:", error);
     }
   };
 
-  // Handler dla zmiany kolejności aktywności
-  const handleActivityReorder = async (reorderedActivities: any[], dragInfo?: any) => {
+  // Handler dla zmiany kolejności aktywności - tylko jedna pozycja
+  const handleActivityReorder = async (activityId: number, newPosition: number) => {
     try {
-      await updateActivityPositions(reorderedActivities, dragInfo);
-      await refetchActivities();
+      await updateActivityPosition(activityId, newPosition);
     } catch (error) {
-      console.error("Failed to reorder activities:", error);
+      console.error("Failed to reorder activity:", error);
     }
   };
 
