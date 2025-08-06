@@ -104,18 +104,50 @@ class GenericLLMService {
       body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
+    // Zawsze próbuj odczytać odpowiedź JSON, nawet przy błędzie
+    let result;
+    try {
+      result = await response.json();
+    } catch (e) {
+      // Jeśli nie można sparsować JSON, rzuć ogólny błąd
       throw new Error(
         `LLM API Error: ${response.status} ${response.statusText}`
       );
     }
 
-    const result = await response.json();
-    let responseText = result.response || result.data || result.text || "";
+    // Sprawdź czy odpowiedź zawiera błąd
+    if (!response.ok || result.error) {
+      // Jeśli API zwróciło przyjazny komunikat, użyj go
+      if (result.message || result.error) {
+        const errorMessage = result.message || result.error;
+        const suggestion = result.suggestion ? ` ${result.suggestion}` : "";
+        throw new Error(`${errorMessage}${suggestion}`);
+      }
+      
+      // Fallback na ogólny komunikat
+      throw new Error(
+        `LLM API Error: ${response.status} ${response.statusText}`
+      );
+    }
+    
+    // Wyciągnij tekst odpowiedzi z różnych możliwych struktur
+    let responseText = "";
+    
+    if (result.response) {
+      responseText = result.response;
+    } else if (result.data) {
+      responseText = result.data;
+    } else if (result.text) {
+      responseText = result.text;
+    } else if (typeof result === "string") {
+      responseText = result;
+    } else {
+      responseText = JSON.stringify(result);
+    }
 
+    // Jeśli oczekujemy JSON, parsuj odpowiedź
     if (prompt.responseFormat === "json") {
-      responseText = this.cleanJsonResponse(responseText);
-      return JSON.parse(responseText);
+      return this.parseJsonResponse(responseText);
     }
 
     return responseText;
@@ -132,6 +164,24 @@ class GenericLLMService {
 
   private static cleanJsonResponse(text: string): string {
     return text.replace(/```(?:json)?\s*([\s\S]*?)\s*```/, "$1").trim();
+  }
+
+  private static parseJsonResponse(text: string): any {
+    // Najpierw spróbuj wyczyścić markdown code blocks
+    const cleaned = this.cleanJsonResponse(text);
+    
+    // Spróbuj sparsować oczyszczony tekst
+    try {
+      return JSON.parse(cleaned);
+    } catch (e) {
+      // Jeśli się nie udało, spróbuj sparsować oryginalny tekst
+      try {
+        return JSON.parse(text);
+      } catch (e2) {
+        console.error("Failed to parse JSON response:", text);
+        throw new Error("Nie udało się przetworzyć odpowiedzi JSON z API");
+      }
+    }
   }
 }
 

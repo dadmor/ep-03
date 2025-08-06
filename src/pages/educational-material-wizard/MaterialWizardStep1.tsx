@@ -150,13 +150,13 @@ export const MaterialWizardStep1: React.FC = () => {
 
   // Automatycznie ustaw temat na podstawie wybranego tematu kursu
   useEffect(() => {
-    if (topicId && topics.length > 0 && !subject) {
+    if (topicId && topics.length > 0) {
       const selectedTopic = topics.find(t => t.id.toString() === topicId);
       if (selectedTopic) {
         setSubject(selectedTopic.title);
       }
     }
-  }, [topicId, topics, subject]);
+  }, [topicId, topics]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
