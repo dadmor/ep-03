@@ -1,8 +1,9 @@
-// src/pages/courses/components/ActivityCard.tsx
+// pages/courses/components/ActivityCard.tsx
 import { useNavigate } from "react-router-dom";
 import {
   Edit,
   Eye,
+  EyeOff,
   MoreVertical,
   Trash2,
   Clock,
@@ -38,6 +39,8 @@ interface ActivityCardProps {
   topicPosition: number;
   onDelete: (id: number, title: string) => void;
   onEdit: (resource: string, id: number) => void;
+  onTogglePublish: (id: number, currentState: boolean, title: string) => void;
+  dragHandleProps?: any;
 }
 
 export const ActivityCard = ({
@@ -45,6 +48,8 @@ export const ActivityCard = ({
   topicPosition,
   onDelete,
   onEdit,
+  onTogglePublish,
+  dragHandleProps,
 }: ActivityCardProps) => {
   const navigate = useNavigate();
 
@@ -64,13 +69,12 @@ export const ActivityCard = ({
     return activity.type === "quiz" ? "Quiz" : "Materiał";
   };
 
-  const getActivityTypeBadgeVariant = () => {
-    return activity.type === "quiz" ? "default" : "secondary";
-  };
-
   return (
     <div className="group flex items-center gap-4 p-4 bg-white border-2 rounded-lg hover:border-primary/50 transition-all duration-200">
-      <div className="cursor-move opacity-0 group-hover:opacity-100 transition-opacity">
+      <div 
+        className="cursor-move opacity-0 group-hover:opacity-100 transition-opacity"
+        {...dragHandleProps}
+      >
         <GripVertical className="w-4 h-4 text-muted-foreground" />
       </div>
       
@@ -165,6 +169,22 @@ export const ActivityCard = ({
             <DropdownMenuItem onClick={() => onEdit("activities", activity.id)}>
               <Edit className="mr-2 h-4 w-4" />
               Edytuj
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => onTogglePublish(activity.id, activity.is_published, activity.title)}
+            >
+              {activity.is_published ? (
+                <>
+                  <EyeOff className="mr-2 h-4 w-4" />
+                  Ukryj aktywność
+                </>
+              ) : (
+                <>
+                  <Eye className="mr-2 h-4 w-4" />
+                  Opublikuj aktywność
+                </>
+              )}
             </DropdownMenuItem>
             {activity.type === "quiz" && (
               <>

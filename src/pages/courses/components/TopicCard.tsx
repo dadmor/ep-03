@@ -1,4 +1,4 @@
-// src/pages/courses/components/TopicCard.tsx
+// pages/courses/components/TopicCard.tsx
 import { useNavigate } from "react-router-dom";
 import {
   Edit,
@@ -11,6 +11,8 @@ import {
   FileText,
   Sparkles,
   Brain,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button, Badge } from "@/components/ui";
 import { FlexBox } from "@/components/shared";
@@ -34,11 +36,13 @@ interface TopicCardProps {
   onToggle: () => void;
   onDelete: (id: number, title: string) => void;
   onEdit: (resource: string, id: number) => void;
+  onTogglePublish: (id: number, currentState: boolean, title: string) => void;
   onNavigateToWizard?: (wizardPath: string, context: any) => void;
   courseId?: number;
   courseTitle?: string;
   children?: React.ReactNode;
   activitiesCount: number;
+  dragHandleProps?: any;
 }
 
 export const TopicCard = ({
@@ -47,11 +51,13 @@ export const TopicCard = ({
   onToggle,
   onDelete,
   onEdit,
+  onTogglePublish,
   onNavigateToWizard,
   courseId,
   courseTitle,
   children,
   activitiesCount,
+  dragHandleProps,
 }: TopicCardProps) => {
   const navigate = useNavigate();
 
@@ -97,7 +103,10 @@ export const TopicCard = ({
               )}
             </button>
             
-            <div className="cursor-move">
+            <div 
+              className="cursor-move"
+              {...dragHandleProps}
+            >
               <GripVertical className={`w-4 h-4 ${
                 isExpanded ? 'text-primary-foreground/70' : 'text-muted-foreground'
               }`} />
@@ -187,6 +196,22 @@ export const TopicCard = ({
                 <DropdownMenuItem onClick={() => onEdit("topics", topic.id)}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edytuj temat
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => onTogglePublish(topic.id, topic.is_published, topic.title)}
+                >
+                  {topic.is_published ? (
+                    <>
+                      <EyeOff className="mr-2 h-4 w-4" />
+                      Ukryj temat
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="mr-2 h-4 w-4" />
+                      Opublikuj temat
+                    </>
+                  )}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

@@ -1,3 +1,4 @@
+// pages/courses/list.tsx
 import { useTable, useNavigation, useDelete } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -6,6 +7,7 @@ import {
   Edit, 
   Trash2, 
   Eye,
+  EyeOff,
   Users,
   FileText,
   MoreVertical,
@@ -32,6 +34,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { usePublishToggle } from "./hooks";
+import { toast } from "sonner";
 
 interface Course {
   id: number;
@@ -50,9 +54,10 @@ interface Course {
 export const CoursesList = () => {
   const { create, edit, show } = useNavigation();
   const { mutate: deleteCourse } = useDelete();
+  const { togglePublish } = usePublishToggle('courses');
   
   const {
-    tableQuery: { data, isLoading, isError },
+    tableQuery: { data, isLoading, isError, refetch },
     current,
     setCurrent,
     pageSize,
@@ -76,11 +81,29 @@ export const CoursesList = () => {
 
   const handleDelete = (id: number, title: string) => {
     if (confirm(`Czy na pewno chcesz usunąć kurs "${title}"?`)) {
-      deleteCourse({
-        resource: "courses",
-        id,
-      });
+      deleteCourse(
+        {
+          resource: "courses",
+          id,
+        },
+        {
+          onSuccess: () => {
+            toast.success("Kurs został usunięty");
+            refetch();
+          },
+        }
+      );
     }
+  };
+
+  const handleNavigateToWizard = (wizardPath: string, courseId?: number, courseTitle?: string) => {
+    if (courseId && courseTitle) {
+      sessionStorage.setItem("wizardContext", JSON.stringify({
+        courseId,
+        courseTitle
+      }));
+    }
+    window.location.href = wizardPath;
   };
 
   return (
@@ -96,7 +119,7 @@ export const CoursesList = () => {
               <TooltipTrigger asChild>
                 <Button 
                   variant="outline"
-                  onClick={() => window.location.href = '/course-structure/step1'}
+                  onClick={() => handleNavigateToWizard('/course-structure/step1')}
                 >
                   <Layout className="w-4 h-4 mr-2" />
                   <Sparkles className="w-3 h-3" />
@@ -137,7 +160,6 @@ export const CoursesList = () => {
             key={course.id} 
             className="relative cursor-pointer transition-shadow hover:shadow-lg"
             onClick={(e) => {
-              // Sprawdzamy czy kliknięcie nie było w dropdown menu
               if (!(e.target as HTMLElement).closest('[role="menu"]')) {
                 show("courses", course.id);
               }
@@ -187,28 +209,31 @@ export const CoursesList = () => {
                       Edytuj
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-      
                     <DropdownMenuItem 
-                      onClick={() => {
-                        sessionStorage.setItem("wizardContext", JSON.stringify({
-                          courseId: course.id,
-                          courseTitle: course.title
-                        }));
-                        window.location.href = '/educational-material/step1';
-                      }}
+                      onClick={() => togglePublish(course.id, course.is_published, course.title, refetch)}
+                    >
+                      {course.is_published ? (
+                        <>
+                          <EyeOff className="mr-2 h-4 w-4" />
+                          Ukryj kurs
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="mr-2 h-4 w-4" />
+                          Opublikuj kurs
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => handleNavigateToWizard('/educational-material/step1', course.id, course.title)}
                       className="text-purple-600 focus:text-purple-600"
                     >
                       <Sparkles className="mr-2 h-4 w-4" />
                       Generuj materiał z AI
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={() => {
-                        sessionStorage.setItem("wizardContext", JSON.stringify({
-                          courseId: course.id,
-                          courseTitle: course.title
-                        }));
-                        window.location.href = '/quiz-wizard/step1';
-                      }}
+                      onClick={() => handleNavigateToWizard('/quiz-wizard/step1', course.id, course.title)}
                       className="text-blue-600 focus:text-blue-600"
                     >
                       <Brain className="mr-2 h-4 w-4" />
@@ -271,7 +296,7 @@ export const CoursesList = () => {
                 Dodaj ręcznie
               </Button>
               <Button 
-                onClick={() => window.location.href = '/course-structure/step1'}
+                onClick={() => handleNavigateToWizard('/course-structure/step1')}
                 className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
               >
                 <Sparkles className="w-4 h-4 mr-2" />
@@ -299,7 +324,7 @@ export const CoursesList = () => {
                 <Button
                   size="lg"
                   className="rounded-full shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                  onClick={() => window.location.href = '/course-structure/step1'}
+                  onClick={() => handleNavigateToWizard('/course-structure/step1')}
                 >
                   <Layout className="w-5 h-5 mr-2" />
                   <Sparkles className="w-4 h-4" />

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useOne, useNavigation, useList, useDelete } from "@refinedev/core";
+// pages/courses/show.tsx
+import { useNavigation, useDelete } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ArrowLeft,
@@ -12,144 +12,75 @@ import {
   Layout,
   Sparkles,
 } from "lucide-react";
-import { Button, Badge } from "@/components/ui";
-import { FlexBox, GridBox } from "@/components/shared";
+import { Button } from "@/components/ui";
+import { FlexBox } from "@/components/shared";
 import { SubPage } from "@/components/layout";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { TopicCard } from "./components/TopicCard";
 import { ActivityCard } from "./components/ActivityCard";
 import { CourseOverview } from "./components/CourseOverview";
-
-interface Topic {
-  id: number;
-  title: string;
-  position: number;
-  is_published: boolean;
-  _count?: {
-    activities: number;
-  };
-}
-
-interface Activity {
-  id: number;
-  title: string;
-  type: "material" | "quiz";
-  position: number;
-  is_published: boolean;
-  duration_min?: number;
-  topic_id: number;
-  _count?: {
-    questions: number;
-  };
-}
+import { LoadingState, CourseStats, DraggableList } from "./components/shared";
+import { 
+  useCourseData, 
+  useNavigationHelper, 
+  usePublishToggle,
+  usePositionManager
+} from "./hooks";
+import { useSequentialPositionManager } from "./hooks/useSequentialPositionManager";
 
 export const CoursesShow = () => {
   const { list, edit } = useNavigation();
   const { id } = useParams();
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Pobierz ID rozwinietego tematu z URL
-  const expandedTopicId = searchParams.get("expanded");
+  // Custom hooks
+  const { navigateWithReturn, navigateToWizard } = useNavigationHelper();
+  const { 
+    course, 
+    topics, 
+    stats, 
+    isLoading, 
+    refetchTopics, 
+    refetchActivities,
+    getActivitiesForTopic 
+  } = useCourseData(id);
+  const { togglePublish: toggleTopicPublish } = usePublishToggle('topics');
+  const { togglePublish: toggleActivityPublish } = usePublishToggle('activities');
+  const { updatePositions: updateTopicPositions, isUpdating: isUpdatingTopics } = usePositionManager('topics');
+  const { updatePositions: updateActivityPositions, isUpdating: isUpdatingActivities } = useSequentialPositionManager('activities');
 
+  // Delete mutations
   const { mutate: deleteTopic } = useDelete();
   const { mutate: deleteActivity } = useDelete();
 
-  const { data: courseData, isLoading: courseLoading } = useOne({
-    resource: "courses",
-    id: id as string,
-  });
+  // UI state
+  const expandedTopicId = searchParams.get("expanded");
 
-  const {
-    data: topicsData,
-    isLoading: topicsLoading,
-    refetch: refetchTopics,
-  } = useList<Topic>({
-    resource: "topics",
-    filters: [
-      {
-        field: "course_id",
-        operator: "eq",
-        value: id,
-      },
-    ],
-    sorters: [
-      {
-        field: "position",
-        order: "asc",
-      },
-    ],
-    meta: {
-      select: "*, activities(count)",
-    },
-  });
+  if (isLoading) return <LoadingState />;
 
-  const { data: activitiesData, refetch: refetchActivities } =
-    useList<Activity>({
-      resource: "activities",
-      filters: [
-        {
-          field: "topic_id",
-          operator: "in",
-          value: topicsData?.data?.map((t) => t.id) || [],
-        },
-      ],
-      sorters: [
-        {
-          field: "position",
-          order: "asc",
-        },
-      ],
-      meta: {
-        select: "*, questions(count)",
-      },
-      queryOptions: {
-        enabled: !!topicsData?.data?.length,
-      },
-    });
-
-  const { data: accessData } = useList({
-    resource: "course_access",
-    filters: [
-      {
-        field: "course_id",
-        operator: "eq",
-        value: id,
-      },
-    ],
-  });
-
-  if (courseLoading) {
+  if (!course) {
     return (
       <SubPage>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Nie znaleziono kursu</p>
         </div>
       </SubPage>
     );
   }
 
-  const course = courseData?.data;
-
-  // Funkcja do przełączania tematu - tylko jeden może być rozwinięty
+  // Event handlers
   const toggleTopic = (topicId: number) => {
     if (expandedTopicId === topicId.toString()) {
-      // Jeśli klikamy na już rozwinięty temat, zwiń go
       searchParams.delete("expanded");
       setSearchParams(searchParams);
     } else {
-      // Rozwiń nowy temat
       setSearchParams({ expanded: topicId.toString() });
     }
   };
 
   const handleDeleteTopic = (topicId: number, title: string) => {
-    if (
-      confirm(
-        `Czy na pewno chcesz usunąć temat "${title}" wraz ze wszystkimi aktywnościami?`
-      )
-    ) {
+    if (confirm(`Czy na pewno chcesz usunąć temat "${title}" wraz ze wszystkimi aktywnościami?`)) {
       deleteTopic(
         {
           resource: "topics",
@@ -160,7 +91,6 @@ export const CoursesShow = () => {
             toast.success("Temat został usunięty");
             refetchTopics();
             refetchActivities();
-            // Usuń z URL jeśli to był rozwinięty temat
             if (expandedTopicId === topicId.toString()) {
               searchParams.delete("expanded");
               setSearchParams(searchParams);
@@ -189,29 +119,18 @@ export const CoursesShow = () => {
     }
   };
 
-  const getActivitiesForTopic = (topicId: number) => {
-    return (
-      activitiesData?.data?.filter(
-        (activity) => activity.topic_id === topicId
-      ) || []
-    );
+  // Simplified handlers for drag & drop
+  const handleTopicReorder = async (reorderedTopics: any[]) => {
+    await updateTopicPositions(reorderedTopics);
   };
 
-  // Funkcja do nawigacji z URL powrotu
-  const navigateWithReturn = (path: string) => {
-    const currentUrl = `${window.location.pathname}${window.location.search}`;
-    const returnUrl = encodeURIComponent(currentUrl);
-    navigate(`${path}${path.includes("?") ? "&" : "?"}returnUrl=${returnUrl}`);
-  };
-
-  // Funkcja do nawigacji do wizarda z kontekstem
-  const navigateToWizard = (wizardPath: string, context?: any) => {
-    if (context) {
-      sessionStorage.setItem("wizardContext", JSON.stringify(context));
-    }
-    const currentUrl = `${window.location.pathname}${window.location.search}`;
-    sessionStorage.setItem("returnUrl", currentUrl);
-    navigate(wizardPath);
+  const handleActivityReorder = async (reorderedActivities: any[]) => {
+    // Upewnij się, że przekazujemy topic_id z aktywnościami
+    const activitiesWithTopicId = reorderedActivities.map(activity => ({
+      ...activity,
+      topic_id: activity.topic_id // Zachowaj topic_id
+    }));
+    await updateActivityPositions(activitiesWithTopicId);
   };
 
   return (
@@ -221,7 +140,7 @@ export const CoursesShow = () => {
         Powrót do listy
       </Button>
 
-      {/* Nagłówek kursu z opisem */}
+      {/* Nagłówek kursu */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Szczegóły kursu</h1>
@@ -237,49 +156,12 @@ export const CoursesShow = () => {
       </div>
 
       {/* Statystyki kursu */}
-      <GridBox variant="2-2-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Badge variant={course?.is_published ? "default" : "secondary"}>
-              {course?.is_published ? "Opublikowany" : "Szkic"}
-            </Badge>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Tematy</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{topicsData?.total || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Aktywności</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {activitiesData?.total || 0}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Uczestników</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{accessData?.total || 0}</div>
-          </CardContent>
-        </Card>
-      </GridBox>
-
-    
+      <CourseStats 
+        course={course}
+        topicsCount={stats.topicsCount}
+        activitiesCount={stats.activitiesCount}
+        accessCount={stats.accessCount}
+      />
 
       {/* Struktura kursu */}
       <Card>
@@ -288,9 +170,7 @@ export const CoursesShow = () => {
             <CardTitle>Struktura kursu</CardTitle>
             <Button
               size="sm"
-              onClick={() =>
-                navigateWithReturn(`/topics/create?course_id=${id}`)
-              }
+              onClick={() => navigateWithReturn(`/topics/create?course_id=${id}`)}
             >
               <Plus className="w-4 h-4 mr-2" />
               Dodaj temat
@@ -298,13 +178,12 @@ export const CoursesShow = () => {
           </FlexBox>
         </CardHeader>
         <CardContent>
-          {topicsLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-            </div>
-          ) : topicsData?.data?.length ? (
-            <div className="space-y-4">
-              {topicsData.data.map((topic: Topic) => {
+          {topics.length > 0 ? (
+            <DraggableList
+              items={topics}
+              onReorder={handleTopicReorder}
+              disabled={isUpdatingTopics || isUpdatingActivities}
+              renderItem={(topic, index, dragHandleProps) => {
                 const activities = getActivitiesForTopic(topic.id);
                 const isExpanded = expandedTopicId === topic.id.toString();
 
@@ -315,26 +194,35 @@ export const CoursesShow = () => {
                     isExpanded={isExpanded}
                     onToggle={() => toggleTopic(topic.id)}
                     onDelete={handleDeleteTopic}
-                    onEdit={(resource, id) =>
-                      navigateWithReturn(`/${resource}/edit/${id}`)
+                    onEdit={(resource, id) => navigateWithReturn(`/${resource}/edit/${id}`)}
+                    onTogglePublish={(id, state, title) => 
+                      toggleTopicPublish(id, state, title, refetchTopics)
                     }
                     activitiesCount={activities.length}
                     onNavigateToWizard={navigateToWizard}
                     courseId={Number(course?.id)}
                     courseTitle={course?.title}
+                    dragHandleProps={dragHandleProps}
                   >
                     {activities.length > 0 ? (
-                      activities.map((activity: Activity) => (
-                        <ActivityCard
-                          key={activity.id}
-                          activity={activity}
-                          topicPosition={topic.position}
-                          onDelete={handleDeleteActivity}
-                          onEdit={(resource, id) =>
-                            navigateWithReturn(`/${resource}/edit/${id}`)
-                          }
-                        />
-                      ))
+                      <DraggableList
+                        items={activities}
+                        onReorder={handleActivityReorder}
+                        disabled={isUpdatingActivities}
+                        renderItem={(activity, idx, activityDragProps) => (
+                          <ActivityCard
+                            key={activity.id}
+                            activity={activity}
+                            topicPosition={topic.position}
+                            onDelete={handleDeleteActivity}
+                            onEdit={(resource, id) => navigateWithReturn(`/${resource}/edit/${id}`)}
+                            onTogglePublish={(id, state, title) =>
+                              toggleActivityPublish(id, state, title, refetchActivities)
+                            }
+                            dragHandleProps={activityDragProps}
+                          />
+                        )}
+                      />
                     ) : (
                       <div className="text-center py-6 text-muted-foreground">
                         <p>Brak aktywności w tym temacie</p>
@@ -342,11 +230,7 @@ export const CoursesShow = () => {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() =>
-                              navigateWithReturn(
-                                `/activities/create?topic_id=${topic.id}`
-                              )
-                            }
+                            onClick={() => navigateWithReturn(`/activities/create?topic_id=${topic.id}`)}
                           >
                             <Plus className="w-4 h-4 mr-2" />
                             Dodaj ręcznie
@@ -385,17 +269,15 @@ export const CoursesShow = () => {
                     )}
                   </TopicCard>
                 );
-              })}
-            </div>
+              }}
+            />
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-20" />
               <p>Brak tematów w tym kursie</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4">
                 <Button
-                  onClick={() =>
-                    navigateWithReturn(`/topics/create?course_id=${id}`)
-                  }
+                  onClick={() => navigateWithReturn(`/topics/create?course_id=${id}`)}
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Dodaj pierwszy temat
@@ -406,7 +288,7 @@ export const CoursesShow = () => {
                     navigateToWizard("/course-structure/step1", {
                       courseId: course?.id,
                       courseTitle: course?.title,
-                      mode: "extend", // Tryb rozszerzania istniejącego kursu
+                      mode: "extend",
                     })
                   }
                 >
@@ -432,8 +314,8 @@ export const CoursesShow = () => {
         </CardContent>
       </Card>
 
-        {/* Szybkie akcje AI */}
-        <Card className="border-dashed border-2 bg-gradient-to-r from-purple-50 to-blue-50">
+      {/* Szybkie akcje AI */}
+      <Card className="border-dashed border-2 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-purple-600" />
@@ -444,7 +326,7 @@ export const CoursesShow = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <Button
               variant="outline"
-              className="justify-start h-auto py-3 px-4 bg-white"
+              className="justify-start h-auto py-3 px-4 bg-white dark:bg-background"
               onClick={() => navigateToWizard("/course-structure/step1")}
             >
               <div className="flex items-start gap-3">
@@ -460,7 +342,7 @@ export const CoursesShow = () => {
 
             <Button
               variant="outline"
-              className="justify-start h-auto py-3 px-4 bg-white"
+              className="justify-start h-auto py-3 px-4 bg-white dark:bg-background"
               onClick={() =>
                 navigateToWizard("/educational-material/step1", {
                   courseId: course?.id,
@@ -481,7 +363,7 @@ export const CoursesShow = () => {
 
             <Button
               variant="outline"
-              className="justify-start h-auto py-3 px-4 bg-white"
+              className="justify-start h-auto py-3 px-4 bg-white dark:bg-background"
               onClick={() =>
                 navigateToWizard("/quiz-wizard/step1", {
                   courseId: course?.id,
