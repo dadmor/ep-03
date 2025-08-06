@@ -1,4 +1,4 @@
-// src/pages/student/components/StudentCourseDetail.tsx - POPRAWIONY Z TYPAMI
+// src/pages/student/components/StudentCourseDetail.tsx - Z PROGRESYWNYM ODBLOKOWYWANIEM
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -7,11 +7,14 @@ import {
   Target,
   BookOpen,
   CheckCircle2,
+  Lock,
+  AlertCircle
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SubPage } from "@/components/layout";
 import { FlexBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
@@ -46,6 +49,8 @@ interface TopicWithActivities {
   title: string;
   position: number;
   activities: Activity[];
+  isUnlocked: boolean;
+  isCompleted: boolean;
 }
 
 interface Course {
@@ -72,10 +77,11 @@ export const StudentCourseDetail = () => {
     enabled: !!courseId,
   });
 
-  // Grupuj aktywności według tematów - PRZENIESIONE PRZED WARUNKIEM
+  // Grupuj aktywności według tematów z logiką odblokowywania
   const topicsWithActivities = React.useMemo(() => {
     if (!courseStructure) return [];
 
+    // Najpierw grupuj aktywności według tematów
     const grouped = courseStructure.reduce((acc, item) => {
       const topicKey = `${item.topic_id}-${item.topic_title}`;
       if (!acc[topicKey]) {
@@ -99,12 +105,32 @@ export const StudentCourseDetail = () => {
       }
 
       return acc;
-    }, {} as Record<string, TopicWithActivities>);
+    }, {} as Record<string, Omit<TopicWithActivities, 'isUnlocked' | 'isCompleted'>>);
 
-    return Object.values(grouped).sort((a, b) => a.position - b.position);
+    // Konwertuj na tablicę i posortuj
+    const topics = Object.values(grouped).sort((a, b) => a.position - b.position);
+
+    // Dodaj logikę odblokowywania
+    return topics.map((topic, index) => {
+      // Sprawdź czy wszystkie aktywności w temacie są ukończone
+      const isCompleted = topic.activities.length > 0 && 
+        topic.activities.every(activity => activity.completed);
+
+      // Pierwszy temat zawsze odblokowany
+      // Kolejne tylko jeśli poprzedni jest ukończony
+      const isUnlocked = index === 0 || 
+        (topics[index - 1].activities.length > 0 && 
+         topics[index - 1].activities.every(a => a.completed));
+
+      return {
+        ...topic,
+        isCompleted,
+        isUnlocked
+      };
+    }) as TopicWithActivities[];
   }, [courseStructure]);
 
-  // Oblicz statystyki - PRZENIESIONE PRZED WARUNKIEM
+  // Oblicz statystyki
   const stats = React.useMemo(() => {
     const allActivities = topicsWithActivities.flatMap((t) => t.activities);
     const completed = allActivities.filter((a) => a.completed).length;
@@ -115,10 +141,10 @@ export const StudentCourseDetail = () => {
       completedActivities: completed,
       progress: total > 0 ? Math.round((completed / total) * 100) : 0,
       topics: topicsWithActivities.length,
+      unlockedTopics: topicsWithActivities.filter(t => t.isUnlocked).length,
     };
   }, [topicsWithActivities]);
 
-  // WARUNEK LOADING PO WSZYSTKICH HOOKACH
   if (isLoading) {
     return (
       <SubPage>
@@ -168,8 +194,10 @@ export const StudentCourseDetail = () => {
               </p>
             </div>
             <div>
-              <p className="text-sm text-white/60">Tematy</p>
-              <p className="text-2xl font-bold">{stats.topics}</p>
+              <p className="text-sm text-white/60">Tematy odblokowane</p>
+              <p className="text-2xl font-bold">
+                {stats.unlockedTopics}/{stats.topics}
+              </p>
             </div>
             <div>
               <p className="text-sm text-white/60">Czas trwania</p>
@@ -182,28 +210,43 @@ export const StudentCourseDetail = () => {
           <Progress value={stats.progress} className="mt-6 h-3 bg-white/20" />
         </div>
 
+        {/* Alert o progresji */}
+        {stats.unlockedTopics < stats.topics && (
+          <Alert>
+            <Lock className="h-4 w-4" />
+            <AlertDescription>
+              Kolejne tematy zostaną odblokowane po ukończeniu wszystkich aktywności w bieżącym temacie.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Tematy i aktywności */}
         <div className="space-y-6">
           {topicsWithActivities.map((topic) => {
             const topicCompleted = topic.activities.filter(
               (a) => a.completed
             ).length;
-            const isTopicComplete = topicCompleted === topic.activities.length;
 
             return (
-              <Card key={topic.id}>
+              <Card 
+                key={topic.id}
+                className={!topic.isUnlocked ? 'opacity-60' : ''}
+              >
                 <CardHeader>
                   <FlexBox>
-                    <div>
-                      <CardTitle className="text-xl">
-                        Temat {topic.position}: {topic.title}
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {topicCompleted}/{topic.activities.length} aktywności
-                        ukończonych
-                      </p>
+                    <div className="flex items-center gap-3">
+                      {!topic.isUnlocked && <Lock className="w-5 h-5 text-muted-foreground" />}
+                      <div>
+                        <CardTitle className="text-xl">
+                          Temat {topic.position}: {topic.title}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {topicCompleted}/{topic.activities.length} aktywności
+                          ukończonych
+                        </p>
+                      </div>
                     </div>
-                    {isTopicComplete && (
+                    {topic.isCompleted && (
                       <Badge variant="secondary" className="gap-1">
                         <CheckCircle2 className="w-3 h-3" />
                         Ukończony
@@ -212,30 +255,39 @@ export const StudentCourseDetail = () => {
                   </FlexBox>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {topic.activities.map((activity) => (
-                    <ActivityCard
-                      key={activity.id}
-                      activity={{
-                        id: activity.id,
-                        title: activity.title,
-                        type: activity.type,
-                        completed: activity.completed,
-                        score: activity.score,
-                        points: activity.type === "quiz" ? 20 : 10,
-                      }}
-                      onStart={() => {
-                        if (activity.type === "quiz") {
-                          navigate(
-                            `/student/courses/${courseId}/quiz/${activity.id}`
-                          );
-                        } else {
-                          navigate(
-                            `/student/courses/${courseId}/lesson/${activity.id}`
-                          );
-                        }
-                      }}
-                    />
-                  ))}
+                  {!topic.isUnlocked ? (
+                    <div className="flex items-center gap-2 p-4 bg-muted/50 rounded-lg">
+                      <AlertCircle className="w-5 h-5 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Ten temat zostanie odblokowany po ukończeniu poprzedniego tematu
+                      </p>
+                    </div>
+                  ) : (
+                    topic.activities.map((activity) => (
+                      <ActivityCard
+                        key={activity.id}
+                        activity={{
+                          id: activity.id,
+                          title: activity.title,
+                          type: activity.type,
+                          completed: activity.completed,
+                          score: activity.score,
+                          points: activity.type === "quiz" ? 20 : 10,
+                        }}
+                        onStart={() => {
+                          if (activity.type === "quiz") {
+                            navigate(
+                              `/student/courses/${courseId}/quiz/${activity.id}`
+                            );
+                          } else {
+                            navigate(
+                              `/student/courses/${courseId}/lesson/${activity.id}`
+                            );
+                          }
+                        }}
+                      />
+                    ))
+                  )}
                 </CardContent>
               </Card>
             );
