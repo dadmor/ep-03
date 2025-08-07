@@ -69,13 +69,13 @@ export const StudentDashboard = () => {
     <div className="min-h-screen bg-background">
       {/* Header - Clean & Minimal */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 py-2">
+          <div className="flex items-center justify-between -mt-px">
             <div>
               <h1 className="text-2xl font-semibold text-foreground">
                 {getGreeting()}, {identity?.full_name?.split(' ')[0]}
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground -my-0.5">
                 {new Date().toLocaleDateString('pl-PL', { 
                   weekday: 'long', 
                   day: 'numeric', 
