@@ -197,46 +197,76 @@ export const StudentDashboard = () => {
               )}
             </div>
             
-            {/* Points Display - Featured */}
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3, type: "spring" }}
-              className="text-right"
-            >
-              <p className="text-white/60 text-sm mb-1">Twoje punkty</p>
-              <div className="flex items-baseline gap-3">
-                <span className="text-5xl font-bold text-white">
-                  <AnimatedCounter value={stats.points} />
-                </span>
-                <motion.div 
-                  animate={{ opacity: [0.6, 1, 0.6] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="flex flex-col items-start"
-                >
-                  <span className="text-sm text-white/80 font-medium">
-                    +<AnimatedCounter value={stats.idle_rate} />/h
+            {/* Points & Level Display */}
+            <div className="flex items-center gap-6">
+              {/* Points Display - Featured */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3, type: "spring" }}
+                className="text-right"
+              >
+                <p className="text-white/60 text-sm mb-1">Twoje punkty</p>
+                <div className="flex items-baseline gap-3">
+                  <span className="text-5xl font-bold text-white">
+                    <AnimatedCounter value={stats.points} />
                   </span>
-                  <span className="text-xs text-white/60">idle rate</span>
-                </motion.div>
-              </div>
-              
-              {/* Progress to next level */}
-              <div className="mt-3">
-                <div className="flex items-center justify-between text-xs text-white/60 mb-1">
-                  <span>Poziom {stats.level}</span>
-                  <span>Poziom {stats.level + 1}</span>
-                </div>
-                <div className="h-2 bg-white/20 rounded-full overflow-hidden">
                   <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(stats.points % 100)}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                    className="h-full bg-white rounded-full"
-                  />
+                    animate={{ opacity: [0.6, 1, 0.6] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="flex flex-col items-start"
+                  >
+                    <span className="text-sm text-white/80 font-medium">
+                      +<AnimatedCounter value={stats.idle_rate} />/h
+                    </span>
+                    <span className="text-xs text-white/60">idle rate</span>
+                  </motion.div>
                 </div>
-              </div>
-            </motion.div>
+                
+                {/* Progress to next level */}
+                <div className="mt-3">
+                  <div className="flex items-center justify-between text-xs text-white/60 mb-1">
+                    <span>Poziom {stats.level}</span>
+                    <span>Poziom {stats.level + 1}</span>
+                  </div>
+                  <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(stats.points % 100)}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className="h-full bg-white rounded-full"
+                    />
+                  </div>
+                </div>
+              </motion.div>
+              
+              {/* Level Badge - Gaming style */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0, rotate: -180 }}
+                animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
+                className="relative"
+              >
+                <motion.div
+                  whileHover={{ rotate: 6 }}
+                  className="relative"
+                >
+                  {/* Main badge */}
+                  <div className="w-20 h-20 bg-white/10 backdrop-blur-sm border-2 border-white/30 rounded-2xl flex items-center justify-center transform rotate-3 transition-transform cursor-pointer">
+                    <span className="text-white font-bold text-2xl">{stats.level}</span>
+                  </div>
+                  {/* Glow effect */}
+                  <motion.div
+                    animate={{ opacity: [0.4, 0.8, 0.4] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute inset-0 bg-white/20 rounded-2xl blur-xl"
+                  />
+                  {/* Star decoration */}
+                  <Star className="absolute -top-2 -right-2 w-6 h-6 text-white/80 drop-shadow-lg" />
+                </motion.div>
+                <span className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-white/80 font-medium whitespace-nowrap">POZIOM</span>
+              </motion.div>
+            </div>
           </div>
         </motion.section>
 
