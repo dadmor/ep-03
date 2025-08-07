@@ -1,4 +1,4 @@
-// src/pages/student/components/StudentCourses.tsx - REDESIGNED
+// src/pages/student/components/StudentCourses.tsx - FIXED ANIMATIONS
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Search, Sparkles, TrendingUp, Clock, Award, Zap } from "lucide-react";
@@ -107,13 +107,17 @@ export const StudentCourses = () => {
                   <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
                   
-                  {/* Course Emoji */}
-                  <motion.div 
-                    className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-6xl"
-                    whileHover={{ scale: 1.2, rotate: 10 }}
-                  >
-                    {course.icon_emoji || '📚'}
-                  </motion.div>
+                  {/* Course Emoji - FIXED ANIMATION */}
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <motion.div 
+                      className="text-6xl"
+                      whileHover={{ scale: 1.2, rotate: 10 }}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                    >
+                      {course.icon_emoji || '📚'}
+                    </motion.div>
+                  </div>
                   
                   {/* Progress Badge */}
                   {course.progress_percent > 0 && (
