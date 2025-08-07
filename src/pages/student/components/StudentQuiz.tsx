@@ -13,6 +13,7 @@ import { SubPage } from "@/components/layout";
 import { FlexBox } from "@/components/shared";
 import { toast } from "sonner";
 import { supabaseClient } from "@/utility";
+import { invalidateRPCCache } from "../hooks/useRPC";
 
 interface QuizQuestion {
   id: number;
@@ -155,8 +156,13 @@ export const StudentQuiz = () => {
           });
         }
         
-        // Dodaj parametr do URL żeby wymusić odświeżenie
-        navigate(`/student/courses/${courseId}?refresh=true`);
+        // Invaliduj cache dla struktury kursu
+        invalidateRPCCache('get_course_structure');
+        
+        // Nawiguj z opóźnieniem, żeby toast był widoczny
+        setTimeout(() => {
+          navigate(`/student/courses/${courseId}`);
+        }, 500);
       }
     } catch (error: any) {
       console.error("Submit error:", error);

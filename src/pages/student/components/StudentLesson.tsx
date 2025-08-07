@@ -10,6 +10,7 @@ import { SubPage } from "@/components/layout";
 import { FlexBox } from "@/components/shared";
 import { toast } from "sonner";
 import { supabaseClient } from "@/utility";
+import { invalidateRPCCache } from "../hooks/useRPC";
 
 export const StudentLesson = () => {
   const { courseId, lessonId } = useParams();
@@ -28,6 +29,17 @@ export const StudentLesson = () => {
   const handleComplete = async () => {
     setIsCompleting(true);
     try {
+      // Najpierw wywołaj start_activity (utworzy rekord w activity_progress jeśli nie istnieje)
+      const { error: startError } = await supabaseClient.rpc('start_activity', {
+        p_activity_id: parseInt(lessonId!)
+      });
+
+      if (startError) {
+        console.error("Start activity error:", startError);
+        // Nie przerywaj - może rekord już istnieje
+      }
+
+      // Teraz wywołaj complete_material
       const { data: result, error } = await supabaseClient.rpc('complete_material', {
         p_activity_id: parseInt(lessonId!)
       });
@@ -40,7 +52,14 @@ export const StudentLesson = () => {
         toast.success("Lekcja ukończona!", {
           description: "Zdobyłeś punkty za ukończenie materiału"
         });
-        navigate(`/student/courses/${courseId}`);
+        
+        // Invaliduj cache dla struktury kursu
+        invalidateRPCCache('get_course_structure');
+        
+        // Nawiguj z opóźnieniem, żeby toast był widoczny
+        setTimeout(() => {
+          navigate(`/student/courses/${courseId}`);
+        }, 500);
       }
     } catch (error: any) {
       console.error("Complete error:", error);
