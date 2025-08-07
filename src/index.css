@@ -36,6 +36,22 @@
   --input: 214.3 31.8% 91.4%;
   --ring: 223 51% 28%; /* logo navy #23386D */
   --radius: 0.5rem;
+  
+  /* Logo Orange - używany oszczędnie jako akcent */
+  --orange: 29 82% 45%; /* #CE7314 */
+  --orange-foreground: 0 0% 100%;
+  
+  /* Logo Purple - dla specjalnych stanów */
+  --purple: 267 33% 44%; /* #604A97 */
+  --purple-foreground: 0 0% 100%;
+  
+  /* Logo Yellow - dla osiągnięć */
+  --yellow: 56 94% 42%; /* #CFBD04 */
+  --yellow-foreground: 223 51% 28%;
+  
+  /* Logo Pink - rzadko używany */
+  --pink: 324 100% 41%; /* #CE0477 */
+  --pink-foreground: 0 0% 100%;
 }
 
 .dark {
@@ -58,6 +74,12 @@
   --border: 217.2 32.6% 17.5%;
   --input: 217.2 32.6% 17.5%;
   --ring: 196 54% 54%; /* logo light blue ring in dark */
+  
+  /* Dark mode adjustments */
+  --orange: 29 82% 55%;
+  --purple: 267 33% 54%;
+  --yellow: 56 94% 52%;
+  --pink: 324 100% 51%;
 }
 
 body {
@@ -111,4 +133,35 @@ pre,
 
 .animate-reverse-pulse {
   animation: reverse-pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Subtle animations */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+/* Modern focus states */
+@layer utilities {
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-2;
+  }
+  
+  /* Subtle hover states */
+  .hover-lift {
+    @apply transition-transform hover:-translate-y-0.5;
+  }
+  
+  /* Clean shadows */
+  .shadow-soft {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+  }
+  
+  .shadow-soft-lg {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  }
 }

@@ -1,8 +1,8 @@
-// src/pages/student/components/StudentLayout.tsx - ZOPTYMALIZOWANA WERSJA
+// src/pages/student/components/StudentLayout.tsx
 import React, { useState } from "react";
 import { useGetIdentity, useLogout } from "@refinedev/core";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Gamepad2, Trophy, Award, User, LogOut, Menu, X } from "lucide-react";
+import { Home, Gamepad2, Trophy, Award, User, LogOut, Menu, X, Zap } from "lucide-react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { useStudentStats } from "../hooks";
 
@@ -29,16 +29,38 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
         <aside className="hidden lg:block fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-100">
           {/* Logo */}
           <div className="h-16 flex items-center px-6 border-b border-gray-100">
-            <div className="text-xl font-semibold">Smart Up</div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">S</span>
+              </div>
+              <span className="text-lg font-semibold text-gray-900">Smart Up</span>
+            </div>
           </div>
           
-          {/* Points Display */}
+          {/* User Info & Points */}
           <div className="p-6 border-b border-gray-100">
-            <div className="text-2xl font-semibold text-gray-900">
-              {stats.points.toLocaleString('pl-PL')}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-700 font-semibold">
+                {identity?.full_name?.charAt(0) || 'U'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {identity?.full_name}
+                </p>
+                <p className="text-xs text-gray-500">Poziom {stats.level}</p>
+              </div>
             </div>
-            <div className="text-sm text-gray-500 mt-1">
-              punktów • +{stats.idle_rate}/h
+            
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-orange" />
+                <span className="text-sm font-semibold text-gray-900">
+                  {stats.points.toLocaleString('pl-PL')}
+                </span>
+              </div>
+              <span className="text-xs text-gray-500">
+                +{stats.idle_rate}/h
+              </span>
             </div>
           </div>
           
@@ -50,27 +72,27 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
                     isActive 
                       ? 'bg-gray-900 text-white' 
-                      : 'text-gray-600 hover:bg-gray-50'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
                   <item.icon className="w-5 h-5" />
-                  <span className="font-medium">{item.label}</span>
+                  <span className="font-medium text-sm">{item.label}</span>
                 </button>
               );
             })}
           </nav>
           
           {/* Logout */}
-          <div className="absolute bottom-0 left-0 right-0 p-4">
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
             <button 
               onClick={() => logout()}
-              className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-xl transition-all"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-all"
             >
               <LogOut className="w-5 h-5" />
-              <span className="font-medium">Wyloguj</span>
+              <span className="font-medium text-sm">Wyloguj</span>
             </button>
           </div>
         </aside>
@@ -81,19 +103,24 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
           <header className="lg:hidden h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 hover:bg-gray-50 rounded-lg"
+              className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
             >
-              <Menu className="w-6 h-6" />
+              <Menu className="w-5 h-5 text-gray-700" />
             </button>
             
-            <div className="text-center">
-              <div className="font-semibold text-gray-900">
-                {stats.points.toLocaleString('pl-PL')} pkt
-              </div>
-              <div className="text-xs text-gray-500">+{stats.idle_rate}/h</div>
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-orange" />
+              <span className="font-semibold text-gray-900">
+                {stats.points.toLocaleString('pl-PL')}
+              </span>
+              <span className="text-xs text-gray-500">
+                +{stats.idle_rate}/h
+              </span>
             </div>
             
-            <div className="w-10" /> {/* Spacer for center alignment */}
+            <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-700 font-semibold text-sm">
+              {identity?.full_name?.charAt(0) || 'U'}
+            </div>
           </header>
 
           {/* Content */}
@@ -110,7 +137,7 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="lg:hidden fixed inset-0 bg-black/20 z-40"
+                className="lg:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
                 onClick={() => setSidebarOpen(false)}
               />
               <motion.aside
@@ -120,23 +147,46 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
                 transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
                 className="lg:hidden fixed top-0 left-0 h-screen w-80 bg-white z-50 shadow-xl"
               >
-                {/* Mobile sidebar content - same as desktop */}
+                {/* Mobile sidebar header */}
                 <div className="h-16 flex items-center justify-between px-6 border-b border-gray-100">
-                  <div className="text-xl font-semibold">Smart Up</div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">S</span>
+                    </div>
+                    <span className="text-lg font-semibold text-gray-900">Smart Up</span>
+                  </div>
                   <button
                     onClick={() => setSidebarOpen(false)}
-                    className="p-2 hover:bg-gray-50 rounded-lg"
+                    className="p-2 hover:bg-gray-50 rounded-lg transition-colors"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-5 h-5 text-gray-500" />
                   </button>
                 </div>
                 
+                {/* Mobile sidebar content - same as desktop */}
                 <div className="p-6 border-b border-gray-100">
-                  <div className="text-2xl font-semibold text-gray-900">
-                    {stats.points.toLocaleString('pl-PL')}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-700 font-semibold">
+                      {identity?.full_name?.charAt(0) || 'U'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {identity?.full_name}
+                      </p>
+                      <p className="text-xs text-gray-500">Poziom {stats.level}</p>
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-500 mt-1">
-                    punktów • +{stats.idle_rate}/h
+                  
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-orange" />
+                      <span className="text-sm font-semibold text-gray-900">
+                        {stats.points.toLocaleString('pl-PL')}
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      +{stats.idle_rate}/h
+                    </span>
                   </div>
                 </div>
                 
@@ -150,14 +200,14 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
                           navigate(item.path);
                           setSidebarOpen(false);
                         }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 transition-all ${
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg mb-1 transition-all ${
                           isActive 
                             ? 'bg-gray-900 text-white' 
-                            : 'text-gray-600 hover:bg-gray-50'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                         }`}
                       >
                         <item.icon className="w-5 h-5" />
-                        <span className="font-medium">{item.label}</span>
+                        <span className="font-medium text-sm">{item.label}</span>
                       </button>
                     );
                   })}
@@ -170,4 +220,3 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
     </MotionConfig>
   );
 };
-
