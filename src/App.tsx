@@ -1,4 +1,4 @@
-// src/App.tsx - kompletny z trzema wizardami
+// src/App.tsx - POPRAWIONY ABY STUDENT MIAŁ OSOBNY LAYOUT
 import { Authenticated, ErrorComponent, Refine, useGetIdentity } from "@refinedev/core";
 import routerBindings, {
   CatchAllNavigate,
@@ -94,11 +94,11 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           {...authRoutes}
 
-          {/* Chronione trasy - wspólny layout */}
+          {/* Chronione trasy - dla adminów i nauczycieli */}
           <Route
             element={
               <Authenticated
-                key="protected-layout"
+                key="admin-teacher-layout"
                 fallback={<CatchAllNavigate to="/login" />}
               >
                 <Layout>
@@ -110,7 +110,6 @@ function App() {
             {/* PRZEKIEROWANIA DLA NIEISTNIEJĄCYCH TRAS */}
             <Route path="/admin" element={<RoleBasedRedirect />} />
             <Route path="/teacher" element={<RoleBasedRedirect />} />
-            <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
             
             {/* Dashboard jako strona główna dla adminów/nauczycieli */}
             <Route
@@ -139,13 +138,28 @@ function App() {
             {/* Administracja */}
             {...vendorsRoutes}
             {...reportsRoutes}
-            
-            {/* Panel ucznia */}
-            {...studentRoutes}
-
-            {/* Catch all dla nieznanych tras */}
-            <Route path="*" element={<ErrorComponent />} />
           </Route>
+
+          {/* Panel ucznia - OSOBNY LAYOUT BEZ WSPÓLNEGO WRAPPERA */}
+          <Route
+            element={
+              <Authenticated
+                key="student-auth-wrapper"
+                fallback={<CatchAllNavigate to="/login" />}
+              >
+                <Outlet />
+              </Authenticated>
+            }
+          >
+            {/* Przekierowanie dla /student */}
+            <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
+            
+            {/* Trasy ucznia z własnym layoutem */}
+            {...studentRoutes}
+          </Route>
+
+          {/* Catch all dla nieznanych tras */}
+          <Route path="*" element={<ErrorComponent />} />
 
           {/* Dodatkowe zabezpieczenie */}
           <Route

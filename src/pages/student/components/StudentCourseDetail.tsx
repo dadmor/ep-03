@@ -1,4 +1,4 @@
-// src/pages/student/components/StudentCourseDetail.tsx - FIXED SKELETON
+// src/pages/student/components/StudentCourseDetail.tsx - FIXED NAVIGATION
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -12,7 +12,8 @@ import {
   Sparkles,
   Trophy,
   Zap,
-  Star
+  Star,
+  Home
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ import { useRPC } from "../hooks/useRPC";
 import { useSupabaseQuery } from "../hooks/useSupabaseQuery";
 import { cn } from "@/utility";
 
-// Definicje typów (bez zmian)
+// Definicje typów
 interface CourseStructureItem {
   topic_id: number;
   topic_title: string;
@@ -153,112 +154,8 @@ export const StudentCourseDetail = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-purple-50 via-white to-pink-50">
-        {/* Hero Skeleton - z ustalonymi wysokościami */}
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-purple-700 to-pink-600" />
-          <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
-          
-          <div className="relative z-10 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-            {/* Back button skeleton - dokładna wysokość */}
-            <div className="mb-6">
-              <div className="inline-block w-32 h-9 bg-white/20 rounded-lg animate-pulse" />
-            </div>
-            
-            {/* Course info skeleton - zachowanie dokładnych wysokości */}
-            <div className="max-w-4xl mx-auto text-center">
-              {/* Emoji placeholder - stała wysokość */}
-              <div className="h-[72px] mb-6 flex items-center justify-center">
-                <div className="w-16 h-16 bg-white/20 rounded-full animate-pulse" />
-              </div>
-              
-              {/* Title skeleton - stała wysokość kontenera */}
-              <div className="h-9 md:h-10 mb-4 flex items-center justify-center">
-                <div className="w-64 h-8 bg-white/20 rounded-lg animate-pulse" />
-              </div>
-              
-              {/* Description skeleton - stała wysokość kontenera dla 2 linii */}
-              <div className="h-12 max-w-xl mx-auto mb-8 flex items-center">
-                <div className="w-full space-y-1">
-                  <div className="h-5 bg-white/20 rounded-lg animate-pulse" />
-                  <div className="w-3/4 h-5 bg-white/20 rounded-lg mx-auto animate-pulse" />
-                </div>
-              </div>
-              
-              {/* Progress bar skeleton - stała wysokość */}
-              <div className="max-w-md mx-auto">
-                <div className="h-3 bg-white/20 rounded-full animate-pulse" />
-                <div className="h-5 flex items-center justify-between mt-2">
-                  <div className="w-32 h-4 bg-white/20 rounded animate-pulse" />
-                  <div className="w-12 h-4 bg-white/20 rounded animate-pulse" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Content Skeleton */}
-        <div className="max-w-5xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
-          <div className="relative">
-            {/* Line skeleton */}
-            <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-gradient-to-b from-purple-100 via-purple-200 to-purple-100 transform -translate-x-1/2" />
-            
-            {/* Topics skeleton */}
-            <div className="space-y-24">
-              {[1, 2, 3].map((index) => (
-                <div key={index} className="relative">
-                  {/* Topic Node skeleton */}
-                  <div className="flex items-center justify-center mb-8">
-                    <div className="w-20 h-20 bg-purple-200 rounded-full animate-pulse" />
-                  </div>
-
-                  {/* Topic Content skeleton */}
-                  <div className="bg-white rounded-3xl shadow-xl p-8">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex-1">
-                        {/* Title skeleton - stała wysokość */}
-                        <div className="h-8 mb-2">
-                          <div className="w-64 h-7 bg-gray-200 rounded-lg animate-pulse" />
-                        </div>
-                        {/* Subtitle skeleton */}
-                        <div className="h-5">
-                          <div className="w-32 h-5 bg-gray-200 rounded-lg animate-pulse" />
-                        </div>
-                      </div>
-                      {/* Badge placeholder */}
-                      <div className="w-24 h-8 bg-gray-200 rounded-lg animate-pulse ml-4" />
-                    </div>
-
-                    {/* Activities skeleton */}
-                    <div className="grid gap-4">
-                      {[1, 2].map((activityIndex) => (
-                        <div
-                          key={activityIndex}
-                          className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-2xl border-2 border-purple-100"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="w-14 h-14 bg-purple-200 rounded-2xl animate-pulse" />
-                              <div>
-                                <div className="w-40 h-5 bg-purple-200 rounded mb-2 animate-pulse" />
-                                <div className="flex items-center gap-3">
-                                  <div className="w-16 h-5 bg-purple-200 rounded animate-pulse" />
-                                  <div className="w-12 h-5 bg-purple-200 rounded animate-pulse" />
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <div className="w-6 h-6 bg-purple-200 rounded-full animate-pulse" />
-                              <div className="w-5 h-5 bg-purple-200 rounded animate-pulse" />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
         </div>
       </div>
     );
@@ -268,22 +165,22 @@ export const StudentCourseDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 via-white to-pink-50">
-      {/* Hero Section - z subtelnymi animacjami */}
+      {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-purple-700 to-pink-600" />
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
         
         <div className="relative z-10 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-          {/* Navigation */}
+          {/* Navigation - ZMIENIONA NAWIGACJA */}
           <div className="mb-6">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate("/student/courses")}
+              onClick={() => navigate("/student/dashboard#courses")}
               className="gap-2 text-white hover:bg-white/20"
             >
-              <ChevronLeft className="w-4 h-4" />
-              Powrót do kursów
+              <Home className="w-4 h-4" />
+              Powrót do dashboardu
             </Button>
           </div>
 
@@ -343,7 +240,7 @@ export const StudentCourseDetail = () => {
       <div className="max-w-5xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         {/* Path */}
         <div className="relative">
-          {/* Connecting Line - animowana */}
+          {/* Connecting Line */}
           <motion.div 
             initial={!hasAnimated ? { opacity: 0, scaleY: 0 } : { opacity: 1, scaleY: 1 }}
             animate={{ opacity: 1, scaleY: 1 }}

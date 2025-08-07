@@ -1,6 +1,5 @@
-// src/pages/student/components/index.ts - POPRAWIONY
+// src/pages/student/components/index.ts - FIXED WITHOUT StudentCourses
 export { StudentDashboard } from './StudentDashboard';
-export { StudentCourses } from './StudentCourses';
 export { StudentCourseDetail } from './StudentCourseDetail';
 export { StudentLesson } from './StudentLesson';
 export { StudentQuiz } from './StudentQuiz';
@@ -12,4 +11,3 @@ export { CourseCard } from './CourseCard';
 export { ProgressBar } from './ProgressBar';
 export { StatCard } from './StatCard';
 export { ActivityCard } from './ActivityCard';
-

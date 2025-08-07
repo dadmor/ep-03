@@ -1,8 +1,9 @@
-// src/pages/student/index.tsx
+// src/pages/student/index.tsx - FIXED WITHOUT COURSES ROUTE
 import { Route } from "react-router";
+import { Outlet } from "react-router-dom";
+import { StudentLayout } from "./components/StudentLayout";
 import { 
   StudentDashboard,
-  StudentCourses,
   StudentCourseDetail,
   StudentLesson,
   StudentQuiz,
@@ -12,25 +13,33 @@ import {
   StudentProfile
 } from "./components";
 
-// Eksportujemy tylko trasy, bez zasobu (bo student ma osobny panel)
+// Wrapper component that applies StudentLayout
+const StudentLayoutWrapper = () => {
+  return (
+    <StudentLayout>
+      <Outlet />
+    </StudentLayout>
+  );
+};
+
+// Eksportujemy trasy z własnym layoutem
 export const studentRoutes = [
-  // Dashboard
-  <Route key="student-dashboard" path="/student/dashboard" element={<StudentDashboard />} />,
-  
-  // Kursy
-  <Route key="student-courses" path="/student/courses" element={<StudentCourses />} />,
-  <Route key="student-course-detail" path="/student/courses/:courseId" element={<StudentCourseDetail />} />,
-  <Route key="student-lesson" path="/student/courses/:courseId/lesson/:lessonId" element={<StudentLesson />} />,
-  <Route key="student-quiz" path="/student/courses/:courseId/quiz/:quizId" element={<StudentQuiz />} />,
-  
-  // Gamifikacja
-  <Route key="student-gamification" path="/student/gamification" element={<StudentGamification />} />,
-  <Route key="student-leaderboard" path="/student/leaderboard" element={<StudentLeaderboard />} />,
-  <Route key="student-achievements" path="/student/achievements" element={<StudentAchievements />} />,
-  
-  // Profil
-  <Route key="student-profile" path="/student/profile" element={<StudentProfile />} />,
+  // Główna trasa z StudentLayout
+  <Route key="student-layout" path="/student" element={<StudentLayoutWrapper />}>
+    {/* Dashboard */}
+    <Route path="dashboard" element={<StudentDashboard />} />
+    
+    {/* Szczegóły kursu - zachowujemy bo potrzebne */}
+    <Route path="courses/:courseId" element={<StudentCourseDetail />} />
+    <Route path="courses/:courseId/lesson/:lessonId" element={<StudentLesson />} />
+    <Route path="courses/:courseId/quiz/:quizId" element={<StudentQuiz />} />
+    
+    {/* Gamifikacja */}
+    <Route path="gamification" element={<StudentGamification />} />
+    <Route path="leaderboard" element={<StudentLeaderboard />} />
+    <Route path="achievements" element={<StudentAchievements />} />
+    
+    {/* Profil */}
+    <Route path="profile" element={<StudentProfile />} />
+  </Route>
 ];
-
-
-
