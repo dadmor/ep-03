@@ -1,8 +1,11 @@
-// src/pages/student/components/StudentDashboard.tsx
 import React from "react";
 import { useGetIdentity } from "@refinedev/core";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Zap, Flame, TrendingUp, Gift, Sparkles, Star, Trophy } from "lucide-react";
+import { 
+  Zap, Flame, TrendingUp, Trophy, Gift, Star,
+  ArrowRight, BookOpen, Target, Users, Clock,
+  CheckCircle2, Circle, Play, Sparkles
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabaseClient } from "@/utility";
 import { useStudentStats } from "../hooks";
@@ -13,9 +16,7 @@ import {
   AnimatedButton,
   AnimatedCounter,
   AnimatePresence,
-  motion,
-  useAnimationControl,
-  ANIMATION_DURATION
+  motion
 } from "./motion";
 
 export const StudentDashboard = () => {
@@ -24,11 +25,9 @@ export const StudentDashboard = () => {
   const { stats, refetch: refetchStats } = useStudentStats();
   const { data: coursesData } = useRPC<any[]>('get_my_courses');
   const [claimablePoints, setClaimablePoints] = React.useState(0);
-  const isAnimating = useAnimationControl();
 
   const courses = coursesData || [];
 
-  // Greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Dzień dobry";
@@ -54,16 +53,10 @@ export const StudentDashboard = () => {
   const handleClaimRewards = async () => {
     try {
       const { data: result, error } = await supabaseClient.rpc('claim_daily_rewards');
-      
       if (error) throw error;
       
       if (result) {
-        toast.success(
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-yellow-500" />
-            <span>Odebrano {result.total_earned} punktów!</span>
-          </div>
-        );
+        toast.success(`Odebrano ${result.total_earned} punktów!`);
         refetchStats();
         setClaimablePoints(0);
       }
@@ -72,330 +65,363 @@ export const StudentDashboard = () => {
     }
   };
 
-  const statsData = [
-    { 
-      value: stats.points, 
-      label: 'punktów', 
-      format: true,
-      icon: Zap,
-      gradient: 'from-yellow-400 to-orange-500',
-      glow: 'shadow-[0_0_20px_rgba(251,191,36,0.5)]'
-    },
-    { 
-      value: stats.level, 
-      label: 'poziom',
-      icon: Trophy,
-      gradient: 'from-purple-400 to-pink-500',
-      glow: 'shadow-[0_0_20px_rgba(168,85,247,0.5)]'
-    },
-    { 
-      value: stats.streak, 
-      label: 'dni z rzędu',
-      icon: Flame,
-      gradient: 'from-red-400 to-orange-500',
-      glow: 'shadow-[0_0_20px_rgba(239,68,68,0.5)]'
-    },
-    { 
-      value: stats.idle_rate, 
-      label: '/h', 
-      sublabel: 'idle rate', 
-      prefix: '+',
-      icon: TrendingUp,
-      gradient: 'from-cyan-400 to-blue-500',
-      glow: 'shadow-[0_0_20px_rgba(34,211,238,0.5)]'
-    }
-  ];
-
-  const quickActions = [
-    { label: "Ranking", path: "/student/leaderboard", icon: "🏆", color: "from-yellow-400 to-orange-500" },
-    { label: "Osiągnięcia", path: "/student/achievements", icon: "🎯", color: "from-purple-400 to-pink-500" },
-    { label: "Ulepszenia", path: "/student/gamification", icon: "🚀", color: "from-blue-400 to-cyan-500" },
-    { label: "Profil", path: "/student/profile", icon: "👤", color: "from-green-400 to-emerald-500" }
-  ];
-
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Hero Section - Energetic & Modern */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: ANIMATION_DURATION.normal }}
-        className="relative bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 rounded-3xl p-8 overflow-hidden"
-      >
-        {/* Animated background patterns */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 left-0 w-40 h-40 bg-white rounded-full filter blur-3xl animate-float" />
-          <div className="absolute bottom-0 right-0 w-60 h-60 bg-blue-300 rounded-full filter blur-3xl animate-float" style={{ animationDelay: '2s' }} />
-          <div className="absolute top-1/2 left-1/2 w-80 h-80 bg-yellow-300 rounded-full filter blur-3xl animate-float" style={{ animationDelay: '4s' }} />
-        </div>
-
-        <div className="relative z-10 flex items-start justify-between">
-          <div>
-            <motion.h1 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: ANIMATION_DURATION.normal, delay: 0.1 }}
-              className="text-3xl font-black text-white mb-2"
-            >
-              {getGreeting()}, {identity?.full_name?.split(' ')[0]}! 
-              <motion.span
-                initial={{ rotate: 0 }}
-                animate={{ rotate: [0, 20, -20, 0] }}
-                transition={{ duration: 1, delay: 0.5 }}
-                className="inline-block ml-2"
+    <div className="min-h-screen bg-background">
+      {/* Header - Clean & Minimal */}
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground">
+                {getGreeting()}, {identity?.full_name?.split(' ')[0]}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                {new Date().toLocaleDateString('pl-PL', { 
+                  weekday: 'long', 
+                  day: 'numeric', 
+                  month: 'long' 
+                })}
+              </p>
+            </div>
+            
+            {/* Quick Stats - Minimal badges */}
+            <div className="flex items-center gap-6">
+              <motion.div 
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full cursor-pointer"
+                onClick={() => navigate('/student/gamification')}
               >
-                👋
-              </motion.span>
-            </motion.h1>
-            <motion.p 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: ANIMATION_DURATION.normal, delay: 0.2 }}
-              className="text-white/80 text-lg"
-            >
-              {new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </motion.p>
+                <Zap className="w-4 h-4 text-primary" />
+                <span className="font-medium text-primary">
+                  <AnimatedCounter value={stats.points} />
+                </span>
+              </motion.div>
+              
+              <motion.div 
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-2 px-4 py-2 bg-secondary/10 rounded-full cursor-pointer"
+              >
+                <Trophy className="w-4 h-4 text-secondary" />
+                <span className="font-medium text-secondary">{stats.level}</span>
+              </motion.div>
+              
+              {stats.streak > 0 && (
+                <motion.div 
+                  whileHover={{ scale: 1.05 }}
+                  className="flex items-center gap-2 px-4 py-2 bg-destructive/10 rounded-full"
+                >
+                  <Flame className="w-4 h-4 text-destructive" />
+                  <span className="font-medium text-destructive">{stats.streak}</span>
+                </motion.div>
+              )}
+            </div>
           </div>
-          
-          <div className="flex items-center gap-6">
-            {/* Points Display - Neon style */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        {/* Hero Section - Vibrant contrast */}
+        <motion.section 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative bg-primary rounded-2xl p-8 overflow-hidden"
+        >
+          {/* Geometric pattern inspired by logo */}
+          <div className="absolute inset-0">
+            {/* Base gradient */}
+            <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/90" />
+            
+            {/* Geometric accent - rotating square like in logo */}
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ duration: 100, repeat: Infinity, ease: "linear" }}
+              className="absolute -top-24 -right-24 w-64 h-64"
+            >
+              <div className="w-full h-full bg-secondary/10 rounded-3xl transform rotate-45" />
+            </motion.div>
+            
+            {/* Circular accent - pulsing */}
+            <motion.div 
+              animate={{ scale: [0.8, 1, 0.8] }}
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -bottom-12 -left-12 w-48 h-48"
+            >
+              <div className="w-full h-full bg-accent/10 rounded-full blur-2xl" />
+            </motion.div>
+            
+            {/* Grid overlay for modern tech feel */}
+            <div 
+              className="absolute inset-0 opacity-[0.03]"
+              style={{
+                backgroundImage: `
+                  linear-gradient(to right, white 1px, transparent 1px),
+                  linear-gradient(to bottom, white 1px, transparent 1px)
+                `,
+                backgroundSize: '32px 32px'
+              }}
+            />
+          </div>
+
+          <div className="relative z-10 flex items-center justify-between">
+            <div>
+              <motion.h2 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="text-3xl font-bold text-white mb-2"
+              >
+                Twoja nauka, Twój sukces! 🚀
+              </motion.h2>
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+                className="text-white/80 text-lg max-w-md"
+              >
+                Każdy dzień to nowa szansa na rozwój. Kontynuuj swoją serię i zbieraj punkty!
+              </motion.p>
+              
+              {/* Streak reminder */}
+              {stats.streak > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full"
+                >
+                  <Flame className="w-4 h-4 text-white" />
+                  <span className="text-white font-medium">
+                    {stats.streak} dni serii - nie przerywaj!
+                  </span>
+                </motion.div>
+              )}
+            </div>
+            
+            {/* Points Display - Featured */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.3, type: "spring" }}
               className="text-right"
             >
               <p className="text-white/60 text-sm mb-1">Twoje punkty</p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-black text-white drop-shadow-lg">
+              <div className="flex items-baseline gap-3">
+                <span className="text-5xl font-bold text-white">
                   <AnimatedCounter value={stats.points} />
                 </span>
-                <motion.span 
-                  animate={{ opacity: [0.5, 1, 0.5] }}
+                <motion.div 
+                  animate={{ opacity: [0.6, 1, 0.6] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  className="text-sm text-yellow-300 font-bold"
+                  className="flex flex-col items-start"
                 >
-                  +<AnimatedCounter value={stats.idle_rate} />/h
-                </motion.span>
+                  <span className="text-sm text-white/80 font-medium">
+                    +<AnimatedCounter value={stats.idle_rate} />/h
+                  </span>
+                  <span className="text-xs text-white/60">idle rate</span>
+                </motion.div>
               </div>
-            </motion.div>
-            
-            {/* Level Badge - Gaming style */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0, rotate: -180 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              transition={{ delay: 0.4, type: "spring", stiffness: 200 }}
-              className="relative"
-            >
-              <div className="w-20 h-20 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center transform rotate-3 hover:rotate-6 transition-transform cursor-pointer shadow-[0_0_30px_rgba(251,191,36,0.6)]">
-                <span className="text-white font-black text-2xl">{stats.level}</span>
+              
+              {/* Progress to next level */}
+              <div className="mt-3">
+                <div className="flex items-center justify-between text-xs text-white/60 mb-1">
+                  <span>Poziom {stats.level}</span>
+                  <span>Poziom {stats.level + 1}</span>
+                </div>
+                <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(stats.points % 100)}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className="h-full bg-white rounded-full"
+                  />
+                </div>
               </div>
-              <Star className="absolute -top-2 -right-2 w-6 h-6 text-yellow-300 animate-pulse" />
-              <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 text-xs text-white/80 font-bold">POZIOM</span>
             </motion.div>
           </div>
-        </div>
-        
-        {/* Daily Rewards - Exciting animation */}
+        </motion.section>
+
+        {/* Daily Reward - Subtle notification */}
         {claimablePoints > 0 && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ delay: 0.5, type: "spring" }}
-            className="mt-6 p-4 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl flex items-center justify-between"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 bg-accent/5 border border-accent/20 rounded-lg flex items-center justify-between"
           >
             <div className="flex items-center gap-3">
-              <motion.div 
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="w-12 h-12 bg-yellow-400 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.6)]"
-              >
-                <Gift className="w-6 h-6 text-white" />
-              </motion.div>
+              <div className="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
+                <Gift className="w-5 h-5 text-accent" />
+              </div>
               <div>
-                <p className="text-white font-bold">Nagroda do odebrania!</p>
-                <p className="text-sm text-white/80">{claimablePoints} punktów czeka na Ciebie</p>
+                <p className="font-medium text-foreground">Nagroda do odebrania</p>
+                <p className="text-sm text-muted-foreground">{claimablePoints} punktów czeka</p>
               </div>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <AnimatedButton
               onClick={handleClaimRewards}
-              className="px-6 py-3 bg-white text-purple-600 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
+              className="px-4 py-2 bg-accent text-accent-foreground rounded-md font-medium hover:bg-accent/90 transition-colors"
             >
-              Odbierz teraz!
-            </motion.button>
+              Odbierz
+            </AnimatedButton>
           </motion.div>
         )}
-      </motion.div>
 
-      {/* Stats Cards - Vibrant & Interactive */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsData.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <AnimatedCard
-              key={stat.label}
-              index={index}
-              className={`bg-white rounded-2xl p-6 border-2 border-gray-100 hover:border-transparent transition-all duration-300 hover:${stat.glow} group cursor-pointer`}
-              hover={false}
-            >
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                className="flex flex-col items-center text-center"
-              >
-                <motion.div 
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ 
-                    delay: 0.3 + index * 0.1,
-                    type: "spring",
-                    stiffness: 200
-                  }}
-                  className={`w-16 h-16 bg-gradient-to-br ${stat.gradient} rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl transition-shadow`}
-                >
-                  <Icon className="w-8 h-8 text-white" />
-                </motion.div>
-                <div className="text-3xl font-black text-gray-900 mb-1">
-                  {stat.format ? (
-                    <AnimatedCounter 
-                      value={stat.value} 
-                      prefix={stat.prefix}
-                      suffix={stat.sublabel ? stat.label : ""}
-                    />
-                  ) : (
-                    <>
-                      {stat.prefix}{stat.value}
-                      {stat.sublabel && <span className="text-sm text-gray-500">{stat.label}</span>}
-                    </>
-                  )}
-                </div>
-                <div className="text-sm text-gray-500 font-medium">
-                  {stat.sublabel || stat.label}
-                </div>
-              </motion.div>
-            </AnimatedCard>
-          );
-        })}
-      </div>
-
-      {/* Courses Section - Modern cards */}
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-black text-gray-900">Twoje kursy</h2>
-            <p className="text-gray-500">Kontynuuj swoją przygodę z nauką</p>
-          </div>
-          <button
-            onClick={() => navigate("/student/gamification")}
-            className="text-purple-600 hover:text-purple-700 font-semibold transition-colors flex items-center gap-1 group"
+        {/* Stats Grid - Clean cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-card border border-border rounded-lg p-6 hover:border-primary/30 transition-colors"
           >
-            Zobacz wszystkie 
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
+            <div className="flex items-start justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Punkty</span>
+              <Zap className="w-4 h-4 text-primary" />
+            </div>
+            <p className="text-2xl font-semibold text-foreground">
+              <AnimatedCounter value={stats.points} />
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              +<AnimatedCounter value={stats.idle_rate} />/h
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-card border border-border rounded-lg p-6 hover:border-secondary/30 transition-colors"
+          >
+            <div className="flex items-start justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Poziom</span>
+              <Trophy className="w-4 h-4 text-secondary" />
+            </div>
+            <p className="text-2xl font-semibold text-foreground">{stats.level}</p>
+            <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-secondary transition-all duration-500"
+                style={{ width: `${(stats.points % 100)}%` }}
+              />
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-card border border-border rounded-lg p-6 hover:border-destructive/30 transition-colors"
+          >
+            <div className="flex items-start justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Seria dni</span>
+              <Flame className="w-4 h-4 text-destructive" />
+            </div>
+            <p className="text-2xl font-semibold text-foreground">{stats.streak}</p>
+            <p className="text-xs text-muted-foreground mt-1">dni z rzędu</p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-card border border-border rounded-lg p-6 hover:border-accent/30 transition-colors"
+          >
+            <div className="flex items-start justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Idle rate</span>
+              <TrendingUp className="w-4 h-4 text-accent" />
+            </div>
+            <p className="text-2xl font-semibold text-foreground">
+              +<AnimatedCounter value={stats.idle_rate} />
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">punktów/h</p>
+          </motion.div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <AnimatePresence mode="wait">
-            {courses.map((course: any, index: number) => (
-              <AnimatedCard
-                key={`course-${course.course_id}`}
-                layoutId={`course-${course.course_id}`}
-                index={index}
-                skipAnimation={!isAnimating}
+        {/* Courses Section - Minimal design */}
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-foreground">Twoje kursy</h2>
+            <button
+              onClick={() => navigate("/student/courses")}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              Zobacz wszystkie
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {courses.slice(0, 6).map((course: any, index: number) => (
+              <motion.div
+                key={course.course_id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 + index * 0.05 }}
                 onClick={() => navigate(`/student/courses/${course.course_id}`)}
-                className="bg-white rounded-2xl p-6 border-2 border-gray-100 cursor-pointer hover:border-purple-300 hover:shadow-[0_10px_40px_rgba(168,85,247,0.15)] transition-all group"
+                className="bg-card border border-border rounded-lg p-6 hover:border-primary/30 transition-all cursor-pointer group"
               >
-                <div className="mb-4">
-                  <motion.div 
-                    whileHover={{ rotate: [0, -10, 10, 0] }}
-                    transition={{ duration: 0.5 }}
-                    className="text-4xl mb-3"
-                  >
-                    {course.icon_emoji || '📚'}
-                  </motion.div>
-                  <h3 className="font-bold text-gray-900 group-hover:text-purple-600 transition-colors text-lg">
-                    {course.title}
-                  </h3>
+                <div className="flex items-start justify-between mb-4">
+                  <span className="text-2xl">{course.icon_emoji || '📚'}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {course.progress_percent}%
+                    </span>
+                  </div>
                 </div>
                 
+                <h3 className="font-medium text-foreground mb-2 group-hover:text-primary transition-colors">
+                  {course.title}
+                </h3>
+                
                 <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-500">Postęp</span>
-                      <span className="text-gray-900 font-bold">{course.progress_percent}%</span>
-                    </div>
-                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                      <AnimatedProgress
-                        value={course.progress_percent}
-                        delay={isAnimating ? 0.5 + index * 0.1 : 0}
-                        skipAnimation={!isAnimating}
-                        className="h-full"
-                        barClassName={`h-full bg-gradient-to-r ${
-                          course.progress_percent === 100 
-                            ? 'from-green-400 to-emerald-500' 
-                            : course.progress_percent >= 75 
-                            ? 'from-blue-400 to-cyan-500'
-                            : course.progress_percent >= 50
-                            ? 'from-purple-400 to-pink-500'
-                            : 'from-orange-400 to-yellow-500'
-                        }`}
-                      />
-                    </div>
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <AnimatedProgress
+                      value={course.progress_percent}
+                      className="h-full"
+                      barClassName="h-full bg-primary transition-all duration-500"
+                    />
                   </div>
                   
                   {course.next_activity && (
-                    <p className="text-xs text-gray-500 font-medium">
-                      Następna lekcja: <span className="text-purple-600">{course.next_activity}</span>
+                    <p className="text-xs text-muted-foreground">
+                      Następna: <span className="text-foreground">{course.next_activity}</span>
                     </p>
                   )}
                 </div>
-              </AnimatedCard>
-            ))}
-          </AnimatePresence>
-          
-          {courses.length === 0 && (
-            <div className="col-span-full text-center py-16">
-              <motion.div 
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200 }}
-                className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center mx-auto mb-4"
-              >
-                <span className="text-3xl">📚</span>
               </motion.div>
-              <p className="text-gray-900 font-bold text-lg mb-2">Brak kursów</p>
-              <p className="text-gray-500">Poproś nauczyciela o przypisanie do kursu</p>
-            </div>
-          )}
-        </div>
-      </div>
+            ))}
+            
+            {courses.length === 0 && (
+              <div className="col-span-full py-12 text-center">
+                <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <BookOpen className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground">Brak przypisanych kursów</p>
+              </div>
+            )}
+          </div>
+        </section>
 
-      {/* Quick Actions - Gaming-style buttons */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {quickActions.map((action, index) => (
-          <AnimatedButton
-            key={action.path}
-            index={index}
-            onClick={() => navigate(action.path)}
-            className="relative overflow-hidden group"
-          >
-            <div className={`absolute inset-0 bg-gradient-to-r ${action.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-            <div className="relative flex items-center gap-3 p-4 bg-white border-2 border-gray-100 rounded-2xl group-hover:border-transparent transition-all">
-              <motion.span 
-                whileHover={{ scale: 1.2, rotate: 10 }}
-                className="text-2xl"
-              >
-                {action.icon}
-              </motion.span>
-              <span className="font-bold text-gray-700 group-hover:text-white transition-colors">
-                {action.label}
-              </span>
-              <ArrowRight className="w-4 h-4 text-gray-400 ml-auto group-hover:text-white group-hover:translate-x-1 transition-all" />
-            </div>
-          </AnimatedButton>
-        ))}
-      </div>
+        {/* Quick Actions - Minimal buttons */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { icon: Trophy, label: "Ranking", path: "/student/leaderboard", color: "text-primary" },
+            { icon: Target, label: "Osiągnięcia", path: "/student/achievements", color: "text-secondary" },
+            { icon: Sparkles, label: "Ulepszenia", path: "/student/gamification", color: "text-accent" },
+            { icon: Users, label: "Profil", path: "/student/profile", color: "text-destructive" }
+          ].map((action, index) => (
+            <motion.button
+              key={action.path}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 + index * 0.05 }}
+              onClick={() => navigate(action.path)}
+              className="flex items-center gap-3 p-4 bg-card border border-border rounded-lg hover:border-primary/30 transition-all group"
+            >
+              <action.icon className={`w-4 h-4 ${action.color} group-hover:scale-110 transition-transform`} />
+              <span className="text-sm font-medium text-foreground">{action.label}</span>
+            </motion.button>
+          ))}
+        </div>
+      </main>
     </div>
   );
 };
