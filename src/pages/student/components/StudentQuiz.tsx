@@ -1,18 +1,28 @@
-// src/pages/student/components/StudentQuiz.tsx
+// src/pages/student/components/StudentQuiz.tsx - REDESIGNED (część 1/2)
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useOne } from "@refinedev/core";
-import { ChevronLeft, Clock, AlertCircle, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import { 
+  ChevronLeft, 
+  ChevronRight,
+  Clock, 
+  AlertCircle, 
+  CheckCircle, 
+  XCircle, 
+  AlertTriangle,
+  Zap,
+  Target,
+  Trophy
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { SubPage } from "@/components/layout";
-import { FlexBox } from "@/components/shared";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { supabaseClient } from "@/utility";
+import { cn, supabaseClient } from "@/utility";
 import { invalidateRPCCache } from "../hooks/useRPC";
 
 interface QuizQuestion {
@@ -75,16 +85,10 @@ export const StudentQuiz = () => {
             icon: <XCircle size={24} />
           });
         } else {
-          // Parsuj JSON jeśli to string lub użyj bezpośrednio jeśli to już tablica
           const parsedQuestions = typeof questionsData === 'string' 
             ? JSON.parse(questionsData) 
             : questionsData;
           
-          console.log("Questions data:", parsedQuestions);
-          // Dodajmy też log pierwszego pytania żeby zobaczyć strukturę opcji
-          if (parsedQuestions && parsedQuestions.length > 0) {
-            console.log("First question options:", parsedQuestions[0].options);
-          }
           setQuestions(Array.isArray(parsedQuestions) ? parsedQuestions : []);
         }
       } catch (error) {
@@ -130,8 +134,6 @@ export const StudentQuiz = () => {
         option_id: optionId
       }));
 
-      console.log("Submitting answers:", answersArray);
-
       const { data: result, error } = await supabaseClient.rpc('finish_quiz', {
         p_activity_id: parseInt(quizId!),
         p_answers: answersArray
@@ -156,10 +158,8 @@ export const StudentQuiz = () => {
           });
         }
         
-        // Invaliduj cache dla struktury kursu
         invalidateRPCCache('get_course_structure');
         
-        // Nawiguj z opóźnieniem, żeby toast był widoczny
         setTimeout(() => {
           navigate(`/student/courses/${courseId}`);
         }, 500);
@@ -177,149 +177,213 @@ export const StudentQuiz = () => {
 
   if (quizLoading || questionsLoading) {
     return (
-      <SubPage>
+      <div className="min-h-screen bg-gradient-to-b from-purple-50 via-white to-pink-50">
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
         </div>
-      </SubPage>
+      </div>
     );
   }
 
   const currentQ = questions[currentQuestion];
   const progress = questions.length > 0 ? ((currentQuestion + 1) / questions.length) * 100 : 0;
+  const answeredCount = Object.keys(answers).length;
 
   return (
-    <SubPage>
-      <div className="space-y-6 max-w-4xl mx-auto">
-        {/* Nawigacja */}
-        <FlexBox>
+    <div className="min-h-screen bg-gradient-to-b from-purple-50 via-white to-pink-50">
+      {/* Header */}
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-purple-100">
+        <div className="max-w-4xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(`/student/courses/${courseId}`)}
+              className="gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Zakończ quiz
+            </Button>
+
+            <div className="flex items-center gap-6">
+              {/* Timer */}
+              {timeLeft !== null && (
+                <motion.div 
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-full",
+                    timeLeft < 60 ? "bg-red-100 text-red-700" : "bg-purple-100 text-purple-700"
+                  )}
+                  animate={timeLeft < 60 ? { scale: [1, 1.05, 1] } : {}}
+                  transition={{ repeat: Infinity, duration: 1 }}
+                >
+                  <Clock className="w-4 h-4" />
+                  <span className="font-mono font-medium">
+                    {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+                  </span>
+                </motion.div>
+              )}
+
+              {/* Progress */}
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-purple-600" />
+                <span className="text-sm font-medium">
+                  {answeredCount}/{questions.length}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="mt-4">
+            <Progress value={progress} className="h-2" />
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-4xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
+        {/* Quiz Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <Badge className="mb-4" variant="secondary">
+            <Zap className="w-3 h-3 mr-1" />
+            {quiz?.topics?.courses?.title}
+          </Badge>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{quiz?.title}</h1>
+          <p className="text-gray-600">
+            Pytanie {currentQuestion + 1} z {questions.length}
+          </p>
+        </motion.div>
+
+        {/* Question Card */}
+        <AnimatePresence mode="wait">
+          {currentQ && questions.length > 0 ? (
+            <motion.div
+              key={currentQ.id}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Card className="shadow-xl border-0 overflow-hidden">
+                <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-1">
+                  <CardHeader className="bg-white rounded-t-[calc(0.75rem-1px)] pb-4">
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-xl pr-4">{currentQ.question}</CardTitle>
+                      <Badge className="bg-purple-100 text-purple-700 border-0 flex-shrink-0">
+                        <Trophy className="w-3 h-3 mr-1" />
+                        {currentQ.points} pkt
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                </div>
+                
+                <CardContent className="p-6">
+                  <RadioGroup
+                    value={String(answers[currentQ.id] || '')}
+                    onValueChange={(value) => handleAnswer(currentQ.id, parseInt(value))}
+                    className="space-y-3"
+                  >
+                    {currentQ.options && Array.isArray(currentQ.options) && currentQ.options.map((option, index) => (
+                      <motion.div
+                        key={`option-${currentQ.id}-${option.id}`}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <Label
+                          htmlFor={`radio-${currentQ.id}-${option.id}`}
+                          className={cn(
+                            "flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
+                            answers[currentQ.id] === option.id
+                              ? "border-purple-500 bg-purple-50"
+                              : "border-gray-200 hover:border-purple-300 hover:bg-purple-50/50"
+                          )}
+                        >
+                          <RadioGroupItem 
+                            value={String(option.id)} 
+                            id={`radio-${currentQ.id}-${option.id}`}
+                            className="border-2"
+                          />
+                          <span className="flex-1 text-gray-900">{option.text}</span>
+                        </Label>
+                      </motion.div>
+                    ))}
+                  </RadioGroup>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ) : questions.length === 0 && !questionsLoading ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <AlertCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-gray-500">Nie znaleziono pytań dla tego quizu</p>
+              </CardContent>
+            </Card>
+          ) : null}
+        </AnimatePresence>
+
+        {/* Navigation */}
+        <div className="mt-8 flex items-center justify-between">
           <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(`/student/courses/${courseId}`)}
+            variant="outline"
+            size="lg"
+            onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
+            disabled={currentQuestion === 0}
             className="gap-2"
           >
             <ChevronLeft className="w-4 h-4" />
-            Powrót do kursu
-          </Button>
-
-          {timeLeft !== null && (
-            <div className="flex items-center gap-2 text-sm">
-              <Clock className="w-4 h-4" />
-              <span className="font-medium">
-                {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
-              </span>
-            </div>
-          )}
-        </FlexBox>
-
-        {/* Nagłówek */}
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold">{quiz?.title}</h1>
-          <div className="flex items-center gap-3">
-            <Badge variant="default">Quiz</Badge>
-            <span className="text-sm text-muted-foreground">
-              Pytanie {currentQuestion + 1} z {questions.length}
-            </span>
-          </div>
-        </div>
-
-        {/* Progress */}
-        <Progress value={progress} className="h-2" />
-
-        {/* Pytanie */}
-        {currentQ && questions.length > 0 ? (
-          <Card>
-            <CardHeader>
-              <FlexBox>
-                <CardTitle className="text-xl">{currentQ.question}</CardTitle>
-                <Badge variant="secondary">{currentQ.points} pkt</Badge>
-              </FlexBox>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <RadioGroup
-                value={String(answers[currentQ.id] || '')}
-                onValueChange={(value) => handleAnswer(currentQ.id, parseInt(value))}
-              >
-                {currentQ.options && Array.isArray(currentQ.options) && currentQ.options.map((option) => (
-                  <div key={`option-${currentQ.id}-${option.id}`} className="flex items-center space-x-2">
-                    <RadioGroupItem 
-                      value={String(option.id)} 
-                      id={`radio-${currentQ.id}-${option.id}`} 
-                    />
-                    <Label 
-                      htmlFor={`radio-${currentQ.id}-${option.id}`} 
-                      className="flex-1 cursor-pointer py-2"
-                    >
-                      {option.text}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
-
-              {!answers[currentQ.id] && (
-                <div className="flex items-center gap-2 text-sm text-amber-600">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>Wybierz odpowiedź</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ) : questions.length === 0 && !questionsLoading ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <AlertCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-gray-500">Nie znaleziono pytań dla tego quizu</p>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {/* Nawigacja między pytaniami */}
-        <FlexBox>
-          <Button
-            variant="outline"
-            onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
-            disabled={currentQuestion === 0}
-          >
             Poprzednie
           </Button>
 
+          {/* Question Dots */}
           <div className="flex gap-2">
             {questions.map((question, index) => (
-              <button
+              <motion.button
                 key={`nav-${question.id}-${index}`}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setCurrentQuestion(index)}
-                className={`w-10 h-10 rounded-lg border-2 transition-all ${
+                className={cn(
+                  "w-10 h-10 rounded-full font-medium transition-all",
                   index === currentQuestion
-                    ? 'border-primary bg-primary text-white'
+                    ? "bg-purple-600 text-white shadow-lg"
                     : answers[question.id]
-                    ? 'border-green-500 bg-green-50'
-                    : 'border-gray-300'
-                }`}
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-200 text-gray-600 hover:bg-purple-200"
+                )}
               >
                 {index + 1}
-              </button>
+              </motion.button>
             ))}
           </div>
 
           {currentQuestion < questions.length - 1 ? (
             <Button
+              size="lg"
               onClick={() => setCurrentQuestion(currentQuestion + 1)}
               disabled={!answers[currentQ?.id]}
+              className="gap-2"
             >
               Następne
+              <ChevronRight className="w-4 h-4" />
             </Button>
           ) : (
             <Button
+              size="lg"
               onClick={handleSubmit}
               disabled={isSubmitting || Object.keys(answers).length < questions.length}
-              variant="default"
+              className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
             >
               {isSubmitting ? "Przesyłanie..." : "Zakończ quiz"}
+              <Trophy className="w-4 h-4" />
             </Button>
           )}
-        </FlexBox>
+        </div>
       </div>
-    </SubPage>
+    </div>
   );
 };
