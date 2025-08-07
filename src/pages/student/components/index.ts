@@ -7,7 +7,3 @@ export { StudentGamification } from './StudentGamification';
 export { StudentLeaderboard } from './StudentLeaderboard';
 export { StudentAchievements } from './StudentAchievements';
 export { StudentProfile } from './StudentProfile';
-export { CourseCard } from './CourseCard';
-export { ProgressBar } from './ProgressBar';
-export { StatCard } from './StatCard';
-export { ActivityCard } from './ActivityCard';

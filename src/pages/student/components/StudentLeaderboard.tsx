@@ -1,13 +1,17 @@
-// src/pages/student/components/StudentLeaderboard.tsx - POPRAWIONY
+// src/pages/student/components/StudentLeaderboard.tsx
 import React from "react";
 import { useGetIdentity } from "@refinedev/core";
 import { Trophy, Medal, Award } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SubPage } from "@/components/layout";
-import { Lead } from "@/components/reader";
+import { cn } from "@/utility";
 import { useRPC } from "../hooks/useRPC";
+import { 
+  AnimatedCard,
+  AnimatedCounter,
+  motion,
+  AnimatePresence,
+  ANIMATION_DURATION,
+  ANIMATION_DELAY
+} from "./motion";
 
 interface LeaderboardEntry {
   rank: number;
@@ -30,104 +34,177 @@ export const StudentLeaderboard = () => {
     }
   );
 
-  // Refetch when filter changes
   React.useEffect(() => {
     refetch();
   }, [filter]);
 
-  const getRankIcon = (rank: number) => {
-    switch(rank) {
-      case 1: return <Trophy className="w-5 h-5 text-yellow-500" />;
-      case 2: return <Medal className="w-5 h-5 text-gray-400" />;
-      case 3: return <Award className="w-5 h-5 text-orange-600" />;
-      default: return <span className="text-sm font-bold text-gray-500">#{rank}</span>;
-    }
-  };
-
-  const getRankColor = (rank: number) => {
-    switch(rank) {
-      case 1: return "bg-yellow-50 border-yellow-200";
-      case 2: return "bg-gray-50 border-gray-200";
-      case 3: return "bg-orange-50 border-orange-200";
-      default: return "";
-    }
-  };
-
   if (isLoading) {
     return (
-      <SubPage>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </SubPage>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-300"></div>
+      </div>
     );
   }
 
   const leaderboard = leaderboardData || [];
 
+  const getRankDisplay = (rank: number) => {
+    switch(rank) {
+      case 1: return <Trophy className="w-5 h-5 text-yellow-500" />;
+      case 2: return <Medal className="w-5 h-5 text-gray-400" />;
+      case 3: return <Award className="w-5 h-5 text-orange-500" />;
+      default: return <span className="text-sm font-medium text-gray-500">{rank}</span>;
+    }
+  };
+
   return (
-    <SubPage>
-      <div className="space-y-6">
-        <Lead
-          title="Ranking"
-          description="Zobacz jak wypadasz na tle innych uczniów"
-        />
+    <div className="max-w-4xl mx-auto">
+      <motion.h1 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: ANIMATION_DURATION.normal }}
+        className="text-2xl font-semibold text-gray-900 mb-8"
+      >
+        Ranking
+      </motion.h1>
 
-        <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="all">Wszyscy</TabsTrigger>
-            <TabsTrigger value="students">Uczniowie</TabsTrigger>
-            <TabsTrigger value="teachers">Nauczyciele</TabsTrigger>
-          </TabsList>
+      {/* Filter Tabs */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: ANIMATION_DURATION.normal, delay: 0.1 }}
+        className="flex gap-1 p-1 bg-gray-100 rounded-lg mb-8"
+      >
+        <AnimatePresence mode="wait">
+          {[
+            { value: "all", label: "Wszyscy" },
+            { value: "students", label: "Uczniowie" },
+            { value: "teachers", label: "Nauczyciele" }
+          ].map((tab) => (
+            <motion.button
+              key={tab.value}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setFilter(tab.value as any)}
+              className={cn(
+                "flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all relative",
+                filter === tab.value
+                  ? "text-gray-900"
+                  : "text-gray-600 hover:text-gray-900"
+              )}
+            >
+              {filter === tab.value && (
+                <motion.div
+                  layoutId="activeTab"
+                  className="absolute inset-0 bg-white shadow-sm rounded-md"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <span className="relative z-10">{tab.label}</span>
+            </motion.button>
+          ))}
+        </AnimatePresence>
+      </motion.div>
 
-          <TabsContent value={filter} className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Top 20</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {leaderboard.map((entry) => {
-                  const isCurrentUser = entry.user_id === identity?.id;
-                  
-                  return (
-                    <div
-                      key={entry.user_id}
-                      className={`flex items-center gap-4 p-4 rounded-xl transition-all ${
-                        isCurrentUser 
-                          ? 'bg-purple-50 border-2 border-purple-200' 
-                          : `border ${getRankColor(entry.rank)} hover:bg-gray-50`
-                      }`}
-                    >
-                      <div className="w-10 flex justify-center">
-                        {getRankIcon(entry.rank)}
-                      </div>
-                      
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white font-bold">
-                        {entry.full_name.charAt(0)}
-                      </div>
-                      
-                      <div className="flex-1">
-                        <p className="font-semibold">
-                          {entry.full_name}
-                          {isCurrentUser && <Badge className="ml-2" variant="secondary">Ty</Badge>}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Poziom {entry.level} • Seria {entry.streak} dni
-                        </p>
-                      </div>
-                      
-                      <div className="text-right">
-                        <p className="font-bold text-lg">{entry.points}</p>
-                        <p className="text-xs text-gray-500">punktów</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </SubPage>
+      {/* Leaderboard */}
+      <AnimatePresence mode="wait">
+        <motion.div 
+          key={filter}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: ANIMATION_DURATION.fast }}
+          className="space-y-2"
+        >
+          {leaderboard.map((entry, index) => {
+            const isCurrentUser = entry.user_id === identity?.id;
+            const isTop3 = entry.rank <= 3;
+            
+            return (
+              <motion.div
+                key={entry.user_id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ 
+                  delay: index * ANIMATION_DELAY.staggerFast,
+                  duration: ANIMATION_DURATION.normal 
+                }}
+                whileHover={{ x: 4 }}
+                className={cn(
+                  "flex items-center gap-4 p-4 rounded-xl transition-all",
+                  isCurrentUser 
+                    ? "bg-gray-900 text-white shadow-lg" 
+                    : isTop3
+                    ? "bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200"
+                    : "bg-white hover:bg-gray-50"
+                )}
+              >
+                {/* Rank */}
+                <motion.div 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ 
+                    delay: index * ANIMATION_DELAY.staggerFast + 0.2,
+                    type: "spring",
+                    stiffness: 500,
+                    damping: 30
+                  }}
+                  className="w-8 flex justify-center"
+                >
+                  {getRankDisplay(entry.rank)}
+                </motion.div>
+                
+                {/* Avatar */}
+                <motion.div 
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ 
+                    delay: index * ANIMATION_DELAY.staggerFast + 0.1,
+                    duration: ANIMATION_DURATION.normal 
+                  }}
+                  className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center font-semibold",
+                    isCurrentUser 
+                      ? "bg-white text-gray-900" 
+                      : isTop3
+                      ? "bg-gray-900 text-white"
+                      : "bg-gray-100 text-gray-700"
+                  )}
+                >
+                  {entry.full_name.charAt(0)}
+                </motion.div>
+                
+                {/* User Info */}
+                <div className="flex-1">
+                  <div className="font-medium">
+                    {entry.full_name}
+                    {isCurrentUser && <span className="ml-2 text-sm opacity-70">(Ty)</span>}
+                  </div>
+                  <div className={cn(
+                    "text-sm",
+                    isCurrentUser ? "text-gray-300" : "text-gray-500"
+                  )}>
+                    Poziom {entry.level} • Seria {entry.streak} dni
+                  </div>
+                </div>
+                
+                {/* Points */}
+                <div className="text-right">
+                  <div className="font-semibold">
+                    <AnimatedCounter value={entry.points} />
+                  </div>
+                  <div className={cn(
+                    "text-xs",
+                    isCurrentUser ? "text-gray-300" : "text-gray-500"
+                  )}>
+                    punktów
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      </AnimatePresence>
+    </div>
   );
 };

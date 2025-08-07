@@ -1,25 +1,8 @@
-// src/pages/student/components/StudentQuiz.tsx - REDESIGNED (część 1/2)
+// src/pages/student/components/StudentQuiz.tsx
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useOne } from "@refinedev/core";
-import { 
-  ChevronLeft, 
-  ChevronRight,
-  Clock, 
-  AlertCircle, 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle,
-  Zap,
-  Target,
-  Trophy
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
+import { ArrowLeft, ArrowRight, Clock, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn, supabaseClient } from "@/utility";
@@ -45,7 +28,6 @@ export const StudentQuiz = () => {
   const [questions, setQuestions] = React.useState<QuizQuestion[]>([]);
   const [questionsLoading, setQuestionsLoading] = React.useState(true);
 
-  // Pobierz dane quizu
   const { data: quizData, isLoading: quizLoading } = useOne({
     resource: "activities",
     id: quizId!,
@@ -54,48 +36,31 @@ export const StudentQuiz = () => {
     }
   });
 
-  // Pobierz pytania i rozpocznij quiz
   React.useEffect(() => {
     const initQuiz = async () => {
       if (!quizId) return;
 
       try {
-        // Rozpocznij quiz
-        const { error: startError } = await supabaseClient.rpc('start_activity', {
+        await supabaseClient.rpc('start_activity', {
           p_activity_id: parseInt(quizId)
         });
 
-        if (startError) {
-          console.error("Error starting quiz:", startError);
-          toast.error("Nie udało się rozpocząć quizu", {
-            icon: <XCircle size={24} />
-          });
-        }
-
-        // Pobierz pytania
         setQuestionsLoading(true);
-        const { data: questionsData, error: questionsError } = await supabaseClient.rpc(
+        const { data: questionsData, error } = await supabaseClient.rpc(
           'get_quiz_questions',
           { p_activity_id: parseInt(quizId) }
         );
 
-        if (questionsError) {
-          console.error("Error fetching questions:", questionsError);
-          toast.error("Nie udało się pobrać pytań", {
-            icon: <XCircle size={24} />
-          });
-        } else {
-          const parsedQuestions = typeof questionsData === 'string' 
-            ? JSON.parse(questionsData) 
-            : questionsData;
-          
-          setQuestions(Array.isArray(parsedQuestions) ? parsedQuestions : []);
-        }
+        if (error) throw error;
+
+        const parsedQuestions = typeof questionsData === 'string' 
+          ? JSON.parse(questionsData) 
+          : questionsData;
+        
+        setQuestions(Array.isArray(parsedQuestions) ? parsedQuestions : []);
       } catch (error) {
         console.error("Quiz init error:", error);
-        toast.error("Błąd podczas ładowania quizu", {
-          icon: <XCircle size={24} />
-        });
+        toast.error("Błąd podczas ładowania quizu");
       } finally {
         setQuestionsLoading(false);
       }
@@ -104,7 +69,6 @@ export const StudentQuiz = () => {
     initQuiz();
   }, [quizId]);
 
-  // Timer
   React.useEffect(() => {
     if (quizData?.data?.time_limit && timeLeft === null) {
       setTimeLeft(quizData.data.time_limit * 60);
@@ -121,6 +85,8 @@ export const StudentQuiz = () => {
   }, [timeLeft]);
 
   const quiz = quizData?.data;
+  const currentQ = questions[currentQuestion];
+  const progress = questions.length > 0 ? ((currentQuestion + 1) / questions.length) * 100 : 0;
 
   const handleAnswer = (questionId: number, optionId: number) => {
     setAnswers(prev => ({ ...prev, [questionId]: optionId }));
@@ -139,37 +105,22 @@ export const StudentQuiz = () => {
         p_answers: answersArray
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (result) {
         const { score, passed, points_earned } = result;
         
         if (passed) {
-          toast.success(`Quiz zaliczony! Wynik: ${score}%`, {
-            description: `Zdobyłeś ${points_earned} punktów!`,
-            icon: <CheckCircle size={24} />
-          });
+          toast.success(`Quiz zaliczony! Wynik: ${score}%`);
         } else {
-          toast.warning(`Quiz niezaliczony. Wynik: ${score}%`, {
-            description: `Wymagane minimum ${quiz?.passing_score || 70}% do zaliczenia. Spróbuj ponownie!`,
-            icon: <AlertTriangle size={24} />
-          });
+          toast.error(`Quiz niezaliczony. Wynik: ${score}%`);
         }
         
         invalidateRPCCache('get_course_structure');
-        
-        setTimeout(() => {
-          navigate(`/student/courses/${courseId}`);
-        }, 500);
+        navigate(`/student/courses/${courseId}`);
       }
-    } catch (error: any) {
-      console.error("Submit error:", error);
-      toast.error("Nie udało się przesłać odpowiedzi", {
-        description: error.message,
-        icon: <XCircle size={24} />
-      });
+    } catch (error) {
+      toast.error("Nie udało się przesłać odpowiedzi");
     } finally {
       setIsSubmitting(false);
     }
@@ -177,212 +128,172 @@ export const StudentQuiz = () => {
 
   if (quizLoading || questionsLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-purple-50 via-white to-pink-50">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-        </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-300"></div>
       </div>
     );
   }
 
-  const currentQ = questions[currentQuestion];
-  const progress = questions.length > 0 ? ((currentQuestion + 1) / questions.length) * 100 : 0;
-  const answeredCount = Object.keys(answers).length;
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 via-white to-pink-50">
+    <div className="max-w-3xl mx-auto">
       {/* Header */}
-      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-purple-100">
-        <div className="max-w-4xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(`/student/courses/${courseId}`)}
-              className="gap-2"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Zakończ quiz
-            </Button>
+      <div className="flex items-center justify-between mb-8">
+        <button
+          onClick={() => navigate(`/student/courses/${courseId}`)}
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm">Zakończ quiz</span>
+        </button>
 
-            <div className="flex items-center gap-6">
-              {/* Timer */}
-              {timeLeft !== null && (
-                <motion.div 
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-full",
-                    timeLeft < 60 ? "bg-red-100 text-red-700" : "bg-purple-100 text-purple-700"
-                  )}
-                  animate={timeLeft < 60 ? { scale: [1, 1.05, 1] } : {}}
-                  transition={{ repeat: Infinity, duration: 1 }}
-                >
-                  <Clock className="w-4 h-4" />
-                  <span className="font-mono font-medium">
-                    {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
-                  </span>
-                </motion.div>
-              )}
-
-              {/* Progress */}
-              <div className="flex items-center gap-2">
-                <Target className="w-4 h-4 text-purple-600" />
-                <span className="text-sm font-medium">
-                  {answeredCount}/{questions.length}
-                </span>
-              </div>
-            </div>
+        {timeLeft !== null && (
+          <div className={cn(
+            "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium",
+            timeLeft < 60 ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"
+          )}>
+            <Clock className="w-4 h-4" />
+            {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
           </div>
+        )}
+      </div>
 
-          {/* Progress Bar */}
-          <div className="mt-4">
-            <Progress value={progress} className="h-2" />
-          </div>
+      {/* Quiz Info */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-semibold text-gray-900 mb-2">{quiz?.title}</h1>
+        <div className="flex items-center gap-4 text-sm text-gray-500">
+          <span>Pytanie {currentQuestion + 1} z {questions.length}</span>
+          <span>•</span>
+          <span>{currentQ?.points} pkt</span>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
-        {/* Quiz Info */}
+      {/* Progress */}
+      <div className="h-1 bg-gray-100 rounded-full overflow-hidden mb-8">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
-          <Badge className="mb-4" variant="secondary">
-            <Zap className="w-3 h-3 mr-1" />
-            {quiz?.topics?.courses?.title}
-          </Badge>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{quiz?.title}</h1>
-          <p className="text-gray-600">
-            Pytanie {currentQuestion + 1} z {questions.length}
-          </p>
-        </motion.div>
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          className="h-full bg-gray-900"
+        />
+      </div>
 
-        {/* Question Card */}
-        <AnimatePresence mode="wait">
-          {currentQ && questions.length > 0 ? (
-            <motion.div
-              key={currentQ.id}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Card className="shadow-xl border-0 overflow-hidden">
-                <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-1">
-                  <CardHeader className="bg-white rounded-t-[calc(0.75rem-1px)] pb-4">
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-xl pr-4">{currentQ.question}</CardTitle>
-                      <Badge className="bg-purple-100 text-purple-700 border-0 flex-shrink-0">
-                        <Trophy className="w-3 h-3 mr-1" />
-                        {currentQ.points} pkt
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                </div>
-                
-                <CardContent className="p-6">
-                  <RadioGroup
-                    value={String(answers[currentQ.id] || '')}
-                    onValueChange={(value) => handleAnswer(currentQ.id, parseInt(value))}
-                    className="space-y-3"
-                  >
-                    {currentQ.options && Array.isArray(currentQ.options) && currentQ.options.map((option, index) => (
-                      <motion.div
-                        key={`option-${currentQ.id}-${option.id}`}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                      >
-                        <Label
-                          htmlFor={`radio-${currentQ.id}-${option.id}`}
-                          className={cn(
-                            "flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all",
-                            answers[currentQ.id] === option.id
-                              ? "border-purple-500 bg-purple-50"
-                              : "border-gray-200 hover:border-purple-300 hover:bg-purple-50/50"
-                          )}
-                        >
-                          <RadioGroupItem 
-                            value={String(option.id)} 
-                            id={`radio-${currentQ.id}-${option.id}`}
-                            className="border-2"
-                          />
-                          <span className="flex-1 text-gray-900">{option.text}</span>
-                        </Label>
-                      </motion.div>
-                    ))}
-                  </RadioGroup>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ) : questions.length === 0 && !questionsLoading ? (
-            <Card>
-              <CardContent className="text-center py-12">
-                <AlertCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                <p className="text-gray-500">Nie znaleziono pytań dla tego quizu</p>
-              </CardContent>
-            </Card>
-          ) : null}
-        </AnimatePresence>
-
-        {/* Navigation */}
-        <div className="mt-8 flex items-center justify-between">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
-            disabled={currentQuestion === 0}
-            className="gap-2"
+      {/* Question */}
+      <AnimatePresence mode="wait">
+        {currentQ && (
+          <motion.div
+            key={currentQ.id}
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            transition={{ duration: 0.2 }}
           >
-            <ChevronLeft className="w-4 h-4" />
-            Poprzednie
-          </Button>
+            <div className="bg-white rounded-2xl border border-gray-100 p-8 mb-8">
+              <h2 className="text-lg font-medium text-gray-900 mb-6">
+                {currentQ.question}
+              </h2>
+              
+              <div className="space-y-3">
+                {currentQ.options.map((option) => (
+                  <label
+                    key={option.id}
+                    className={cn(
+                      "block p-4 rounded-xl border-2 cursor-pointer transition-all",
+                      answers[currentQ.id] === option.id
+                        ? "border-gray-900 bg-gray-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name={`question-${currentQ.id}`}
+                        value={option.id}
+                        checked={answers[currentQ.id] === option.id}
+                        onChange={() => handleAnswer(currentQ.id, option.id)}
+                        className="sr-only"
+                      />
+                      <div className={cn(
+                        "w-5 h-5 rounded-full border-2 flex items-center justify-center",
+                        answers[currentQ.id] === option.id
+                          ? "border-gray-900"
+                          : "border-gray-300"
+                      )}>
+                        {answers[currentQ.id] === option.id && (
+                          <div className="w-2.5 h-2.5 rounded-full bg-gray-900" />
+                        )}
+                      </div>
+                      <span className="flex-1">{option.text}</span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          {/* Question Dots */}
-          <div className="flex gap-2">
-            {questions.map((question, index) => (
-              <motion.button
-                key={`nav-${question.id}-${index}`}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setCurrentQuestion(index)}
-                className={cn(
-                  "w-10 h-10 rounded-full font-medium transition-all",
-                  index === currentQuestion
-                    ? "bg-purple-600 text-white shadow-lg"
-                    : answers[question.id]
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-200 text-gray-600 hover:bg-purple-200"
-                )}
-              >
-                {index + 1}
-              </motion.button>
-            ))}
-          </div>
-
-          {currentQuestion < questions.length - 1 ? (
-            <Button
-              size="lg"
-              onClick={() => setCurrentQuestion(currentQuestion + 1)}
-              disabled={!answers[currentQ?.id]}
-              className="gap-2"
-            >
-              Następne
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          ) : (
-            <Button
-              size="lg"
-              onClick={handleSubmit}
-              disabled={isSubmitting || Object.keys(answers).length < questions.length}
-              className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-            >
-              {isSubmitting ? "Przesyłanie..." : "Zakończ quiz"}
-              <Trophy className="w-4 h-4" />
-            </Button>
+      {/* Navigation */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
+          disabled={currentQuestion === 0}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all",
+            currentQuestion === 0
+              ? "text-gray-400 cursor-not-allowed"
+              : "text-gray-700 hover:bg-gray-100"
           )}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Poprzednie
+        </button>
+
+        {/* Question Dots */}
+        <div className="flex gap-2">
+          {questions.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentQuestion(index)}
+              className={cn(
+                "w-2 h-2 rounded-full transition-all",
+                index === currentQuestion
+                  ? "bg-gray-900 w-8"
+                  : answers[questions[index]?.id]
+                  ? "bg-gray-600"
+                  : "bg-gray-300"
+              )}
+            />
+          ))}
         </div>
+
+        {currentQuestion < questions.length - 1 ? (
+          <button
+            onClick={() => setCurrentQuestion(currentQuestion + 1)}
+            disabled={!answers[currentQ?.id]}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all",
+              !answers[currentQ?.id]
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-gray-900 text-white hover:bg-gray-800"
+            )}
+          >
+            Następne
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        ) : (
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting || Object.keys(answers).length < questions.length}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all",
+              isSubmitting || Object.keys(answers).length < questions.length
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-green-500 text-white hover:bg-green-600"
+            )}
+          >
+            {isSubmitting ? "Przesyłanie..." : "Zakończ quiz"}
+            <Check className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </div>
   );

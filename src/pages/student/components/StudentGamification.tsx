@@ -1,16 +1,18 @@
-// src/pages/student/components/StudentGamification.tsx - POPRAWIONY
+// src/pages/student/components/StudentGamification.tsx
 import React from "react";
-import { Coins, Zap, Rocket, Brain, Coffee, Book } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { SubPage } from "@/components/layout";
-import { GridBox, FlexBox } from "@/components/shared";
-import { Lead } from "@/components/reader";
+import { Zap, Rocket, Brain, Coffee, Book, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/utility";
 import { useStudentStats } from "../hooks";
 import { useRPC } from "../hooks/useRPC";
 import { supabaseClient } from "@/utility";
+import { 
+  AnimatedCard, 
+  AnimatedCounter,
+  AnimatedProgress,
+  motion,
+  ANIMATION_DURATION
+} from "./motion";
 
 interface IdleUpgrade {
   id: number;
@@ -45,16 +47,12 @@ export const StudentGamification = () => {
       if (error) throw error;
 
       if (data) {
-        toast.success("Ulepszenie zakupione!", {
-          description: `Nowy poziom: ${data.new_level}`
-        });
+        toast.success(`Ulepszenie zakupione! Poziom ${data.new_level}`);
         refetchStats();
         refetchUpgrades();
       }
     } catch (error: any) {
-      toast.error("Nie udało się kupić ulepszenia", {
-        description: error.message || "Niewystarczająca ilość punktów"
-      });
+      toast.error("Niewystarczająca ilość punktów");
     }
   };
 
@@ -62,95 +60,111 @@ export const StudentGamification = () => {
 
   if (isLoading) {
     return (
-      <SubPage>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </SubPage>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-300"></div>
+      </div>
     );
   }
 
   return (
-    <SubPage>
-      <div className="space-y-6">
-        <Lead
-          title="Gamifikacja"
-          description="Ulepsz swoje możliwości zdobywania punktów"
-        />
+    <div className="max-w-4xl mx-auto">
+      <motion.h1 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: ANIMATION_DURATION.normal }}
+        className="text-2xl font-semibold text-gray-900 mb-8"
+      >
+        Ulepszenia
+      </motion.h1>
 
-        {/* Idle Stats */}
-        <Card className="bg-gradient-to-br from-purple-600 to-pink-600 text-white">
-          <CardHeader>
-            <CardTitle className="text-2xl">Idle Game</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm opacity-80">Punkty na godzinę</p>
-                <p className="text-4xl font-bold">{stats.idle_rate}</p>
-              </div>
-              <div>
-                <p className="text-sm opacity-80">Twoje punkty</p>
-                <p className="text-4xl font-bold">{stats.points}</p>
-              </div>
+      {/* Current Stats */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: ANIMATION_DURATION.normal, delay: 0.1 }}
+        className="bg-gray-900 text-white rounded-2xl p-8 mb-8"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-gray-400 mb-2">Punkty na godzinę</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-semibold">
+                <AnimatedCounter value={stats.idle_rate} />
+              </span>
+              <TrendingUp className="w-5 h-5 text-green-400" />
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Upgrades */}
-        <div>
-          <h2 className="text-xl font-bold mb-4">Ulepszenia</h2>
-          <GridBox>
-            {upgrades.map((upgrade) => {
-              const canAfford = stats.points >= upgrade.next_cost;
-              const Icon = iconMap[upgrade.icon] || Coins;
-
-              return (
-                <Card key={upgrade.id} className="relative overflow-hidden">
-                  <CardHeader>
-                    <FlexBox>
-                      <div className="flex items-center gap-3">
-                        <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500">
-                          <Icon className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg">{upgrade.name}</CardTitle>
-                          <p className="text-sm text-muted-foreground">
-                            +{upgrade.bonus_per_level} pkt/h za poziom
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="secondary">
-                        Lvl {upgrade.current_level}
-                      </Badge>
-                    </FlexBox>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Aktualny bonus</span>
-                        <span className="font-bold text-green-600">
-                          +{upgrade.total_bonus} pkt/h
-                        </span>
-                      </div>
-                      
-                      <Button
-                        className="w-full"
-                        onClick={() => handleBuyUpgrade(upgrade.id)}
-                        disabled={!canAfford}
-                        variant={canAfford ? "default" : "secondary"}
-                      >
-                        <Coins className="w-4 h-4 mr-2" />
-                        Ulepsz ({upgrade.next_cost} pkt)
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </GridBox>
+          </div>
+          <div className="text-right">
+            <p className="text-gray-400 mb-2">Twoje punkty</p>
+            <p className="text-3xl font-semibold">
+              <AnimatedCounter value={stats.points} />
+            </p>
+          </div>
         </div>
+      </motion.div>
+
+      {/* Upgrades Grid */}
+      <div className="grid md:grid-cols-2 gap-4">
+        {upgrades.map((upgrade, index) => {
+          const canAfford = stats.points >= upgrade.next_cost;
+          const Icon = iconMap[upgrade.icon] || Zap;
+
+          return (
+            <AnimatedCard
+              key={upgrade.id}
+              index={index}
+              variant="fadeInUp"
+              hover="lift"
+              className="bg-white rounded-xl border border-gray-100 p-6"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <motion.div 
+                    initial={{ rotate: -180, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    transition={{ duration: ANIMATION_DURATION.normal, delay: 0.3 + index * 0.1 }}
+                    className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center"
+                  >
+                    <Icon className="w-6 h-6 text-gray-700" />
+                  </motion.div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{upgrade.name}</h3>
+                    <p className="text-sm text-gray-500">Poziom {upgrade.current_level}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 mb-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Aktualny bonus</span>
+                  <span className="font-medium text-green-600">
+                    +<AnimatedCounter value={upgrade.total_bonus} /> pkt/h
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Następny poziom</span>
+                  <span className="font-medium">+{upgrade.bonus_per_level} pkt/h</span>
+                </div>
+              </div>
+
+              <motion.button
+                whileHover={canAfford ? { scale: 1.02 } : {}}
+                whileTap={canAfford ? { scale: 0.98 } : {}}
+                onClick={() => handleBuyUpgrade(upgrade.id)}
+                disabled={!canAfford}
+                className={cn(
+                  "w-full py-3 rounded-lg font-medium transition-all",
+                  canAfford
+                    ? "bg-gray-900 text-white hover:bg-gray-800"
+                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                )}
+              >
+                Ulepsz za <AnimatedCounter value={upgrade.next_cost} /> pkt
+              </motion.button>
+            </AnimatedCard>
+          );
+        })}
       </div>
-    </SubPage>
+    </div>
   );
 };

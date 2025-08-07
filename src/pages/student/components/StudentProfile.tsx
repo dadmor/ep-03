@@ -1,172 +1,207 @@
 // src/pages/student/components/StudentProfile.tsx
-
+import React from "react";
 import { useGetIdentity } from "@refinedev/core";
-import { User, Mail, Calendar, Trophy, Clock, Target, Flame } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { SubPage } from "@/components/layout";
-import { GridBox } from "@/components/shared";
-import { Lead } from "@/components/reader";
+import { Mail, Calendar, Trophy, Target, Flame, Clock, Star } from "lucide-react";
 import { useStudentStats } from "../hooks";
-
+import { 
+  AnimatedCard,
+  AnimatedCounter,
+  AnimatedButton,
+  motion,
+  ANIMATION_DURATION,
+  ANIMATION_DELAY
+} from "./motion";
 
 export const StudentProfile = () => {
   const { data: identity } = useGetIdentity<any>();
   const { stats } = useStudentStats();
 
+  const statCards = [
+    { 
+      icon: Trophy, 
+      label: "Punktów zdobytych", 
+      value: stats.points, 
+      color: "bg-yellow-100",
+      iconColor: "text-yellow-600",
+      isCounter: true
+    },
+    { 
+      icon: Target, 
+      label: "Ukończonych quizów", 
+      value: stats.quizzes_completed, 
+      color: "bg-green-100",
+      iconColor: "text-green-600",
+      isCounter: false
+    },
+    { 
+      icon: Star, 
+      label: "Perfekcyjnych wyników", 
+      value: stats.perfect_scores, 
+      color: "bg-purple-100",
+      iconColor: "text-purple-600",
+      isCounter: false
+    },
+    { 
+      icon: Flame, 
+      label: "Najdłuższa seria", 
+      value: `${stats.streak} dni`, 
+      color: "bg-orange-100",
+      iconColor: "text-orange-600",
+      isCounter: false
+    },
+    { 
+      icon: Clock, 
+      label: "Czasu nauki", 
+      value: `${Math.floor(stats.total_time / 60)}h`, 
+      color: "bg-blue-100",
+      iconColor: "text-blue-600",
+      isCounter: false
+    },
+    { 
+      icon: Trophy, 
+      label: "Aktualny poziom", 
+      value: `Poziom ${stats.level}`, 
+      color: "bg-pink-100",
+      iconColor: "text-pink-600",
+      isCounter: false
+    }
+  ];
+
+  const settingsButtons = [
+    { label: "Zmień hasło", action: "password" },
+    { label: "Ustawienia powiadomień", action: "notifications" },
+    { label: "Usuń konto", action: "delete", danger: true }
+  ];
+
   return (
-    <SubPage>
-      <div className="space-y-6">
-        <Lead
-          title="Mój profil"
-          description="Zarządzaj swoim kontem i zobacz swoje statystyki"
-        />
-
-        {/* Informacje podstawowe */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Informacje osobiste</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-start gap-6">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-3xl font-bold">
-                {identity?.full_name?.charAt(0) || 'U'}
+    <div className="max-w-4xl mx-auto">
+      {/* Profile Header */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: ANIMATION_DURATION.normal }}
+        className="bg-white rounded-2xl border border-gray-100 p-8 mb-8"
+      >
+        <div className="flex items-start gap-6">
+          <motion.div 
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ 
+              duration: ANIMATION_DURATION.normal,
+              delay: 0.2,
+              type: "spring",
+              stiffness: 300,
+              damping: 20
+            }}
+            className="w-20 h-20 rounded-2xl bg-gray-900 text-white flex items-center justify-center text-2xl font-semibold"
+          >
+            {identity?.full_name?.charAt(0) || 'U'}
+          </motion.div>
+          
+          <div className="flex-1">
+            <motion.h1 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: ANIMATION_DURATION.normal, delay: 0.3 }}
+              className="text-2xl font-semibold text-gray-900 mb-1"
+            >
+              {identity?.full_name}
+            </motion.h1>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: ANIMATION_DURATION.normal, delay: 0.4 }}
+              className="flex items-center gap-4 text-sm text-gray-500"
+            >
+              <div className="flex items-center gap-1">
+                <Mail className="w-4 h-4" />
+                <span>{identity?.email}</span>
               </div>
-              
-              <div className="flex-1 space-y-4">
-                <div>
-                  <h2 className="text-2xl font-bold">{identity?.full_name}</h2>
-                  <Badge variant="secondary" className="mt-1">Uczeń</Badge>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Mail className="w-4 h-4 text-muted-foreground" />
-                    <span>{identity?.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <span>Dołączył: {new Date(identity?.created_at || Date.now()).toLocaleDateString('pl-PL')}</span>
-                  </div>
-                </div>
+              <div className="flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                <span>Dołączył {new Date(identity?.created_at || Date.now()).toLocaleDateString('pl-PL')}</span>
               </div>
-              
-              <Button variant="outline">
-                Edytuj profil
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Statystyki */}
-        <div>
-          <h2 className="text-xl font-bold mb-4">Moje osiągnięcia</h2>
-          <GridBox variant="2-2-4">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-500 to-yellow-600">
-                    <Trophy className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{stats.points}</p>
-                    <p className="text-sm text-muted-foreground">Punktów zdobytych</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600">
-                    <Target className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{stats.quizzes_completed}</p>
-                    <p className="text-sm text-muted-foreground">Ukończonych quizów</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-green-500 to-green-600">
-                    <Target className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{stats.perfect_scores}</p>
-                    <p className="text-sm text-muted-foreground">Perfekcyjnych wyników</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600">
-                    <Flame className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{stats.streak} dni</p>
-                    <p className="text-sm text-muted-foreground">Najdłuższa seria</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600">
-                    <Clock className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{Math.floor(stats.total_time / 60)}h</p>
-                    <p className="text-sm text-muted-foreground">Czasu nauki</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-pink-500 to-pink-600">
-                    <User className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">Poziom {stats.level}</p>
-                    <p className="text-sm text-muted-foreground">Aktualny poziom</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </GridBox>
+            </motion.div>
+          </div>
         </div>
+      </motion.div>
 
-        {/* Ustawienia */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Ustawienia konta</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button variant="outline" className="w-full justify-start">
-              Zmień hasło
-            </Button>
-            <Button variant="outline" className="w-full justify-start">
-              Ustawienia powiadomień
-            </Button>
-            <Button variant="outline" className="w-full justify-start text-red-600 hover:text-red-700">
-              Usuń konto
-            </Button>
-          </CardContent>
-        </Card>
+      {/* Stats Grid */}
+      <div>
+        <motion.h2 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: ANIMATION_DURATION.normal, delay: 0.5 }}
+          className="text-lg font-semibold text-gray-900 mb-4"
+        >
+          Statystyki
+        </motion.h2>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {statCards.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <AnimatedCard
+                key={stat.label}
+                index={index}
+                variant="fadeInUp"
+                hover="lift"
+                className="bg-white rounded-xl border border-gray-100 p-6"
+              >
+                <div className="flex items-center gap-4">
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ 
+                      delay: 0.6 + index * ANIMATION_DELAY.staggerFast,
+                      type: "spring",
+                      stiffness: 500,
+                      damping: 30
+                    }}
+                    className={`w-12 h-12 ${stat.color} rounded-xl flex items-center justify-center`}
+                  >
+                    <Icon className={`w-6 h-6 ${stat.iconColor}`} />
+                  </motion.div>
+                  <div>
+                    <p className="text-2xl font-semibold text-gray-900">
+                      {stat.isCounter ? (
+                        <AnimatedCounter value={stat.value as number} />
+                      ) : (
+                        stat.value
+                      )}
+                    </p>
+                    <p className="text-sm text-gray-500">{stat.label}</p>
+                  </div>
+                </div>
+              </AnimatedCard>
+            );
+          })}
+        </div>
       </div>
-    </SubPage>
+
+      {/* Quick Actions */}
+      <div className="mt-8 space-y-3">
+        <motion.h2 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: ANIMATION_DURATION.normal, delay: 0.8 }}
+          className="text-lg font-semibold text-gray-900 mb-4"
+        >
+          Ustawienia
+        </motion.h2>
+        {settingsButtons.map((button, index) => (
+          <AnimatedButton
+            key={button.action}
+            index={index}
+            variant="fadeInUp"
+            whileHover={{ x: 4 }}
+            className="w-full text-left p-4 bg-white rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors"
+          >
+            <span className={`font-medium ${button.danger ? 'text-red-600' : 'text-gray-900'}`}>
+              {button.label}
+            </span>
+          </AnimatedButton>
+        ))}
+      </div>
+    </div>
   );
 };
