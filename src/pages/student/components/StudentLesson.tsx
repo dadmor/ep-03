@@ -2,7 +2,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useOne } from "@refinedev/core";
-import { ArrowLeft, Clock, Lock, Check, Circle, X } from "lucide-react";
+import { ArrowLeft, Clock, Lock, Check, Circle, X, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseClient } from "@/utility";
 import { invalidateRPCCache } from "../hooks/useRPC";
@@ -268,7 +268,7 @@ export const StudentLesson: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-6 sm:py-8 space-y-6 sm:space-y-8 pb-28 lg:pb-14">
+    <div className="container mx-auto px-4 py-6 sm:py-8 space-y-6 sm:space-y-10 pb-28 lg:pb-16">
       <div ref={liveRef} aria-live="polite" className="sr-only" />
 
       {/* BACK */}
@@ -281,21 +281,8 @@ export const StudentLesson: React.FC = () => {
       </button>
 
       {/* HERO */}
-      <section className="relative overflow-hidden rounded-2xl border">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.12] via-secondary/[0.10] to-accent/[0.12]" />
-          <div
-            className="absolute inset-0 opacity-[0.06]"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, hsl(var(--ring)/0.35) 1px, transparent 1px),
-                linear-gradient(to bottom, hsl(var(--ring)/0.35) 1px, transparent 1px)
-              `,
-              backgroundSize: "28px 28px",
-            }}
-          />
-        </div>
-        <div className="relative z-10 p-4 sm:p-6 md:p-8">
+      <section className="relative overflow-hidden rounded-2xl border bg-white dark:bg-card">
+        <div className="relative z-10 p-5 sm:p-7 md:p-10">
           <div className="flex items-start gap-3">
             <div className="text-4xl md:text-5xl leading-none">{lesson?.topics?.courses?.icon_emoji || "📚"}</div>
             <div className="min-w-0">
@@ -306,7 +293,7 @@ export const StudentLesson: React.FC = () => {
               </div>
               <h1 className="mt-1 text-xl md:text-3xl font-bold tracking-tight">{lesson?.title || "Ładowanie…"}</h1>
               {lesson?.duration_min && (
-                <div className="mt-3 inline-flex items-center gap-2 rounded-full border bg-background/60 px-3 py-1.5 shadow-soft">
+                <div className="mt-3 inline-flex items-center gap-2 rounded-full border bg-white/70 dark:bg-background/60 px-3 py-1.5 shadow-soft">
                   <Clock className="h-4 w-4" />
                   <span className="text-sm font-medium">{lesson?.duration_min} min czytania</span>
                 </div>
@@ -317,48 +304,104 @@ export const StudentLesson: React.FC = () => {
       </section>
 
       {/* GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-10">
         {/* CONTENT */}
         <main>
           {isLoading ? (
             <LessonSkeleton />
           ) : (
             <section>
-              <div className="prose prose-neutral dark:prose-invert max-w-[68ch] mx-auto prose-headings:font-semibold prose-p:text-muted-foreground">
+              <div className="prose prose-neutral dark:prose-invert max-w-[72ch] mx-auto prose-headings:font-semibold prose-p:text-muted-foreground prose-p:leading-relaxed prose-li:leading-relaxed prose-headings:tracking-tight prose-img:rounded-xl prose-blockquote:rounded-xl md:prose-lg">
                 {sections.length ? (
                   sections.map((s, idx) => {
                     const done = !!sectionDone[s.id];
+                    const isCurrent = !done && idx === firstUnreadIdx; // BIEŻĄCA = BIAŁA (light)
                     const unlocked = firstUnreadIdx === -1 || idx <= firstUnreadIdx;
-                    const futureLocked = !unlocked && !done;
-                    const needHint = idx === firstUnreadIdx && !done;
+                    const isLocked = !unlocked && !done;
                     const q = (quizzes.get(s.id) ?? [])[0];
 
+                    // Stany kart:
+                    // - done: delikatnie „zielona” ale jasna
+                    // - current: BIAŁA karta (więcej światła) — w light pełna biel
+                    // - locked: jasna, ale stłumiona i przerywana ramka — w light pełna biel
+                    const cardBase =
+                      "rounded-[20px] border p-6 sm:p-7 md:p-8 shadow-sm transition-colors duration-200";
+                    const cardState = done
+                      ? "bg-emerald-50 dark:bg-emerald-950/25 border-emerald-300"
+                      : isCurrent
+                      ? "bg-white dark:bg-background border-neutral-200 shadow-md"
+                      : isLocked
+                      ? "bg-white dark:bg-card border-dashed border-muted-foreground/40"
+                      : "bg-white dark:bg-card border-neutral-200";
+
+                    const contentInteractivity = isLocked ? "pointer-events-none select-none" : "";
+
                     return (
-                      <div key={s.id} id={s.id} className="mb-10 scroll-mt-24 sm:scroll-mt-28 lg:scroll-mt-32">
-                        <div className={`rounded-2xl border bg-card p-4 sm:p-5 md:p-6 shadow-soft ${futureLocked ? "opacity-75" : ""}`}>
-                          <div className="flex items-start sm:items-center justify-between gap-4 mb-4">
-                            <div className="flex items-center gap-2">
-                              {!unlocked && !done && (
-                                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
-                                  <Lock className="h-3.5 w-3.5" />
-                                  Zablokowana
-                                </span>
-                              )}
-                              <h2 className="text-xl md:text-2xl font-semibold tracking-tight m-0">{s.title || `Sekcja ${idx + 1}`}</h2>
-                            </div>
+                      <div key={s.id} id={s.id} className="mb-12 scroll-mt-28">
+                        <div className={`${cardBase} ${cardState}`}>
+                          {/* BADGE nad tytułem */}
+                          <div className="flex flex-wrap items-center gap-2 mb-3">
+                            {isLocked && (
+                              <span className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] text-muted-foreground bg-white">
+                                <Lock className="h-3.5 w-3.5" />
+                                Zablokowana
+                              </span>
+                            )}
+                            {done && (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/60 bg-emerald-50/60 px-2.5 py-0.5 text-[11px] text-emerald-700 dark:text-emerald-300">
+                                <Check className="h-3.5 w-3.5" />
+                                Ukończona
+                              </span>
+                            )}
+                            {isCurrent && !done && (
+                              <span className="inline-flex items-center gap-1 rounded-full border bg-white px-2.5 py-0.5 text-[11px]">
+                                <Circle className="h-3.5 w-3.5" />
+                                W trakcie
+                              </span>
+                            )}
+                            {q && (
+                              <button
+                                type="button"
+                                onClick={() => !done && !isLocked && openQuizForSection(s.id)}
+                                disabled={done || isLocked}
+                                className={[
+                                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px]",
+                                  done
+                                    ? "text-emerald-700 border-emerald-300/60 bg-emerald-50/60 dark:bg-emerald-950/25"
+                                    : isLocked
+                                    ? "text-muted-foreground cursor-not-allowed bg-white dark:bg-background/40"
+                                    : "bg-white hover:bg-muted",
+                                ].join(" ")}
+                                title={done ? "Pytanie rozwiązane" : isLocked ? "Najpierw odblokuj sekcję" : "Kliknij, aby odpowiedzieć"}
+                                aria-label="Pytanie kontrolne"
+                              >
+                                <HelpCircle className="h-3.5 w-3.5" />
+                                {q.question.length > 72 ? q.question.slice(0, 69) + "…" : q.question}
+                              </button>
+                            )}
                           </div>
 
-                          <div className={futureLocked ? "pointer-events-none select-none" : ""}>
+                          {/* Tytuł */}
+                          <h2 className="text-[22px] md:text-[26px] font-semibold tracking-tight m-0 mb-4">
+                            {s.title || `Sekcja ${idx + 1}`}
+                          </h2>
+
+                          {/* Treść */}
+                          <div className={contentInteractivity}>
                             <ReactMarkdown remarkPlugins={[remarkGfm]} components={MDRenderers}>
                               {s.content}
                             </ReactMarkdown>
                           </div>
 
-                          <div className="mt-5 flex justify-end">
+                          {/* Akcja */}
+                          <div className="mt-6 flex justify-end">
                             <label
-                              className={`inline-flex items-center gap-3 ${futureLocked ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+                              className={[
+                                "inline-flex items-center gap-3",
+                                isLocked ? "cursor-not-allowed opacity-60" : "cursor-pointer",
+                              ].join(" ")}
                               title={
-                                futureLocked
+                                isLocked
                                   ? "Najpierw ukończ poprzednie sekcje"
                                   : done
                                   ? "Sekcja odhaczona — klik, aby cofnąć"
@@ -371,20 +414,20 @@ export const StudentLesson: React.FC = () => {
                                 type="checkbox"
                                 className="sr-only"
                                 checked={done}
-                                onChange={() => !futureLocked && handleCheckboxClick(idx)}
-                                disabled={futureLocked && !done}
+                                onChange={() => !isLocked && handleCheckboxClick(idx)}
+                                disabled={isLocked && !done}
                                 aria-label={`Odhacz sekcję: ${s.title || `Sekcja ${idx + 1}`}`}
                               />
                               <span
                                 className={[
                                   "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-soft transition-all",
                                   done
-                                    ? "bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-500/40 text-emerald-700 dark:text-emerald-300"
-                                    : "bg-background hover:bg-muted border-muted-foreground/30",
+                                    ? "bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-300/60 text-emerald-700 dark:text-emerald-300"
+                                    : "bg-white hover:bg-muted border-neutral-200",
                                 ].join(" ")}
                               >
                                 {q && !done ? (
-                                  <span className="truncate max-w-[52ch]">{q.question}</span>
+                                  <span className="truncate max-w-[56ch]">{q.question}</span>
                                 ) : (
                                   <>
                                     {done ? <Check className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
@@ -396,10 +439,8 @@ export const StudentLesson: React.FC = () => {
                               </span>
                             </label>
                           </div>
-
-                          {needHint && <span className="mt-1 block text-right text-xs text-muted-foreground">Zaznacz, aby przejść dalej</span>}
                         </div>
-                        <hr className="my-8" />
+                        <div className="h-8" />
                       </div>
                     );
                   })
@@ -413,10 +454,10 @@ export const StudentLesson: React.FC = () => {
               </div>
 
               {!!sections.length && (
-                <div className="mt-8 flex justify-end">
+                <div className="mt-10 flex justify-end">
                   <button
                     onClick={completeLesson}
-                    className="inline-flex items-center gap-2 rounded-lg border bg-background px-4 py-2 text-sm font-medium shadow-soft hover:bg-muted transition-colors disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-lg border bg-white px-4 py-2 text-sm font-medium shadow-soft hover:bg-muted transition-colors disabled:opacity-60"
                     disabled={!allChecked}
                     title={!allChecked ? "Najpierw odhacz wszystkie sekcje" : undefined}
                   >
@@ -430,30 +471,35 @@ export const StudentLesson: React.FC = () => {
 
         {/* TOC */}
         <aside>
-          <nav className="border rounded-lg p-4 bg-background/60 lg:sticky lg:top-28">
-            <h2 className="text-sm font-semibold mb-2">Spis treści</h2>
+          <nav className="border rounded-[14px] p-4 bg-white dark:bg-background/60 lg:sticky lg:top-28">
+            <h2 className="text-sm font-semibold mb-3">Spis treści</h2>
             {isLoading ? (
               <div className="h-4 w-40 rounded bg-muted/60 animate-pulse" />
             ) : sections.length ? (
-              <ol className="space-y-1 text-sm">
+              <ol className="space-y-1.5 text-sm">
                 {sections.map((s, idx) => {
                   const done = !!sectionDone[s.id];
+                  const isCurrent = !done && idx === firstUnreadIdx;
                   const unlocked = firstUnreadIdx === -1 || idx <= firstUnreadIdx;
+                  const isLocked = !unlocked && !done;
                   return (
-                    <li key={s.id} className="flex items-center gap-1">
-                      {!unlocked && !done ? (
+                    <li key={s.id} className="flex items-center gap-1.5">
+                      {isLocked ? (
                         <Lock className="h-3.5 w-3.5 text-muted-foreground" />
                       ) : done ? (
                         <Check className="h-3.5 w-3.5 text-emerald-600" />
                       ) : (
-                        <span className="h-3.5 w-3.5" />
+                        <Circle className="h-3.5 w-3.5" />
                       )}
                       <a
                         href={`#${s.id}`}
-                        className={`flex-1 block px-2 py-1 rounded hover:bg-muted transition-colors ${
-                          done ? "text-emerald-700" : unlocked ? "" : "text-muted-foreground pointer-events-none"
-                        }`}
-                        aria-disabled={!unlocked && !done}
+                        className={[
+                          "flex-1 block px-2 py-1 rounded transition-colors",
+                          isLocked ? "text-muted-foreground pointer-events-none" : "hover:bg-muted",
+                          done ? "text-emerald-700" : "",
+                          isCurrent ? "font-semibold underline" : "",
+                        ].join(" ")}
+                        aria-disabled={isLocked}
                       >
                         {String(idx + 1).padStart(2, "0")}. {s.title || `Sekcja ${idx + 1}`}
                       </a>
