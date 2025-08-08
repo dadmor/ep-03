@@ -4,10 +4,7 @@ import { Flame, Star, Zap, Trophy, Target, Rocket } from "lucide-react";
 import { cn } from "@/utility";
 import { 
   AnimatedCard,
-  AnimatedProgress,
-  motion,
-  ANIMATION_DURATION,
-  ANIMATION_DELAY
+  AnimatedProgress
 } from "./motion";
 
 const achievements = [
@@ -70,10 +67,10 @@ const achievements = [
 ];
 
 const rarityConfig = {
-  common: { color: "bg-gray-100", borderColor: "border-gray-200", label: "Pospolite" },
-  rare: { color: "bg-blue-100", borderColor: "border-blue-200", label: "Rzadkie" },
-  epic: { color: "bg-purple-100", borderColor: "border-purple-200", label: "Epiczne" },
-  legendary: { color: "bg-orange-100", borderColor: "border-orange-200", label: "Legendarne" }
+  common: { bg: "bg-gray-100", border: "border-gray-200", label: "Pospolite" },
+  rare: { bg: "bg-blue-100", border: "border-blue-200", label: "Rzadkie" },
+  epic: { bg: "bg-purple-100", border: "border-purple-200", label: "Epiczne" },
+  legendary: { bg: "bg-orange-100", border: "border-orange-200", label: "Legendarne" }
 };
 
 export const StudentAchievements = () => {
@@ -82,84 +79,47 @@ export const StudentAchievements = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <motion.h1 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: ANIMATION_DURATION.normal }}
-        className="text-2xl font-semibold text-gray-900 mb-2"
-      >
+      <h1 className="text-2xl font-semibold text-foreground mb-2">
         Osiągnięcia
-      </motion.h1>
-      <motion.p 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: ANIMATION_DURATION.normal, delay: 0.1 }}
-        className="text-gray-500 mb-8"
-      >
+      </h1>
+      <p className="text-muted-foreground mb-8">
         Odblokowano {unlockedCount} z {totalCount} osiągnięć
-      </motion.p>
+      </p>
 
-      {/* Progress Overview */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: ANIMATION_DURATION.normal, delay: 0.2 }}
-        className="bg-white rounded-2xl border border-gray-100 p-6 mb-8"
-      >
+      {/* Progress Overview - Uproszczony */}
+      <div className="bg-card rounded-2xl border border-border p-6 mb-8">
         <div className="mb-4">
           <div className="flex justify-between text-sm mb-2">
-            <span className="text-gray-500">Postęp osiągnięć</span>
-            <motion.span 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="font-medium"
-            >
+            <span className="text-muted-foreground">Postęp osiągnięć</span>
+            <span className="font-medium">
               {Math.round((unlockedCount / totalCount) * 100)}%
-            </motion.span>
+            </span>
           </div>
           <AnimatedProgress
             value={(unlockedCount / totalCount) * 100}
-            delay={0.3}
+            className="bg-muted rounded-full overflow-hidden"
+            barClassName="h-full bg-primary rounded-full"
           />
         </div>
         
         <div className="grid grid-cols-4 gap-4 text-center">
-          {Object.entries(rarityConfig).map(([rarity, config], index) => {
+          {Object.entries(rarityConfig).map(([rarity, config]) => {
             const count = achievements.filter(a => a.rarity === rarity && a.unlocked).length;
             const total = achievements.filter(a => a.rarity === rarity).length;
             
             return (
-              <motion.div 
-                key={rarity}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ 
-                  delay: 0.4 + index * ANIMATION_DELAY.staggerFast,
-                  duration: ANIMATION_DURATION.normal 
-                }}
-              >
-                <motion.p 
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ 
-                    delay: 0.6 + index * ANIMATION_DELAY.staggerFast,
-                    type: "spring",
-                    stiffness: 500,
-                    damping: 30
-                  }}
-                  className="text-xl font-semibold"
-                >
+              <div key={rarity}>
+                <p className="text-xl font-semibold">
                   {count}/{total}
-                </motion.p>
-                <p className="text-sm text-gray-500">{config.label}</p>
-              </motion.div>
+                </p>
+                <p className="text-sm text-muted-foreground">{config.label}</p>
+              </div>
             );
           })}
         </div>
-      </motion.div>
+      </div>
 
-      {/* Achievements Grid */}
+      {/* Achievements Grid - Czyste karty */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {achievements.map((achievement, index) => {
           const config = rarityConfig[achievement.rarity];
@@ -169,70 +129,48 @@ export const StudentAchievements = () => {
             <AnimatedCard
               key={achievement.id}
               index={index}
-              variant="fadeInUp"
-              hover={achievement.unlocked ? "lift" : false}
+              
               className={cn(
-                "bg-white rounded-xl border p-6 transition-all",
-                achievement.unlocked ? config.borderColor : "border-gray-100",
+                "bg-card rounded-xl border p-6 transition-all",
+                achievement.unlocked ? config.border : "border-border",
                 !achievement.unlocked && "opacity-60"
               )}
             >
               <div className="flex flex-col items-center text-center">
-                <motion.div 
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ 
-                    delay: 0.5 + index * ANIMATION_DELAY.staggerFast,
-                    type: "spring",
-                    stiffness: 300,
-                    damping: 20
-                  }}
-                  className={cn(
-                    "w-16 h-16 rounded-2xl flex items-center justify-center mb-4",
-                    achievement.unlocked ? config.color : "bg-gray-100"
-                  )}
-                >
+                <div className={cn(
+                  "w-16 h-16 rounded-2xl flex items-center justify-center mb-4",
+                  achievement.unlocked ? config.bg : "bg-muted"
+                )}>
                   <Icon className={cn(
                     "w-8 h-8",
-                    achievement.unlocked ? "text-gray-900" : "text-gray-400"
+                    achievement.unlocked ? "text-foreground" : "text-muted-foreground"
                   )} />
-                </motion.div>
+                </div>
                 
-                <h3 className="font-semibold text-gray-900 mb-1">
+                <h3 className="font-semibold text-foreground mb-1">
                   {achievement.title}
                 </h3>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-muted-foreground mb-4">
                   {achievement.description}
                 </p>
                 
                 {achievement.unlocked ? (
-                  <motion.p 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.7 + index * ANIMATION_DELAY.staggerFast }}
-                    className="text-xs text-gray-400"
-                  >
+                  <p className="text-xs text-muted-foreground">
                     {new Date(achievement.unlockedAt!).toLocaleDateString('pl-PL')}
-                  </motion.p>
+                  </p>
                 ) : (
                   <div className="w-full">
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-gray-500">Postęp</span>
-                      <motion.span 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.7 + index * ANIMATION_DELAY.staggerFast }}
-                        className="font-medium"
-                      >
+                      <span className="text-muted-foreground">Postęp</span>
+                      <span className="font-medium">
                         {achievement.progress}%
-                      </motion.span>
+                      </span>
                     </div>
                     <AnimatedProgress
                       value={achievement.progress}
-                      className="bg-gray-100 rounded-full overflow-hidden"
-                      barClassName="h-full bg-gray-400"
-                      height="h-1.5"
-                      delay={0.7 + index * ANIMATION_DELAY.staggerFast}
+                      className="bg-muted rounded-full overflow-hidden"
+                      barClassName="h-full bg-muted-foreground rounded-full"
+                     
                     />
                   </div>
                 )}

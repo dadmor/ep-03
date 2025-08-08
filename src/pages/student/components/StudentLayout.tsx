@@ -2,15 +2,26 @@
 import React, { useState } from "react";
 import { useGetIdentity, useLogout } from "@refinedev/core";
 import { useNavigate, useLocation } from "react-router-dom";
-import { 
-  Home, Gamepad2, Trophy, Award, User, LogOut, Menu, X, 
-  Zap, Flame, Star, BookOpen, GraduationCap
+import {
+  Home,
+  Gamepad2,
+  Trophy,
+  Award,
+  User,
+  LogOut,
+  Menu,
+  X,
+  Zap,
+  Flame,
+  GraduationCap,
 } from "lucide-react";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { useStudentStats } from "../hooks";
 import { AnimatedCounter } from "./motion";
 
-export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { data: identity } = useGetIdentity<any>();
   const { mutate: logout } = useLogout();
@@ -19,12 +30,11 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
   const { stats } = useStudentStats();
 
   const menuItems = [
-    { path: '/student/dashboard', label: 'Główna', icon: Home },
-    { path: '/student/courses', label: 'Kursy', icon: BookOpen },
-    { path: '/student/gamification', label: 'Ulepszenia', icon: Gamepad2 },
-    { path: '/student/leaderboard', label: 'Ranking', icon: Trophy },
-    { path: '/student/achievements', label: 'Osiągnięcia', icon: Award },
-    { path: '/student/profile', label: 'Profil', icon: User }
+    { path: "/student/dashboard", label: "Główna", icon: Home },
+    { path: "/student/gamification", label: "Ulepszenia", icon: Gamepad2 },
+    { path: "/student/leaderboard", label: "Ranking", icon: Trophy },
+    { path: "/student/achievements", label: "Osiągnięcia", icon: Award },
+    { path: "/student/profile", label: "Profil", icon: User },
   ];
 
   return (
@@ -36,36 +46,37 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
           <div className="h-16 flex items-center px-6 border-b border-border relative overflow-hidden">
             {/* Geometric decoration */}
             <div className="absolute -right-8 -top-8 w-24 h-24   bg-primary/5 rounded-3xl transform rotate-45" />
-            
+
             <div className="flex items-center gap-3 relative z-10">
-              <motion.div 
+              <motion.div
                 whileHover={{ rotate: 360 }}
                 transition={{ duration: 0.5 }}
                 className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg"
               >
                 <GraduationCap className="w-5 h-5 text-white" />
               </motion.div>
-              <span className="text-xl font-bold text-foreground">Smart Up</span>
+              <span className="text-xl font-bold text-foreground">
+                Smart Up
+              </span>
             </div>
           </div>
-          
+
           {/* User Profile Section */}
           <div className="p-6 space-y-4">
             {/* User Info */}
             <div className="flex items-center gap-4">
-              <motion.div 
-                whileHover={{ scale: 1.05 }}
-                className="relative"
-              >
+              <motion.div whileHover={{ scale: 1.05 }} className="relative">
                 <div className="w-12 h-12 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl flex items-center justify-center text-primary font-bold text-lg">
-                  {identity?.full_name?.charAt(0) || 'U'}
+                  {identity?.full_name?.charAt(0) || "U"}
                 </div>
                 {/* Level badge */}
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-secondary rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">{stats.level}</span>
+                  <span className="text-white text-xs font-bold">
+                    {stats.level}
+                  </span>
                 </div>
               </motion.div>
-              
+
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-foreground truncate">
                   {identity?.full_name}
@@ -75,10 +86,10 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
                 </p>
               </div>
             </div>
-            
+
             {/* Stats Cards */}
             <div className="grid grid-cols-2 gap-3">
-              <motion.div 
+              <motion.div
                 whileHover={{ y: -2 }}
                 className="bg-primary/5 rounded-xl p-3 border border-primary/10"
               >
@@ -90,11 +101,12 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
                   <AnimatedCounter value={stats.points} />
                 </p>
                 <p className="text-xs text-primary">
-                  +<AnimatedCounter value={stats.idle_rate} />/h
+                  +<AnimatedCounter value={stats.idle_rate} />
+                  /h
                 </p>
               </motion.div>
-              
-              <motion.div 
+
+              <motion.div
                 whileHover={{ y: -2 }}
                 className="bg-destructive/5 rounded-xl p-3 border border-destructive/10"
               >
@@ -102,12 +114,14 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
                   <Flame className="w-4 h-4 text-destructive" />
                   <span className="text-xs text-muted-foreground">Seria</span>
                 </div>
-                <p className="text-lg font-bold text-foreground">{stats.streak}</p>
+                <p className="text-lg font-bold text-foreground">
+                  {stats.streak}
+                </p>
                 <p className="text-xs text-destructive">dni z rzędu</p>
               </motion.div>
             </div>
           </div>
-          
+
           {/* Navigation - Minimalist Style */}
           <nav className="px-4 space-y-1">
             {menuItems.map((item, index) => {
@@ -121,9 +135,9 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
                   transition={{ delay: index * 0.05 }}
                   whileHover={{ x: 4 }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative overflow-hidden ${
-                    isActive 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
                   {isActive && (
@@ -131,11 +145,17 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
                       layoutId="activeTab"
                       className="absolute inset-0 bg-primary rounded-xl"
                       initial={false}
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 30,
+                      }}
                     />
                   )}
                   <item.icon className="w-5 h-5 relative z-10" />
-                  <span className="font-medium text-sm relative z-10">{item.label}</span>
+                  <span className="font-medium text-sm relative z-10">
+                    {item.label}
+                  </span>
                   {isActive && (
                     <motion.div
                       initial={{ scale: 0 }}
@@ -147,7 +167,7 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
               );
             })}
           </nav>
-          
+
           {/* Bottom Section */}
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
             {/* Progress to next level */}
@@ -157,16 +177,16 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
                 <span>Poziom {stats.level + 1}</span>
               </div>
               <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                <motion.div 
+                <motion.div
                   initial={{ width: 0 }}
-                  animate={{ width: `${(stats.points % 100)}%` }}
+                  animate={{ width: `${stats.points % 100}%` }}
                   transition={{ duration: 1 }}
                   className="h-full bg-gradient-to-r from-primary to-secondary rounded-full"
                 />
               </div>
             </div>
-            
-            <motion.button 
+
+            <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => logout()}
@@ -189,9 +209,9 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
             >
               <Menu className="w-5 h-5 text-foreground" />
             </motion.button>
-            
+
             <div className="flex items-center gap-3">
-              <motion.div 
+              <motion.div
                 whileHover={{ scale: 1.05 }}
                 className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full"
               >
@@ -200,13 +220,15 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
                   <AnimatedCounter value={stats.points} />
                 </span>
               </motion.div>
-              
+
               <div className="relative">
                 <div className="w-9 h-9 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-xl flex items-center justify-center text-primary font-bold text-sm">
-                  {identity?.full_name?.charAt(0) || 'U'}
+                  {identity?.full_name?.charAt(0) || "U"}
                 </div>
                 <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-secondary rounded-full flex items-center justify-center">
-                  <span className="text-white text-[10px] font-bold">{stats.level}</span>
+                  <span className="text-white text-[10px] font-bold">
+                    {stats.level}
+                  </span>
                 </div>
               </div>
             </div>
@@ -242,7 +264,9 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
                     <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center shadow-lg">
                       <GraduationCap className="w-5 h-5 text-white" />
                     </div>
-                    <span className="text-xl font-bold text-foreground">Smart Up</span>
+                    <span className="text-xl font-bold text-foreground">
+                      Smart Up
+                    </span>
                   </div>
                   <motion.button
                     whileTap={{ scale: 0.95 }}
@@ -252,19 +276,21 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
                     <X className="w-5 h-5 text-muted-foreground" />
                   </motion.button>
                 </div>
-                
+
                 {/* Rest of mobile sidebar content - same as desktop */}
                 <div className="p-6 space-y-4">
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <div className="w-12 h-12 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl flex items-center justify-center text-primary font-bold text-lg">
-                        {identity?.full_name?.charAt(0) || 'U'}
+                        {identity?.full_name?.charAt(0) || "U"}
                       </div>
                       <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-secondary rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">{stats.level}</span>
+                        <span className="text-white text-xs font-bold">
+                          {stats.level}
+                        </span>
                       </div>
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-foreground truncate">
                         {identity?.full_name}
@@ -274,32 +300,39 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-primary/5 rounded-xl p-3 border border-primary/10">
                       <div className="flex items-center gap-2 mb-1">
                         <Zap className="w-4 h-4 text-primary" />
-                        <span className="text-xs text-muted-foreground">Punkty</span>
+                        <span className="text-xs text-muted-foreground">
+                          Punkty
+                        </span>
                       </div>
                       <p className="text-lg font-bold text-foreground">
                         <AnimatedCounter value={stats.points} />
                       </p>
                       <p className="text-xs text-primary">
-                        +<AnimatedCounter value={stats.idle_rate} />/h
+                        +<AnimatedCounter value={stats.idle_rate} />
+                        /h
                       </p>
                     </div>
-                    
+
                     <div className="bg-destructive/5 rounded-xl p-3 border border-destructive/10">
                       <div className="flex items-center gap-2 mb-1">
                         <Flame className="w-4 h-4 text-destructive" />
-                        <span className="text-xs text-muted-foreground">Seria</span>
+                        <span className="text-xs text-muted-foreground">
+                          Seria
+                        </span>
                       </div>
-                      <p className="text-lg font-bold text-foreground">{stats.streak}</p>
+                      <p className="text-lg font-bold text-foreground">
+                        {stats.streak}
+                      </p>
                       <p className="text-xs text-destructive">dni z rzędu</p>
                     </div>
                   </div>
                 </div>
-                
+
                 <nav className="px-4 space-y-1">
                   {menuItems.map((item) => {
                     const isActive = location.pathname === item.path;
@@ -311,13 +344,15 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
                           setSidebarOpen(false);
                         }}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                          isActive 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         }`}
                       >
                         <item.icon className="w-5 h-5" />
-                        <span className="font-medium text-sm">{item.label}</span>
+                        <span className="font-medium text-sm">
+                          {item.label}
+                        </span>
                       </button>
                     );
                   })}

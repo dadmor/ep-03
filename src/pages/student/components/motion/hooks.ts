@@ -1,33 +1,6 @@
 // src/pages/student/components/motion/hooks.ts
 import React from "react";
-import { ANIMATION_DURATION, ANIMATION_DELAY, EASING } from "./constants";
-
-export const useAnimationControl = <T extends number = 1000>(duration: T = 1000 as T) => {
-  const [isAnimating, setIsAnimating] = React.useState(true);
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsAnimating(false);
-    }, duration);
-    return () => clearTimeout(timer);
-  }, [duration]);
-
-  return isAnimating;
-};
-
-export const useStaggerAnimation = (itemCount: number, baseDelay = 0) => {
-  return React.useMemo(() => {
-    return Array.from({ length: itemCount }, (_, i) => ({
-      initial: { opacity: 0, y: 20 },
-      animate: { opacity: 1, y: 0 },
-      transition: {
-        delay: baseDelay + (i * ANIMATION_DELAY.stagger),
-        duration: ANIMATION_DURATION.normal,
-        ease: EASING.smooth
-      }
-    }));
-  }, [itemCount, baseDelay]);
-};
+import { ANIMATION_DURATION } from "./constants";
 
 export const useCountAnimation = (value: number, duration: number = ANIMATION_DURATION.slow) => {
   const [displayValue, setDisplayValue] = React.useState(0);

@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/utility";
 import { useRPC } from "../hooks/useRPC";
 import { useSupabaseQuery } from "../hooks/useSupabaseQuery";
+import { AnimatedProgress, AnimatedCard } from "./motion";
 
 interface CourseStructureItem {
   topic_id: number;
@@ -18,7 +19,12 @@ interface CourseStructureItem {
   is_completed: boolean;
   score: number | null;
 }
-
+interface Topic {
+  id: number;
+  title: string;
+  position: number;
+  activities: any[];
+}
 interface Course {
   id: number;
   title: string;
@@ -69,7 +75,7 @@ export const StudentCourseDetail = () => {
       return acc;
     }, {} as any);
 
-    const topics = Object.values(grouped).sort((a: any, b: any) => a.position - b.position);
+    const topics = Object.values(grouped).sort((a: any, b: any) => a.position - b.position) as Topic[];
 
     return topics.map((topic: any, index: number) => {
       const isCompleted = topic.activities.length > 0 && 
@@ -102,7 +108,7 @@ export const StudentCourseDetail = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-300"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-border"></div>
       </div>
     );
   }
@@ -114,7 +120,7 @@ export const StudentCourseDetail = () => {
       {/* Header */}
       <button
         onClick={() => navigate("/student/dashboard#courses")}
-        className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-8 transition-colors"
+        className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         <span className="text-sm">Powrót</span>
@@ -125,38 +131,33 @@ export const StudentCourseDetail = () => {
         <div className="flex items-center gap-4 mb-4">
           <span className="text-5xl">{course?.icon_emoji || "📚"}</span>
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">{course?.title}</h1>
-            <p className="text-gray-500 mt-1">{course?.description}</p>
+            <h1 className="text-2xl font-semibold text-foreground">{course?.title}</h1>
+            <p className="text-muted-foreground mt-1">{course?.description}</p>
           </div>
         </div>
         
         {/* Progress Bar */}
         <div className="mt-6">
           <div className="flex justify-between text-sm mb-2">
-            <span className="text-gray-500">Postęp kursu</span>
+            <span className="text-muted-foreground">Postęp kursu</span>
             <span className="font-medium">{stats.progress}%</span>
           </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${stats.progress}%` }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="h-full bg-gray-900"
-            />
-          </div>
+          <AnimatedProgress
+            value={stats.progress}
+            className="bg-muted rounded-full overflow-hidden"
+            barClassName="h-full bg-primary"
+          />
         </div>
       </div>
 
-      {/* Topics Path */}
+      {/* Topics Path - Uproszczone */}
       <div className="space-y-8">
         {topicsWithActivities.map((topic: any, topicIndex: number) => (
-          <motion.div
+          <AnimatedCard
             key={topic.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: topicIndex * 0.1 }}
+            index={topicIndex}
             className={cn(
-              "relative",
+              "relative bg-transparent p-0",
               !topic.isUnlocked && "opacity-50"
             )}
           >
@@ -167,8 +168,8 @@ export const StudentCourseDetail = () => {
                 topic.isCompleted 
                   ? "bg-green-500 text-white" 
                   : topic.isUnlocked
-                  ? "bg-gray-900 text-white"
-                  : "bg-gray-200 text-gray-400"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
               )}>
                 {topic.isCompleted ? (
                   <Check className="w-5 h-5" />
@@ -179,19 +180,20 @@ export const StudentCourseDetail = () => {
                 )}
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">{topic.title}</h2>
-                <p className="text-sm text-gray-500">
+                <h2 className="text-lg font-semibold text-foreground">{topic.title}</h2>
+                <p className="text-sm text-muted-foreground">
                   {topic.activities.filter((a: any) => a.completed).length} z {topic.activities.length} ukończonych
                 </p>
               </div>
             </div>
 
             {/* Activities */}
-            <div className="ml-5 pl-5 border-l-2 border-gray-100 space-y-3">
+            <div className="ml-5 pl-5 border-l-2 border-border space-y-3">
               {topic.activities.map((activity: any) => (
                 <motion.button
                   key={activity.id}
-                  whileHover={topic.isUnlocked ? { x: 4 } : {}}
+                  whileHover={topic.isUnlocked ? { x: 2 } : {}}
+                  whileTap={topic.isUnlocked ? { scale: 0.98 } : {}}
                   onClick={() => {
                     if (!topic.isUnlocked) return;
                     const path = activity.type === "quiz" 
@@ -201,10 +203,10 @@ export const StudentCourseDetail = () => {
                   }}
                   disabled={!topic.isUnlocked}
                   className={cn(
-                    "w-full flex items-center justify-between p-4 rounded-xl border transition-all",
+                    "w-full flex items-center justify-between p-4 rounded-xl border transition-colors",
                     topic.isUnlocked
-                      ? "bg-white border-gray-200 hover:border-gray-300 cursor-pointer"
-                      : "bg-gray-50 border-gray-100 cursor-not-allowed"
+                      ? "bg-card border-border hover:border-border/60 cursor-pointer"
+                      : "bg-muted/30 border-border cursor-not-allowed"
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -219,8 +221,8 @@ export const StudentCourseDetail = () => {
                       )}
                     </div>
                     <div className="text-left">
-                      <div className="font-medium text-gray-900">{activity.title}</div>
-                      <div className="text-sm text-gray-500">
+                      <div className="font-medium text-foreground">{activity.title}</div>
+                      <div className="text-sm text-muted-foreground">
                         {activity.type === "quiz" ? "Quiz" : "Materiał"}
                         {activity.score !== null && ` • ${activity.score}%`}
                       </div>
@@ -232,7 +234,7 @@ export const StudentCourseDetail = () => {
                 </motion.button>
               ))}
             </div>
-          </motion.div>
+          </AnimatedCard>
         ))}
       </div>
     </div>

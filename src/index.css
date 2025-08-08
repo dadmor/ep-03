@@ -8,6 +8,8 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  font-synthesis: none;
+  -webkit-text-size-adjust: 100%;
 }
 
 :root {
@@ -46,7 +48,7 @@
   --purple-foreground: 0 0% 100%;
   
   /* Logo Yellow - dla osiągnięć */
-  --yellow: 56 94% 42%; /* #CFBD04 */
+  --yellow: 56 94% 44%; /* #CFBD04 */
   --yellow-foreground: 223 51% 28%;
   
   /* Logo Pink - rzadko używany */
@@ -83,33 +85,180 @@
 }
 
 body {
-  font-feature-settings: "rlig" 1, "calt" 1;
+  font-feature-settings: 
+    "rlig" 1,     /* Required ligatures */
+    "calt" 1,     /* Contextual alternates */
+    "liga" 1,     /* Standard ligatures */
+    "kern" 1,     /* Kerning */
+    "ss01" 1,     /* Stylistic set 1 - Better readability */
+    "ss02" 1,     /* Stylistic set 2 - Better spacing */
+    "cv01" 1,     /* Character variant 1 */
+    "cv02" 1,     /* Character variant 2 */
+    "zero" 1;     /* Slashed zero */
+  
+  /* Variable font weight adjustment for better rendering */
+  font-variation-settings: 
+    "wght" 400,
+    "opsz" auto;
+  
+  /* Better subpixel rendering */
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
+  
+  /* Optical sizing for better readability */
+  font-optical-sizing: auto;
+  
+  /* Better word spacing */
+  word-spacing: 0.05em;
+  
+  /* Improved line height for better readability */
+  line-height: 1.6;
+}
+
+/* Dark mode font rendering adjustments */
+.dark body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Slightly heavier weight in dark mode for better contrast */
+  font-variation-settings: 
+    "wght" 420,
+    "opsz" auto;
 }
 
 h1,
 h2 {
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "rlig" 1, "calt" 1;
-  font-variation-settings: "opsz" auto;
-  letter-spacing: -0.05em;
+  font-feature-settings: 
+    "cv02" 1, "cv03" 1, "cv04" 1, "cv11" 1, 
+    "rlig" 1, "calt" 1, "kern" 1,
+    "ss01" 1, "ss02" 1,
+    "liga" 1;
+  font-variation-settings: 
+    "wght" 700,
+    "opsz" auto;
+  letter-spacing: -0.04em; /* Slightly tighter for better impact */
+  line-height: 1.1;
+  /* Better word spacing for headers */
+  word-spacing: -0.05em;
 }
 
 h3 {
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  letter-spacing: -0.025em;
+  font-feature-settings: 
+    "cv02" 1, "cv03" 1, "cv04" 1, "cv11" 1,
+    "kern" 1, "liga" 1, "calt" 1;
+  font-variation-settings: 
+    "wght" 600,
+    "opsz" auto;
+  letter-spacing: -0.02em; /* Slightly tighter */
+  line-height: 1.2;
+}
+
+h4, h5, h6 {
+  font-variation-settings: 
+    "wght" 500,
+    "opsz" auto;
+  line-height: 1.3;
 }
 
 /* Enhanced readability */
 p,
 .prose {
   text-rendering: optimizeLegibility;
-  font-feature-settings: "kern" 1, "liga" 1, "clig" 1, "calt" 1;
+  font-feature-settings: 
+    "kern" 1, "liga" 1, "clig" 1, "calt" 1,
+    "onum" 1, /* Old-style numerals for better flow */
+    "pnum" 1; /* Proportional numbers */
+  
+  /* Better paragraph spacing */
+  line-height: 1.7;
+  
+  /* Improved hyphenation */
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  
+  /* Better text wrapping */
+  text-wrap: pretty;
+  
+  /* Optimal letter spacing for body text */
+  letter-spacing: 0.01em;
+}
+
+/* Strong text with proper weight */
+strong, b {
+  font-variation-settings: "wght" 600;
+  letter-spacing: -0.01em;
+}
+
+/* Emphasis with true italics */
+em, i {
+  font-style: italic;
+  font-variation-settings: "slnt" -10;
+}
+
+/* Better link underlines */
+a {
+  text-decoration-thickness: 0.05em;
+  text-underline-offset: 0.15em;
+  text-decoration-skip-ink: auto;
+}
+
+a:hover {
+  text-decoration-thickness: 0.08em;
 }
 
 code,
 pre,
 .font-mono {
   font-family: var(--font-mono);
-  font-feature-settings: "liga" 0;
+  font-feature-settings: 
+    "liga" 0,     /* Disable ligatures for code */
+    "calt" 0,     /* Disable contextual alternates */
+    "zero" 1,     /* Slashed zero */
+    "tnum" 1;     /* Tabular numbers */
+  
+  /* Better monospace rendering */
+  font-variation-settings: "wght" 400;
+  letter-spacing: 0;
+  
+  /* Consistent sizing */
+  font-size: 0.9em;
+}
+
+/* Lists with better spacing */
+ul, ol {
+  line-height: 1.8;
+}
+
+li {
+  /* Better marker spacing */
+  margin-left: 0.1em;
+}
+
+/* Better number rendering for data */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* Small caps for abbreviations */
+abbr {
+  font-feature-settings: "c2sc" 1, "smcp" 1;
+  letter-spacing: 0.05em;
+}
+
+/* Better rendering for different contexts */
+@media screen and (min-resolution: 2dppx) {
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@media print {
+  body {
+    font-variation-settings: "wght" 400;
+    -webkit-font-smoothing: auto;
+    -moz-osx-font-smoothing: auto;
+  }
 }
 
 @layer base {
