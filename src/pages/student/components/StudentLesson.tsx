@@ -2,7 +2,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useOne } from "@refinedev/core";
-import { ArrowLeft, Clock, Lock } from "lucide-react";
+import { ArrowLeft, Clock, Lock, Check, Circle } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseClient } from "@/utility";
 import { invalidateRPCCache } from "../hooks/useRPC";
@@ -157,8 +157,35 @@ export const StudentLesson: React.FC = () => {
     }
   };
 
+  // Live region do komunikatów a11y
+  const liveRef = React.useRef<HTMLDivElement | null>(null);
+  const announce = (msg: string) => {
+    if (!liveRef.current) return;
+    liveRef.current.textContent = "";
+    // niewielkie opóźnienie, aby SR wyłapał zmianę
+    setTimeout(() => {
+      if (liveRef.current) liveRef.current.textContent = msg;
+    }, 50);
+  };
+
+  React.useEffect(() => {
+    // Ogłaszaj postęp
+    const doneCount = Object.values(sectionDone).filter(Boolean).length;
+    if (sections.length) {
+      announce(`Postęp: ${doneCount} z ${sections.length} sekcji ukończonych.`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(sectionDone), sections.length]);
+
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8 space-y-6 sm:space-y-8 pb-28 lg:pb-14">
+      {/* Hidden live region for screen readers */}
+      <div
+        ref={liveRef}
+        aria-live="polite"
+        className="sr-only"
+      />
+
       {/* BACK */}
       <button
         onClick={() => navigate(`/student/courses/${courseId}`)}
@@ -226,19 +253,25 @@ export const StudentLesson: React.FC = () => {
                     const futureLocked = !unlocked && !isDone;
                     const isCurrentToCheck = idx === firstUnreadIdx && !isDone;
 
+                    const actionTitle = futureLocked
+                      ? "Najpierw ukończ poprzednie sekcje"
+                      : isDone
+                      ? "Sekcja odhaczona — kliknij, aby cofnąć"
+                      : "Odhacz tę sekcję";
+
                     return (
                       <div
                         key={s.id}
                         id={s.id}
                         className="mb-10 scroll-mt-24 sm:scroll-mt-28 lg:scroll-mt-32"
                       >
-                        {/* KARTA SEKCJI — UWAGA: brak not-prose tutaj, żeby markdown miał stylowanie */}
+                        {/* KARTA SEKCJI */}
                         <div
                           className={`rounded-2xl border bg-card p-4 sm:p-5 md:p-6 shadow-soft ${
                             futureLocked ? "opacity-75" : ""
                           }`}
                         >
-                          {/* Pasek nagłówka — checkbox usunięty z nagłówka */}
+                          {/* Pasek nagłówka */}
                           <div className="not-prose flex items-start sm:items-center justify-between gap-4 mb-4">
                             <div className="flex items-center gap-2">
                               {!unlocked && !isDone && (
@@ -253,36 +286,77 @@ export const StudentLesson: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Treść markdown — z powrotem stylowana przez prose */}
+                          {/* Treść markdown */}
                           <div className={futureLocked ? "pointer-events-none select-none" : ""}>
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.content}</ReactMarkdown>
                           </div>
 
-                          {/* Checkbox przeniesiony na dół karty */}
+                          {/* ====== LEPSZY CHECKBOX ====== */}
                           <div className="not-prose mt-5 flex items-start justify-end">
                             <div className="flex flex-col items-end gap-1">
-                              <label className="inline-flex items-center gap-2 text-sm">
+                              <label
+                                className={`inline-flex items-center gap-3 max-w-full ${
+                                  futureLocked ? "cursor-not-allowed" : "cursor-pointer"
+                                }`}
+                                title={actionTitle}
+                              >
+                                {/* Natywny input dla a11y i klawiatury */}
                                 <input
                                   type="checkbox"
                                   aria-label={`Odhacz sekcję: ${s.title || `Sekcja ${idx + 1}`}`}
-                                  className={`h-5 w-5 rounded border-muted-foreground/50 ${
-                                    isDone ? "ring-2 ring-green-500" : ""
-                                  }`}
+                                  className="peer sr-only"
                                   checked={isDone}
-                                  onChange={() => toggleSection(idx)}
-                                  disabled={!unlocked && !isDone}
+                                  onChange={() => {
+                                    if (futureLocked) return;
+                                    toggleSection(idx);
+                                    const msg = !isDone
+                                      ? `Sekcja ${idx + 1} odhaczona.`
+                                      : `Sekcja ${idx + 1} cofnięta.`;
+                                    announce(msg);
+                                  }}
+                                  disabled={futureLocked && !isDone}
+                                  aria-disabled={futureLocked && !isDone}
+                                  id={`chk-${s.id}`}
+                                  aria-describedby={`hint-${s.id}`}
                                 />
-                                <span className="font-medium">
-                                  {String(idx + 1).padStart(2, "0")}
+
+                                {/* Wizualny przycisk */}
+                                <span
+                                  role="presentation"
+                                  className={[
+                                    "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-all",
+                                    "shadow-soft",
+                                    "peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ring",
+                                    "peer-disabled:opacity-60 peer-disabled:pointer-events-none",
+                                    isDone
+                                      ? "bg-emerald-50/50 dark:bg-emerald-950/30 border-emerald-500/40 text-emerald-700 dark:text-emerald-300"
+                                      : futureLocked
+                                      ? "bg-muted/40 border-muted-foreground/20 text-muted-foreground"
+                                      : "bg-background hover:bg-muted border-muted-foreground/30",
+                                  ].join(" ")}
+                                >
+                                  {futureLocked ? (
+                                    <Lock className="h-4 w-4" />
+                                  ) : isDone ? (
+                                    <Check className="h-4 w-4" />
+                                  ) : (
+                                    <Circle className="h-4 w-4" />
+                                  )}
+                                  <span className="whitespace-nowrap">
+                                    {String(idx + 1).padStart(2, "0")} •{" "}
+                                    {futureLocked ? "Zablokowana" : isDone ? "Odhaczono" : "Odhacz sekcję"}
+                                  </span>
                                 </span>
                               </label>
+
                               {isCurrentToCheck && (
-                                <span className="text-xs text-muted-foreground">
+                                <span id={`hint-${s.id}`} className="text-xs text-muted-foreground">
                                   Zaznacz, aby przejść dalej
                                 </span>
                               )}
                             </div>
                           </div>
+                          {/* ====== /LEPSZY CHECKBOX ====== */}
                         </div>
 
                         <hr className="my-8" />
@@ -329,13 +403,19 @@ export const StudentLesson: React.FC = () => {
                     <li key={s.id} className="flex items-center gap-1">
                       {!unlocked && !isDone ? (
                         <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                      ) : isDone ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-600" />
                       ) : (
                         <span className="h-3.5 w-3.5" />
                       )}
                       <a
                         href={`#${s.id}`}
                         className={`flex-1 block px-2 py-1 rounded hover:bg-muted transition-colors ${
-                          isDone ? "text-green-600" : unlocked ? "" : "text-muted-foreground pointer-events-none"
+                          isDone
+                            ? "text-emerald-700"
+                            : unlocked
+                            ? ""
+                            : "text-muted-foreground pointer-events-none"
                         }`}
                         aria-disabled={!unlocked && !isDone}
                       >
