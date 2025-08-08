@@ -1,168 +1,21 @@
-/* path: src/pages/student/components/StudentLesson.tsx */
+/* path: src/pages/studentLessons/StudentLesson.tsx */
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useOne } from "@refinedev/core";
-import { ArrowLeft, Clock, Lock, Check, Circle, X, HelpCircle } from "lucide-react";
+import { ArrowLeft, Clock, Lock, Check, Circle, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseClient } from "@/utility";
-import { invalidateRPCCache } from "../hooks/useRPC";
+import { invalidateRPCCache } from "@/pages/student/hooks/useRPC";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import YAML from "yaml";
+import { QuizDef, Section } from "./studentLessons/types";
+import { splitSections, extractQuizzes } from "./studentLessons/lessonContent";
+import { LessonSkeleton } from "./studentLessons/LessonSkeleton";
+import { MDRenderers } from "./studentLessons/MDRenderers";
+import { QuizModal } from "./studentLessons/QuizModal";
+import { useLiveRegion } from "./studentLessons/useLiveRegion";
+import { useLocalJson } from "./studentLessons/useLocalJson";
 
-/** ============== TYPES ============== */
-type Section = { id: string; title: string; content: string };
-type QuizDef = { question: string; options: string[]; answerIndex: number; key: string };
-
-/** ============== UTILS ============== */
-const slug = (s: string) =>
-  s.toLowerCase().replace(/[^\p{Letter}\p{Number}]+/gu, "-").replace(/(^-|-$)/g, "") || "sekcja";
-
-const splitSections = (md: string, fb: string): Section[] => {
-  const parts = md.split(/\n(?=##\s+)/g);
-  if (parts.length <= 1 && !/^##\s+/.test(md)) return [{ id: slug(fb || "Sekcja 1"), title: fb || "Sekcja 1", content: md }];
-  return parts.map((raw, i) => {
-    const m = raw.match(/^##\s+(.+?)\s*$/m);
-    const title = (m?.[1] || `Sekcja ${i + 1}`).trim();
-    const content = raw.replace(/^##\s+.+?\n/, "").trim();
-    return { id: slug(title) || slug(`${fb}-${i + 1}`), title, content };
-  });
-};
-
-const QUIZ_RE = /```quiz\s*?\n([\s\S]*?)```/g;
-const parseQuiz = (raw: string, sectionId: string, idx: number): QuizDef | null => {
-  try {
-    const d = YAML.parse(raw) as { question?: string; options?: unknown[]; answerIndex?: number };
-    const opts = (d?.options || []).map(String);
-    if (!d?.question || !Array.isArray(d?.options) || typeof d?.answerIndex !== "number") return null;
-    if (d.answerIndex < 0 || d.answerIndex >= opts.length) return null;
-    return { question: d.question, options: opts, answerIndex: d.answerIndex, key: `${sectionId}:${idx}` };
-  } catch {
-    return null;
-  }
-};
-
-const extractQuizzes = (sections: Section[]) =>
-  new Map(
-    sections.map((s) => [
-      s.id,
-      [...s.content.matchAll(QUIZ_RE)]
-        .map((m, i) => parseQuiz(m[1], s.id, i))
-        .filter(Boolean) as QuizDef[],
-    ])
-  );
-
-/** ============== HOOKS ============== */
-const useLocalJson = <T,>(key: string, init: T) => {
-  const [state, setState] = React.useState<T>(() => {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? (JSON.parse(raw) as T) : init;
-    } catch {
-      return init;
-    }
-  });
-  React.useEffect(() => {
-    try {
-      localStorage.setItem(key, JSON.stringify(state));
-    } catch (err) {
-      console.error("Błąd zapisu do localStorage:", err);
-    }
-  }, [key, state]);
-  return [state, setState] as const;
-};
-
-const useLiveRegion = () => {
-  const ref = React.useRef<HTMLDivElement | null>(null);
-  const say = (msg: string) => {
-    if (!ref.current) return;
-    ref.current.textContent = "";
-    setTimeout(() => ref.current && (ref.current.textContent = msg), 30);
-  };
-  return { ref, say };
-};
-
-/** ============== MD RENDERERS (ukryj ```quiz```) ============== */
-const MDRenderers = {
-  code: ({ inline, className = "", children, ...p }: any) => {
-    const lang = (className || "").toLowerCase();
-    if (!inline && lang.includes("language-quiz")) return null;
-    return (
-      <code className={className} {...p}>
-        {children}
-      </code>
-    );
-  },
-  pre: (props: any) => {
-    const c: any = Array.isArray(props.children) ? props.children[0] : props.children;
-    const cn = c?.props?.className?.toLowerCase?.() || "";
-    if (cn.includes("language-quiz")) return null;
-    return <pre {...props} />;
-  },
-};
-
-/** ============== QUIZ MODAL ============== */
-const QuizModal: React.FC<{ quiz: QuizDef; onClose: () => void; onPass: () => void }> = ({ quiz, onClose, onPass }) => {
-  const [choice, setChoice] = React.useState<number | null>(null);
-  const [locked, setLocked] = React.useState(false);
-
-  const submit = () => {
-    const pass = choice !== null && choice === quiz.answerIndex;
-    setLocked(pass);
-    if (pass) {
-      toast.success("Poprawna odpowiedź!");
-      setTimeout(onPass, 200);
-    } else {
-      toast.error("Niepoprawna odpowiedź — spróbuj ponownie.");
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative z-[91] w-full sm:max-w-lg bg-background rounded-t-2xl sm:rounded-2xl border shadow-2xl p-4 sm:p-6">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-base sm:text-lg font-semibold">Pytanie kontrolne</h3>
-          <button onClick={onClose} className="p-1 rounded hover:bg-muted" aria-label="Zamknij">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <p className="mb-3 text-sm sm:text-base">{quiz.question}</p>
-        <div className="space-y-2 mb-4">
-          {quiz.options.map((opt, i) => (
-            <label key={i} className="flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer hover:bg-muted">
-              <input type="radio" name="quiz-choice" className="h-4 w-4" checked={choice === i} onChange={() => setChoice(i)} disabled={locked} />
-              <span className="text-sm">{opt}</span>
-            </label>
-          ))}
-        </div>
-        <div className="flex items-center justify-end gap-2">
-          <button onClick={onClose} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-muted">
-            Anuluj
-          </button>
-          <button onClick={submit} className="rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-muted" disabled={locked}>
-            Zatwierdź
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/** ============== SKELETON ============== */
-const LessonSkeleton = () => (
-  <div className="container mx-auto px-4 py-6 sm:py-8 space-y-6">
-    <div className="h-5 w-24 rounded bg-muted/60" />
-    <div className="rounded-2xl border bg-card p-6 shadow-soft animate-pulse">
-      <div className="h-6 w-2/3 rounded bg-muted/60 mb-2" />
-      <div className="h-4 w-40 rounded bg-muted/60" />
-    </div>
-    <div className="space-y-3">{Array.from({ length: 10 }).map((_, i) => <div key={i} className="h-4 w-full rounded bg-muted/50" />)}</div>
-    <div className="h-10 w-48 rounded-lg bg-muted/60 ml-auto" />
-  </div>
-);
-
-/** ============== MAIN ============== */
 export const StudentLesson: React.FC = () => {
   const { courseId, lessonId } = useParams();
   const navigate = useNavigate();
@@ -315,15 +168,11 @@ export const StudentLesson: React.FC = () => {
                 {sections.length ? (
                   sections.map((s, idx) => {
                     const done = !!sectionDone[s.id];
-                    const isCurrent = !done && idx === firstUnreadIdx; // BIEŻĄCA = BIAŁA (light)
+                    const isCurrent = !done && idx === firstUnreadIdx;
                     const unlocked = firstUnreadIdx === -1 || idx <= firstUnreadIdx;
                     const isLocked = !unlocked && !done;
                     const q = (quizzes.get(s.id) ?? [])[0];
 
-                    // Stany kart:
-                    // - done: delikatnie „zielona” ale jasna
-                    // - current: BIAŁA karta (więcej światła) — w light pełna biel
-                    // - locked: jasna, ale stłumiona i przerywana ramka — w light pełna biel
                     const cardBase =
                       "rounded-[20px] border p-6 sm:p-7 md:p-8 shadow-sm transition-colors duration-200";
                     const cardState = done
@@ -334,7 +183,10 @@ export const StudentLesson: React.FC = () => {
                       ? "bg-white dark:bg-card border-dashed border-muted-foreground/40"
                       : "bg-white dark:bg-card border-neutral-200";
 
-                    const contentInteractivity = isLocked ? "pointer-events-none select-none" : "";
+                    // Blur tylko dla sekcji zablokowanych
+                    const contentVisualState = !done && isLocked
+                      ? "filter blur-[2px] select-none pointer-events-none"
+                      : "";
 
                     return (
                       <div key={s.id} id={s.id} className="mb-12 scroll-mt-28">
@@ -381,13 +233,12 @@ export const StudentLesson: React.FC = () => {
                             )}
                           </div>
 
-                          {/* Tytuł */}
-                          <h2 className="text-[22px] md:text-[26px] font-semibold tracking-tight m-0 mb-4">
-                            {s.title || `Sekcja ${idx + 1}`}
-                          </h2>
+                          {/* Tytuł + Treść */}
+                          <div className={contentVisualState}>
+                            <h2 className="text-[22px] md:text-[26px] font-semibold tracking-tight m-0 mb-4">
+                              {s.title || `Sekcja ${idx + 1}`}
+                            </h2>
 
-                          {/* Treść */}
-                          <div className={contentInteractivity}>
                             <ReactMarkdown remarkPlugins={[remarkGfm]} components={MDRenderers}>
                               {s.content}
                             </ReactMarkdown>
@@ -518,3 +369,5 @@ export const StudentLesson: React.FC = () => {
     </div>
   );
 };
+
+export default StudentLesson;

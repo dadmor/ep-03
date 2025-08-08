@@ -56,7 +56,7 @@ const StatsTiles: React.FC<{ points: number; idle: number; streak: number }> = (
   idle,
   streak,
 }) => (
-  <section className="px-6 -mt-2">
+  <section className="px-6 -mt-2 mb-2">
     <div className="grid grid-cols-2 gap-3">
       <article className="rounded-xl border p-3 bg-primary/5 border-primary/10">
         <div className="flex items-center gap-2 mb-1">

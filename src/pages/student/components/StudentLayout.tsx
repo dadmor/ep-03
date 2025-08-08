@@ -31,7 +31,7 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({ childre
   );
 
   return (
-    <div className="min-h-screen bg-background relative">
+    <div className="min-h-screen bg-background relative select-none">
       <Background />
 
       {/* Sidebar desktop */}
