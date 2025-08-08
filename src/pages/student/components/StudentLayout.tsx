@@ -220,7 +220,7 @@ export const StudentLayout: React.FC<{ children: React.ReactNode }> = ({
         </aside>
 
         {/* ===== Main + Header ===== */}
-        <main className="relative lg:ml-72">
+        <main className="relative lg:ml-72 select-none">
           {/* ===== Tło SVG ===== */}
           <SoftBackground opacity={0.2} speed={2} />
           {/* Header (uniwersalny) */}

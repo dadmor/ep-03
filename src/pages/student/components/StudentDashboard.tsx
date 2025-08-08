@@ -462,26 +462,26 @@ export const StudentDashboard = () => {
 
       {/* ========================= DODATKOWE STATY (DRUGI PLAN) ========================= */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <div className="rounded-xl border bg-card p-4 sm:p-5 shadow-soft">
+        <div className="rounded-xl border bg-card/70 backdrop-blur-sm p-4 sm:p-5 shadow-md">
           <div className="flex items-start justify-between">
-            <span className="text-xs sm:text-sm text-muted-foreground">Punkty</span>
+            <span className="text-xs sm:text-sm text-muted-foreground font-medium">Punkty</span>
             <Zap className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-primary" />
           </div>
-          <p className="mt-1 text-xl sm:text-2xl font-semibold tabular-nums text-primary">
+          <p className="mt-1.5 text-xl sm:text-2xl font-semibold tabular-nums text-foreground">
             <AnimatedCounter value={stats.points} />
           </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             +<AnimatedCounter value={stats.idle_rate} />
             /h
           </p>
         </div>
 
-        <div className="rounded-xl border bg-card p-4 sm:p-5 shadow-soft">
+        <div className="rounded-xl border bg-card/70 backdrop-blur-sm p-4 sm:p-5 shadow-md">
           <div className="flex items-start justify-between">
-            <span className="text-xs sm:text-sm text-muted-foreground">Poziom</span>
+            <span className="text-xs sm:text-sm text-muted-foreground font-medium">Poziom</span>
             <Trophy className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-secondary" />
           </div>
-          <p className="mt-1 text-xl sm:text-2xl font-semibold text-secondary">
+          <p className="mt-1.5 text-xl sm:text-2xl font-semibold text-foreground">
             {stats.level}
           </p>
           <div className="mt-2 sm:mt-3">
@@ -489,26 +489,26 @@ export const StudentDashboard = () => {
           </div>
         </div>
 
-        <div className="rounded-xl border bg-card p-4 sm:p-5 shadow-soft">
+        <div className="rounded-xl border bg-card/70 backdrop-blur-sm p-4 sm:p-5 shadow-md">
           <div className="flex items-start justify-between">
-            <span className="text-xs sm:text-sm text-muted-foreground">Seria dni</span>
+            <span className="text-xs sm:text-sm text-muted-foreground font-medium">Seria dni</span>
             <Flame className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-destructive" />
           </div>
-          <p className="mt-1 text-xl sm:text-2xl font-semibold text-destructive">
+          <p className="mt-1.5 text-xl sm:text-2xl font-semibold text-foreground">
             <AnimatedCounter value={stats.streak} />
           </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">dni z rzędu</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">dni z rzędu</p>
         </div>
 
-        <div className="rounded-xl border bg-card p-4 sm:p-5 shadow-soft">
+        <div className="rounded-xl border bg-card/70 backdrop-blur-sm p-4 sm:p-5 shadow-md">
           <div className="flex items-start justify-between">
-            <span className="text-xs sm:text-sm text-muted-foreground">Tempo</span>
+            <span className="text-xs sm:text-sm text-muted-foreground font-medium">Tempo</span>
             <TrendingUp className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-accent" />
           </div>
-          <p className="mt-1 text-xl sm:text-2xl font-semibold text-accent">
+          <p className="mt-1.5 text-xl sm:text-2xl font-semibold text-foreground">
             +<AnimatedCounter value={stats.idle_rate} />
           </p>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">punktów/h</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">punktów/h</p>
         </div>
       </div>
     </div>

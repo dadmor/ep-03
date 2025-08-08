@@ -1,10 +1,11 @@
-// src/pages/student/components/StudentAchievements.tsx
+/* path: src/pages/student/components/StudentAchievements.tsx */
 import React from "react";
 import { Flame, Star, Zap, Trophy, Target, Rocket } from "lucide-react";
 import { cn } from "@/utility";
-import { 
+import {
   AnimatedCard,
-  AnimatedProgress
+  AnimatedProgress,
+  motion,
 } from "./motion";
 
 const achievements = [
@@ -16,7 +17,7 @@ const achievements = [
     unlocked: true,
     rarity: "common" as const,
     unlockedAt: "2024-01-15",
-    progress: 100
+    progress: 100,
   },
   {
     id: 2,
@@ -26,7 +27,7 @@ const achievements = [
     unlocked: true,
     rarity: "rare" as const,
     unlockedAt: "2024-02-20",
-    progress: 100
+    progress: 100,
   },
   {
     id: 3,
@@ -35,7 +36,7 @@ const achievements = [
     description: "Ukończ 5 lekcji w jeden dzień",
     unlocked: false,
     rarity: "epic" as const,
-    progress: 60
+    progress: 60,
   },
   {
     id: 4,
@@ -44,7 +45,7 @@ const achievements = [
     description: "Osiągnij poziom 50",
     unlocked: false,
     rarity: "legendary" as const,
-    progress: 24
+    progress: 24,
   },
   {
     id: 5,
@@ -53,7 +54,7 @@ const achievements = [
     description: "Odpowiedz poprawnie na 100 pytań z rzędu",
     unlocked: false,
     rarity: "epic" as const,
-    progress: 45
+    progress: 45,
   },
   {
     id: 6,
@@ -62,123 +63,206 @@ const achievements = [
     description: "Ukończ kurs w mniej niż tydzień",
     unlocked: false,
     rarity: "rare" as const,
-    progress: 0
-  }
+    progress: 0,
+  },
 ];
 
 const rarityConfig = {
-  common: { bg: "bg-gray-100", border: "border-gray-200", label: "Pospolite" },
-  rare: { bg: "bg-blue-100", border: "border-blue-200", label: "Rzadkie" },
-  epic: { bg: "bg-purple-100", border: "border-purple-200", label: "Epiczne" },
-  legendary: { bg: "bg-orange-100", border: "border-orange-200", label: "Legendarne" }
+  common: {
+    bg: "bg-muted",
+    ring: "ring-1 ring-border",
+    label: "Pospolite",
+    badge:
+      "border border-muted-foreground/20 text-muted-foreground bg-background/60",
+  },
+  rare: {
+    bg: "bg-blue-500/10",
+    ring: "ring-1 ring-blue-500/30",
+    label: "Rzadkie",
+    badge: "border border-blue-500/30 text-blue-600 dark:text-blue-400",
+  },
+  epic: {
+    bg: "bg-purple-500/10",
+    ring: "ring-1 ring-purple-500/30",
+    label: "Epiczne",
+    badge: "border border-purple-500/30 text-purple-600 dark:text-purple-400",
+  },
+  legendary: {
+    bg: "bg-orange-500/10",
+    ring: "ring-1 ring-orange-500/30",
+    label: "Legendarne",
+    badge: "border border-orange-500/30 text-orange-600 dark:text-orange-400",
+  },
 };
 
 export const StudentAchievements = () => {
-  const unlockedCount = achievements.filter(a => a.unlocked).length;
+  const unlockedCount = achievements.filter((a) => a.unlocked).length;
   const totalCount = achievements.length;
+  const totalPct = Math.round((unlockedCount / totalCount) * 100);
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-semibold text-foreground mb-2">
-        Osiągnięcia
-      </h1>
-      <p className="text-muted-foreground mb-8">
-        Odblokowano {unlockedCount} z {totalCount} osiągnięć
-      </p>
-
-      {/* Progress Overview - Uproszczony */}
-      <div className="bg-card rounded-2xl border border-border p-6 mb-8">
-        <div className="mb-4">
-          <div className="flex justify-between text-sm mb-2">
-            <span className="text-muted-foreground">Postęp osiągnięć</span>
-            <span className="font-medium">
-              {Math.round((unlockedCount / totalCount) * 100)}%
-            </span>
-          </div>
-          <AnimatedProgress
-            value={(unlockedCount / totalCount) * 100}
-            className="bg-muted rounded-full overflow-hidden"
-            barClassName="h-full bg-primary rounded-full"
+    <div className="container mx-auto px-4 py-6 sm:py-8 space-y-6 sm:space-y-8 pb-24 lg:pb-8">
+      {/* ========================= HERO / NAGŁÓWEK (spójny z Dashboard) ========================= */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45 }}
+        className="relative overflow-hidden rounded-2xl border"
+      >
+        {/* delikatne tło jak w dashboardzie */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.12] via-secondary/[0.10] to-accent/[0.12]" />
+          <div
+            className="absolute inset-0 opacity-[0.06]"
+            style={{
+              backgroundImage: `
+                linear-gradient(to right, hsl(var(--ring)/0.35) 1px, transparent 1px),
+                linear-gradient(to bottom, hsl(var(--ring)/0.35) 1px, transparent 1px)
+              `,
+              backgroundSize: "28px 28px",
+            }}
           />
         </div>
-        
-        <div className="grid grid-cols-4 gap-4 text-center">
-          {Object.entries(rarityConfig).map(([rarity, config]) => {
-            const count = achievements.filter(a => a.rarity === rarity && a.unlocked).length;
-            const total = achievements.filter(a => a.rarity === rarity).length;
-            
-            return (
-              <div key={rarity}>
-                <p className="text-xl font-semibold">
-                  {count}/{total}
-                </p>
-                <p className="text-sm text-muted-foreground">{config.label}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* Achievements Grid - Czyste karty */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="relative z-10 p-4 sm:p-6 md:p-8">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Osiągnięcia
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Odblokowano{" "}
+                <span className="font-semibold tabular-nums">
+                  {unlockedCount}
+                </span>{" "}
+                z{" "}
+                <span className="font-semibold tabular-nums">{totalCount}</span>{" "}
+                ({totalPct}%)
+              </p>
+            </div>
+
+            {/* Pasek postępu – spójny z kartami z dashboardu */}
+            <div className="w-full md:w-96">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-muted-foreground">Postęp osiągnięć</span>
+                <span className="font-medium tabular-nums">{totalPct}%</span>
+              </div>
+              <AnimatedProgress value={totalPct} />
+            </div>
+          </div>
+
+          {/* Liczniki rzadkości – kompaktowe badge’e jak w dashboardzie */}
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {Object.entries(rarityConfig).map(([rarity, config]) => {
+              const count = achievements.filter(
+                (a) => a.rarity === rarity && a.unlocked
+              ).length;
+              const total = achievements.filter((a) => a.rarity === rarity)
+                .length;
+
+              return (
+                <div
+                  key={rarity}
+                  className={cn(
+                    "rounded-xl border bg-card/70 backdrop-blur-sm p-3 shadow-soft"
+                  )}
+                >
+                  <p className="text-lg font-semibold tabular-nums">
+                    {count}/{total}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{config.label}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </motion.section>
+
+      {/* ========================= SIATKA KART (spójne karty jak na liście kursów) ========================= */}
+      <motion.section
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.05 }}
+        className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5"
+      >
         {achievements.map((achievement, index) => {
-          const config = rarityConfig[achievement.rarity];
+          const conf = rarityConfig[achievement.rarity];
           const Icon = achievement.icon;
-          
+
+          const badge = achievement.unlocked ? (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                conf.badge
+              )}
+            >
+              Odblokowane
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 text-primary px-2.5 py-1 text-[11px] font-semibold">
+              {achievement.progress}%
+            </span>
+          );
+
           return (
             <AnimatedCard
               key={achievement.id}
               index={index}
-              
               className={cn(
-                "bg-card rounded-xl border p-6 transition-all",
-                achievement.unlocked ? config.border : "border-border",
-                !achievement.unlocked && "opacity-60"
+                "group relative rounded-2xl border bg-card p-5 shadow-soft hover:bg-muted/40 transition-colors",
+                !achievement.unlocked && "opacity-95"
               )}
             >
-              <div className="flex flex-col items-center text-center">
-                <div className={cn(
-                  "w-16 h-16 rounded-2xl flex items-center justify-center mb-4",
-                  achievement.unlocked ? config.bg : "bg-muted"
-                )}>
-                  <Icon className={cn(
-                    "w-8 h-8",
-                    achievement.unlocked ? "text-foreground" : "text-muted-foreground"
-                  )} />
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={cn(
+                      "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
+                      conf.bg,
+                      conf.ring
+                    )}
+                  >
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-sm sm:text-base text-foreground line-clamp-2">
+                      {achievement.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {achievement.description}
+                    </p>
+                  </div>
                 </div>
-                
-                <h3 className="font-semibold text-foreground mb-1">
-                  {achievement.title}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {achievement.description}
-                </p>
-                
+                {badge}
+              </div>
+
+              {/* Dolna część karty */}
+              <div className="mt-4">
                 {achievement.unlocked ? (
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(achievement.unlockedAt!).toLocaleDateString('pl-PL')}
-                  </p>
+                  <div className="text-xs text-muted-foreground">
+                    Odblokowano:{" "}
+                    <span className="font-medium">
+                      {new Date(
+                        achievement.unlockedAt!
+                      ).toLocaleDateString("pl-PL")}
+                    </span>
+                  </div>
                 ) : (
-                  <div className="w-full">
-                    <div className="flex justify-between text-xs mb-1">
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
                       <span className="text-muted-foreground">Postęp</span>
-                      <span className="font-medium">
+                      <span className="font-medium tabular-nums">
                         {achievement.progress}%
                       </span>
                     </div>
-                    <AnimatedProgress
-                      value={achievement.progress}
-                      className="bg-muted rounded-full overflow-hidden"
-                      barClassName="h-full bg-muted-foreground rounded-full"
-                     
-                    />
+                    <AnimatedProgress value={achievement.progress} />
                   </div>
                 )}
               </div>
             </AnimatedCard>
           );
         })}
-      </div>
+      </motion.section>
     </div>
   );
 };
