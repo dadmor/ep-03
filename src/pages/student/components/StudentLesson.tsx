@@ -156,7 +156,13 @@ const QuizModal: React.FC<{
     const pass = choice !== null && choice === quiz.answerIndex;
     setOk(pass);
     setChecked(true);
-    if (pass) setTimeout(onPass, 250);
+
+    if (pass) {
+      toast.success("Poprawna odpowiedź!");
+      setTimeout(onPass, 250);
+    } else {
+      toast.error("Niepoprawna odpowiedź — spróbuj ponownie.");
+    }
   };
 
   return (
@@ -249,7 +255,9 @@ export const StudentLesson: React.FC = () => {
   React.useEffect(() => {
     try {
       localStorage.setItem(quizKey, JSON.stringify(quizResults));
-    } catch {}
+    } catch (error) {
+      console.error("Error saving quiz results:", error);
+    }
   }, [quizResults]);
 
   // Modale: aktywny quiz do wyświetlenia
@@ -360,7 +368,9 @@ export const StudentLesson: React.FC = () => {
         try {
           localStorage.removeItem(progressKey);
           localStorage.removeItem(quizKey);
-        } catch {}
+        } catch (error) {
+          console.error("Error clearing progress from localStorage:", error);
+        }
         navigate(`/student/courses/${courseId}`);
       }
     } catch {
