@@ -2,12 +2,25 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useOne } from "@refinedev/core";
-import { ArrowLeft, Clock, Lock, Check, Circle } from "lucide-react";
+import { ArrowLeft, Clock, Lock, Check, Circle, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseClient } from "@/utility";
 import { invalidateRPCCache } from "../hooks/useRPC";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import YAML from "yaml";
+
+/** ==================== TYPES ==================== */
+type Section = { id: string; title: string; content: string };
+
+type QuizDef = {
+  question: string;
+  options: string[];
+  answerIndex: number; // 0-based
+  key: string; // `${sectionId}:${idx}`
+};
+
+type QuizResultMap = Record<string /* quiz.key */, boolean>;
 
 /** ==================== SKELETON ==================== */
 const LessonSkeleton: React.FC = () => (
@@ -27,8 +40,6 @@ const LessonSkeleton: React.FC = () => (
 );
 
 /** ==================== UTILS ==================== */
-type Section = { id: string; title: string; content: string };
-
 const slug = (s: string) =>
   s
     .toLowerCase()
@@ -61,6 +72,35 @@ const splitMarkdownIntoSections = (md: string, fallbackTitle: string): Section[]
   return sections;
 };
 
+// Bloki quizów: ```quiz ... ```
+const QUIZ_BLOCK_RE = /```quiz\s*?\n([\s\S]*?)```/g;
+
+const parseQuizYaml = (raw: string, sectionId: string, idx: number): QuizDef | null => {
+  try {
+    const data = YAML.parse(raw) as Partial<QuizDef & { options: unknown[] }>;
+    if (!data || typeof data.question !== "string" || !Array.isArray(data.options) || typeof data.answerIndex !== "number") return null;
+    const options = data.options.map((o) => String(o));
+    if (data.answerIndex < 0 || data.answerIndex >= options.length) return null;
+    return { question: data.question, options, answerIndex: data.answerIndex, key: `${sectionId}:${idx}` };
+  } catch {
+    return null;
+  }
+};
+
+const extractSectionQuizzes = (sections: Section[]) => {
+  const map = new Map<string, QuizDef[]>();
+  for (const s of sections) {
+    const arr: QuizDef[] = [];
+    const matches = [...s.content.matchAll(QUIZ_BLOCK_RE)];
+    matches.forEach((m, idx) => {
+      const q = parseQuizYaml(m[1], s.id, idx);
+      if (q) arr.push(q);
+    });
+    map.set(s.id, arr);
+  }
+  return map;
+};
+
 const useLocalProgress = (key: string, initial: Record<string, boolean>) => {
   const [state, setState] = React.useState<Record<string, boolean>>(() => {
     try {
@@ -80,6 +120,94 @@ const useLocalProgress = (key: string, initial: Record<string, boolean>) => {
   return [state, setState] as const;
 };
 
+/** ==================== MARKDOWN RENDERERS ==================== */
+/* Cel: całkowicie wyciąć z DOM bloki ```quiz …``` (żeby nie było szarej/niebieskiej belki) */
+const CodeRenderer: React.FC<
+  React.PropsWithChildren<{ inline?: boolean; className?: string }>
+> = ({ inline, className = "", children, ...props }) => {
+  const lang = className.toLowerCase();
+  if (!inline && lang.includes("language-quiz")) return null;
+  return (
+    <code className={className} {...props}>
+      {children}
+    </code>
+  );
+};
+
+const PreRenderer: React.FC<React.PropsWithChildren<any>> = (props) => {
+  const child: any = Array.isArray(props.children) ? props.children[0] : props.children;
+  const className = child?.props?.className?.toLowerCase?.() || "";
+  if (className.includes("language-quiz")) return null;
+  const { children, ...rest } = props;
+  return <pre {...rest}>{children}</pre>;
+};
+
+/** ==================== QUIZ UI (MODAL) ==================== */
+const QuizModal: React.FC<{
+  quiz: QuizDef;
+  onClose: () => void;
+  onPass: () => void;
+}> = ({ quiz, onClose, onPass }) => {
+  const [choice, setChoice] = React.useState<number | null>(null);
+  const [checked, setChecked] = React.useState(false);
+  const [ok, setOk] = React.useState<boolean | null>(null);
+
+  const evaluate = () => {
+    const pass = choice !== null && choice === quiz.answerIndex;
+    setOk(pass);
+    setChecked(true);
+    if (pass) setTimeout(onPass, 250);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative z-[91] w-full sm:max-w-lg bg-background rounded-t-2xl sm:rounded-2xl border shadow-2xl p-4 sm:p-6">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-base sm:text-lg font-semibold">Pytanie kontrolne</h3>
+          <button onClick={onClose} className="p-1 rounded hover:bg-muted" aria-label="Zamknij">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <p className="mb-3 text-sm sm:text-base">{quiz.question}</p>
+
+        <div className="space-y-2 mb-4">
+          {quiz.options.map((opt, i) => (
+            <label key={i} className="flex items-center gap-2 rounded-md border px-3 py-2 cursor-pointer hover:bg-muted transition-colors">
+              <input
+                type="radio"
+                name="quiz-choice"
+                className="h-4 w-4"
+                checked={choice === i}
+                onChange={() => setChoice(i)}
+                disabled={checked && ok === true}
+              />
+              <span className="text-sm">{opt}</span>
+            </label>
+          ))}
+        </div>
+
+        {checked && (
+          <div className={`mb-3 text-sm ${ok ? "text-emerald-700 dark:text-emerald-300" : "text-red-700 dark:text-red-300"}`}>
+            {ok ? "Poprawna odpowiedź." : "Niepoprawna — spróbuj ponownie."}
+          </div>
+        )}
+
+        <div className="flex items-center justify-end gap-2">
+          <button onClick={onClose} className="rounded-lg border px-3 py-1.5 text-sm hover:bg-muted">
+            Anuluj
+          </button>
+          <button onClick={evaluate} className="rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-muted" disabled={checked && ok === true}>
+            Zatwierdź
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/** ==================== MAIN ==================== */
 export const StudentLesson: React.FC = () => {
   const { courseId, lessonId } = useParams();
   const navigate = useNavigate();
@@ -91,43 +219,128 @@ export const StudentLesson: React.FC = () => {
   });
 
   const lesson = (lessonData?.data ?? {}) as any;
-  const md: string | undefined = (lesson?.content_md ?? lesson?.markdown ?? lesson?.content) as
-    | string
-    | undefined;
+  const md: string | undefined = (lesson?.content_md ?? lesson?.markdown ?? lesson?.content) as string | undefined;
 
   const sections = React.useMemo<Section[]>(
     () => (md && typeof md === "string" ? splitMarkdownIntoSections(md, lesson?.title ?? "Sekcja") : []),
     [md, lesson?.title]
   );
 
+  // quizy wyciągnięte z treści
+  const sectionQuizzes = React.useMemo(() => extractSectionQuizzes(sections), [sections]);
+
+  // POSTĘP SEKCYJNY
   const progressKey = `lesson-progress:${lessonId}`;
   const [sectionDone, setSectionDone] = useLocalProgress(
     progressKey,
     Object.fromEntries((sections ?? []).map((s) => [s.id, false]))
   );
 
+  // WYNIKI QUIZÓW (po quiz.key) – żeby pamiętało zaliczone pytania
+  const quizKey = `lesson-quiz:${lessonId}`;
+  const [quizResults, setQuizResults] = React.useState<QuizResultMap>(() => {
+    try {
+      const raw = localStorage.getItem(quizKey);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(quizKey, JSON.stringify(quizResults));
+    } catch {}
+  }, [quizResults]);
+
+  // Modale: aktywny quiz do wyświetlenia
+  const [activeQuiz, setActiveQuiz] = React.useState<QuizDef | null>(null);
+  const openQuizForSection = (sectionId: string) => {
+    const [first] = sectionQuizzes.get(sectionId) ?? [];
+    if (first) setActiveQuiz(first);
+  };
+
+  // Sync sekcji (dodane/odjęte)
   React.useEffect(() => {
     if (!sections.length) return;
     setSectionDone((prev) => {
       const next = { ...prev };
       let changed = false;
+      // dodaj brakujące
       for (const s of sections) if (!(s.id in next)) (next[s.id] = false), (changed = true);
-      for (const k of Object.keys(next))
-        if (!sections.some((s) => s.id === k)) (delete next[k], (changed = true));
+      // usuń nieistniejące
+      for (const k of Object.keys(next)) if (!sections.some((s) => s.id === k)) (delete next[k], (changed = true));
       return changed ? next : prev;
     });
-  }, [sections, setSectionDone]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections]);
+
+  // A11y live region
+  const liveRef = React.useRef<HTMLDivElement | null>(null);
+  const announce = (msg: string) => {
+    if (!liveRef.current) return;
+    liveRef.current.textContent = "";
+    setTimeout(() => {
+      if (liveRef.current) liveRef.current.textContent = msg;
+    }, 50);
+  };
+
+  // Licznik postępu
+  React.useEffect(() => {
+    const doneCount = Object.values(sectionDone).filter(Boolean).length;
+    if (sections.length) announce(`Postęp: ${doneCount} z ${sections.length} sekcji ukończonych.`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(sectionDone), sections.length]);
 
   const firstUnreadIdx = sections.findIndex((s) => !sectionDone[s.id]);
   const allChecked = firstUnreadIdx === -1;
 
-  const toggleSection = (idx: number) => {
+  // Klik w checkbox – obsługa logiki quizu / zwykłego odhaczenia
+  const handleCheckboxClick = (idx: number) => {
     const s = sections[idx];
     if (!s) return;
+
     const unlocked = firstUnreadIdx === -1 || idx <= firstUnreadIdx;
     if (!unlocked && !sectionDone[s.id]) return;
-    setSectionDone((prev) => ({ ...prev, [s.id]: !prev[s.id] }));
+
+    const quizzes = sectionQuizzes.get(s.id) ?? [];
+    const hasQuiz = quizzes.length > 0;
+
+    // jeśli sekcja już odhaczona → cofamy bez pytania
+    if (sectionDone[s.id]) {
+      setSectionDone((prev) => ({ ...prev, [s.id]: false }));
+      announce(`Sekcja ${idx + 1} cofnięta.`);
+      return;
+    }
+
+    // jeśli brak quizu → zwykłe odhaczenie
+    if (!hasQuiz) {
+      setSectionDone((prev) => ({ ...prev, [s.id]: true }));
+      announce(`Sekcja ${idx + 1} odhaczona.`);
+      return;
+    }
+
+    // jest quiz → otwórz modal
+    openQuizForSection(s.id);
   };
+
+  const handlePassActiveQuiz = () => {
+    const q = activeQuiz;
+    setActiveQuiz(null);
+    if (!q) return;
+    setQuizResults((prev) => ({ ...prev, [q.key]: true }));
+    // znajdź sekcję po kluczu
+    const sectionId = q.key.split(":")[0];
+    setSectionDone((prev) => ({ ...prev, [sectionId]: true }));
+    // ogłoszenie
+    const idx = sections.findIndex((s) => s.id === sectionId);
+    announce(`Sekcja ${idx + 1} odhaczona po pytaniu kontrolnym.`);
+  };
+
+  /** Renderer Markdown: wycina bloki ```quiz w treści (druk czysty) */
+  const markdownComponents = React.useMemo(
+    () => ({ code: CodeRenderer, pre: PreRenderer }),
+    []
+  );
 
   const handleCompleteLesson = async () => {
     if (!allChecked) {
@@ -146,10 +359,8 @@ export const StudentLesson: React.FC = () => {
         invalidateRPCCache("get_my_courses");
         try {
           localStorage.removeItem(progressKey);
-        } catch (error) {
-          console.error(error);
-          toast.error("Nie udało się ukończyć lekcji");
-        }
+          localStorage.removeItem(quizKey);
+        } catch {}
         navigate(`/student/courses/${courseId}`);
       }
     } catch {
@@ -157,34 +368,10 @@ export const StudentLesson: React.FC = () => {
     }
   };
 
-  // Live region do komunikatów a11y
-  const liveRef = React.useRef<HTMLDivElement | null>(null);
-  const announce = (msg: string) => {
-    if (!liveRef.current) return;
-    liveRef.current.textContent = "";
-    // niewielkie opóźnienie, aby SR wyłapał zmianę
-    setTimeout(() => {
-      if (liveRef.current) liveRef.current.textContent = msg;
-    }, 50);
-  };
-
-  React.useEffect(() => {
-    // Ogłaszaj postęp
-    const doneCount = Object.values(sectionDone).filter(Boolean).length;
-    if (sections.length) {
-      announce(`Postęp: ${doneCount} z ${sections.length} sekcji ukończonych.`);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(sectionDone), sections.length]);
-
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8 space-y-6 sm:space-y-8 pb-28 lg:pb-14">
       {/* Hidden live region for screen readers */}
-      <div
-        ref={liveRef}
-        aria-live="polite"
-        className="sr-only"
-      />
+      <div ref={liveRef} aria-live="polite" className="sr-only" />
 
       {/* BACK */}
       <button
@@ -244,7 +431,7 @@ export const StudentLesson: React.FC = () => {
             <LessonSkeleton />
           ) : (
             <section>
-              {/* Utrzymujemy otoczkę .prose na całej kolumnie */}
+              {/* Prose dla treści */}
               <div className="prose prose-neutral dark:prose-invert max-w-[68ch] mx-auto prose-headings:font-semibold prose-p:text-muted-foreground">
                 {sections.length > 0 ? (
                   sections.map((s, idx) => {
@@ -252,25 +439,13 @@ export const StudentLesson: React.FC = () => {
                     const unlocked = firstUnreadIdx === -1 || idx <= firstUnreadIdx;
                     const futureLocked = !unlocked && !isDone;
                     const isCurrentToCheck = idx === firstUnreadIdx && !isDone;
-
-                    const actionTitle = futureLocked
-                      ? "Najpierw ukończ poprzednie sekcje"
-                      : isDone
-                      ? "Sekcja odhaczona — kliknij, aby cofnąć"
-                      : "Odhacz tę sekcję";
+                    const quizzes = sectionQuizzes.get(s.id) ?? [];
+                    const hasQuiz = quizzes.length > 0;
+                    const quizForThisSection = hasQuiz ? quizzes[0] : null;
 
                     return (
-                      <div
-                        key={s.id}
-                        id={s.id}
-                        className="mb-10 scroll-mt-24 sm:scroll-mt-28 lg:scroll-mt-32"
-                      >
-                        {/* KARTA SEKCJI */}
-                        <div
-                          className={`rounded-2xl border bg-card p-4 sm:p-5 md:p-6 shadow-soft ${
-                            futureLocked ? "opacity-75" : ""
-                          }`}
-                        >
+                      <div key={s.id} id={s.id} className="mb-10 scroll-mt-24 sm:scroll-mt-28 lg:scroll-mt-32">
+                        <div className={`rounded-2xl border bg-card p-4 sm:p-5 md:p-6 shadow-soft ${futureLocked ? "opacity-75" : ""}`}>
                           {/* Pasek nagłówka */}
                           <div className="not-prose flex items-start sm:items-center justify-between gap-4 mb-4">
                             <div className="flex items-center gap-2">
@@ -286,41 +461,46 @@ export const StudentLesson: React.FC = () => {
                             </div>
                           </div>
 
-                          {/* Treść markdown */}
+                          {/* Treść markdown (quizy ukryte w rendererze) */}
                           <div className={futureLocked ? "pointer-events-none select-none" : ""}>
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.content}</ReactMarkdown>
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={markdownComponents}
+                            >
+                              {s.content}
+                            </ReactMarkdown>
                           </div>
 
-                          {/* ====== LEPSZY CHECKBOX ====== */}
+                          {/* CHECKBOX / PRZYCISK — z pytaniem w środku gdy jest quiz i sekcja niezaliczona */}
                           <div className="not-prose mt-5 flex items-start justify-end">
                             <div className="flex flex-col items-end gap-1">
                               <label
                                 className={`inline-flex items-center gap-3 max-w-full ${
                                   futureLocked ? "cursor-not-allowed" : "cursor-pointer"
                                 }`}
-                                title={actionTitle}
+                                title={
+                                  futureLocked
+                                    ? "Najpierw ukończ poprzednie sekcje"
+                                    : isDone
+                                    ? "Sekcja odhaczona — kliknij, aby cofnąć"
+                                    : hasQuiz
+                                    ? "Kliknij, aby odpowiedzieć na pytanie"
+                                    : "Odhacz tę sekcję"
+                                }
                               >
-                                {/* Natywny input dla a11y i klawiatury */}
                                 <input
                                   type="checkbox"
-                                  aria-label={`Odhacz sekcję: ${s.title || `Sekcja ${idx + 1}`}`}
                                   className="peer sr-only"
                                   checked={isDone}
                                   onChange={() => {
                                     if (futureLocked) return;
-                                    toggleSection(idx);
-                                    const msg = !isDone
-                                      ? `Sekcja ${idx + 1} odhaczona.`
-                                      : `Sekcja ${idx + 1} cofnięta.`;
-                                    announce(msg);
+                                    handleCheckboxClick(idx);
                                   }}
                                   disabled={futureLocked && !isDone}
                                   aria-disabled={futureLocked && !isDone}
-                                  id={`chk-${s.id}`}
-                                  aria-describedby={`hint-${s.id}`}
+                                  aria-label={`Odhacz sekcję: ${s.title || `Sekcja ${idx + 1}`}`}
                                 />
 
-                                {/* Wizualny przycisk */}
                                 <span
                                   role="presentation"
                                   className={[
@@ -335,28 +515,33 @@ export const StudentLesson: React.FC = () => {
                                       : "bg-background hover:bg-muted border-muted-foreground/30",
                                   ].join(" ")}
                                 >
-                                  {futureLocked ? (
-                                    <Lock className="h-4 w-4" />
-                                  ) : isDone ? (
-                                    <Check className="h-4 w-4" />
+                                  {quizForThisSection && !isDone ? (
+                                    // <<< TYLKO TREŚĆ PYTANIA >>>
+                                    <span className="truncate max-w-[52ch]">{quizForThisSection.question}</span>
                                   ) : (
-                                    <Circle className="h-4 w-4" />
+                                    <>
+                                      {isDone ? <Check className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+                                      <span className="whitespace-nowrap">
+                                        {String(idx + 1).padStart(2, "0")} •{" "}
+                                        {futureLocked
+                                          ? "Zablokowana"
+                                          : isDone
+                                          ? "Odhaczono"
+                                          : hasQuiz
+                                          ? "Odhacz (pytanie)"
+                                          : "Odhacz sekcję"}
+                                      </span>
+                                    </>
                                   )}
-                                  <span className="whitespace-nowrap">
-                                    {String(idx + 1).padStart(2, "0")} •{" "}
-                                    {futureLocked ? "Zablokowana" : isDone ? "Odhaczono" : "Odhacz sekcję"}
-                                  </span>
                                 </span>
                               </label>
 
                               {isCurrentToCheck && (
-                                <span id={`hint-${s.id}`} className="text-xs text-muted-foreground">
-                                  Zaznacz, aby przejść dalej
-                                </span>
+                                <span className="text-xs text-muted-foreground">Zaznacz, aby przejść dalej</span>
                               )}
                             </div>
                           </div>
-                          {/* ====== /LEPSZY CHECKBOX ====== */}
+                          {/* /CHECKBOX */}
                         </div>
 
                         <hr className="my-8" />
@@ -364,7 +549,9 @@ export const StudentLesson: React.FC = () => {
                     );
                   })
                 ) : md && typeof md === "string" ? (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{md}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                    {md}
+                  </ReactMarkdown>
                 ) : (
                   <div dangerouslySetInnerHTML={{ __html: (lesson?.content as string) || "" }} />
                 )}
@@ -431,6 +618,15 @@ export const StudentLesson: React.FC = () => {
           </nav>
         </aside>
       </div>
+
+      {/* QUIZ MODAL */}
+      {activeQuiz && (
+        <QuizModal
+          quiz={activeQuiz}
+          onClose={() => setActiveQuiz(null)}
+          onPass={handlePassActiveQuiz}
+        />
+      )}
     </div>
   );
 };
