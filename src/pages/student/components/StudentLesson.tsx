@@ -2,7 +2,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useOne } from "@refinedev/core";
-import { ArrowLeft, Clock } from "lucide-react";
+import { ArrowLeft, Clock, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { supabaseClient } from "@/utility";
 import { invalidateRPCCache } from "../hooks/useRPC";
@@ -37,15 +37,26 @@ const slug = (s: string) =>
 
 const splitMarkdownIntoSections = (md: string, fallbackTitle: string): Section[] => {
   const parts = md.split(/\n(?=##\s+)/g);
+
+  // Brak nagłówków "##" – pojedyncza sekcja
   if (parts.length <= 1 && !/^##\s+/.test(md)) {
-    return [{ id: slug(fallbackTitle || "sekcja"), title: fallbackTitle || "Sekcja", content: md }];
+    const title = fallbackTitle?.trim() || "Sekcja 1";
+    return [{ id: slug(title) || "sekcja-1", title, content: md }];
   }
+
+  // Podział na sekcje po "##"
   const sections: Section[] = [];
+  let counter = 1;
   for (const raw of parts) {
     const m = raw.match(/^##\s+(.+?)\s*$/m);
-    const title = m?.[1]?.trim() || "Sekcja";
+    const title = m?.[1]?.trim() || `Sekcja ${counter}`;
     const body = raw.replace(/^##\s+.+?\n/, "");
-    sections.push({ id: slug(title) || slug(fallbackTitle + Math.random()), title, content: body.trim() });
+    sections.push({
+      id: slug(title) || slug(`${fallbackTitle || "sekcja"}-${counter}`) || `sekcja-${counter}`,
+      title,
+      content: body.trim(),
+    });
+    counter++;
   }
   return sections;
 };
@@ -80,7 +91,9 @@ export const StudentLesson: React.FC = () => {
   });
 
   const lesson = (lessonData?.data ?? {}) as any;
-  const md: string | undefined = (lesson?.content_md ?? lesson?.markdown ?? lesson?.content) as string | undefined;
+  const md: string | undefined = (lesson?.content_md ?? lesson?.markdown ?? lesson?.content) as
+    | string
+    | undefined;
 
   const sections = React.useMemo<Section[]>(
     () => (md && typeof md === "string" ? splitMarkdownIntoSections(md, lesson?.title ?? "Sekcja") : []),
@@ -204,44 +217,99 @@ export const StudentLesson: React.FC = () => {
             <LessonSkeleton />
           ) : (
             <section>
+              {/* Utrzymujemy otoczkę .prose na całej kolumnie */}
               <div className="prose prose-neutral dark:prose-invert max-w-[68ch] mx-auto prose-headings:font-semibold prose-p:text-muted-foreground">
                 {sections.length > 0 ? (
                   sections.map((s, idx) => {
                     const isDone = !!sectionDone[s.id];
                     const unlocked = firstUnreadIdx === -1 || idx <= firstUnreadIdx;
                     const futureLocked = !unlocked && !isDone;
+                    const isCurrentToCheck = idx === firstUnreadIdx && !isDone;
+
                     return (
-                      <div key={s.id} className="mb-10" id={s.id}>
-                        <div className={futureLocked ? "opacity-60" : ""}>
-                          <h2 className="scroll-mt-28 md:scroll-mt-32">{s.title}</h2>
-                          <div className={futureLocked ? "pointer-events-none" : ""}>
+                      <div
+                        key={s.id}
+                        id={s.id}
+                        className="mb-10 scroll-mt-24 sm:scroll-mt-28 lg:scroll-mt-32"
+                      >
+                        {/* KARTA SEKCJI — UWAGA: brak not-prose tutaj, żeby markdown miał stylowanie */}
+                        <div
+                          className={`rounded-2xl border bg-card p-4 sm:p-5 md:p-6 shadow-soft ${
+                            futureLocked ? "opacity-75" : ""
+                          }`}
+                        >
+                          {/* Pasek nagłówka — checkbox usunięty z nagłówka */}
+                          <div className="not-prose flex items-start sm:items-center justify-between gap-4 mb-4">
+                            <div className="flex items-center gap-2">
+                              {!unlocked && !isDone && (
+                                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                                  <Lock className="h-3.5 w-3.5" />
+                                  Zablokowana
+                                </span>
+                              )}
+                              <h2 className="text-xl md:text-2xl font-semibold tracking-tight m-0">
+                                {s.title || `Sekcja ${idx + 1}`}
+                              </h2>
+                            </div>
+                          </div>
+
+                          {/* Treść markdown — z powrotem stylowana przez prose */}
+                          <div className={futureLocked ? "pointer-events-none select-none" : ""}>
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{s.content}</ReactMarkdown>
                           </div>
+
+                          {/* Checkbox przeniesiony na dół karty */}
+                          <div className="not-prose mt-5 flex items-start justify-end">
+                            <div className="flex flex-col items-end gap-1">
+                              <label className="inline-flex items-center gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  aria-label={`Odhacz sekcję: ${s.title || `Sekcja ${idx + 1}`}`}
+                                  className={`h-5 w-5 rounded border-muted-foreground/50 ${
+                                    isDone ? "ring-2 ring-green-500" : ""
+                                  }`}
+                                  checked={isDone}
+                                  onChange={() => toggleSection(idx)}
+                                  disabled={!unlocked && !isDone}
+                                />
+                                <span className="font-medium">
+                                  {String(idx + 1).padStart(2, "0")}
+                                </span>
+                              </label>
+                              {isCurrentToCheck && (
+                                <span className="text-xs text-muted-foreground">
+                                  Zaznacz, aby przejść dalej
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="not-prose mt-4 flex items-center justify-between gap-3">
-                          <label className="inline-flex items-center gap-2 text-sm">
-                            <input
-                              type="checkbox"
-                              className="h-4 w-4 rounded border-muted-foreground/40"
-                              checked={isDone}
-                              onChange={() => toggleSection(idx)}
-                              disabled={!unlocked && !isDone}
-                            />
-                            <span>{String(idx + 1).padStart(2, "0")}. {s.title}</span>
-                          </label>
-                        </div>
+
                         <hr className="my-8" />
                       </div>
                     );
                   })
+                ) : md && typeof md === "string" ? (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{md}</ReactMarkdown>
                 ) : (
-                  md && typeof md === "string" ? (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{md}</ReactMarkdown>
-                  ) : (
-                    <div dangerouslySetInnerHTML={{ __html: (lesson?.content as string) || "" }} />
-                  )
+                  <div dangerouslySetInnerHTML={{ __html: (lesson?.content as string) || "" }} />
                 )}
               </div>
+
+              {/* PRZYCISK UKOŃCZ LEKCJĘ */}
+              {!isLoading && sections.length > 0 && (
+                <div className="not-prose mt-8 flex justify-end">
+                  <button
+                    onClick={handleCompleteLesson}
+                    className="inline-flex items-center gap-2 rounded-lg border bg-background px-4 py-2 text-sm font-medium shadow-soft hover:bg-muted transition-colors disabled:opacity-60"
+                    disabled={!allChecked}
+                    aria-disabled={!allChecked}
+                    title={!allChecked ? "Najpierw odhacz wszystkie sekcje" : undefined}
+                  >
+                    Zakończ lekcję
+                  </button>
+                </div>
+              )}
             </section>
           )}
         </main>
@@ -258,14 +326,20 @@ export const StudentLesson: React.FC = () => {
                   const isDone = !!sectionDone[s.id];
                   const unlocked = firstUnreadIdx === -1 || idx <= firstUnreadIdx;
                   return (
-                    <li key={s.id}>
+                    <li key={s.id} className="flex items-center gap-1">
+                      {!unlocked && !isDone ? (
+                        <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                      ) : (
+                        <span className="h-3.5 w-3.5" />
+                      )}
                       <a
                         href={`#${s.id}`}
-                        className={`block px-2 py-1 rounded hover:bg-muted transition-colors ${
-                          isDone ? "text-green-600" : unlocked ? "" : "text-muted-foreground"
+                        className={`flex-1 block px-2 py-1 rounded hover:bg-muted transition-colors ${
+                          isDone ? "text-green-600" : unlocked ? "" : "text-muted-foreground pointer-events-none"
                         }`}
+                        aria-disabled={!unlocked && !isDone}
                       >
-                        {String(idx + 1).padStart(2, "0")}. {s.title}
+                        {String(idx + 1).padStart(2, "0")}. {s.title || `Sekcja ${idx + 1}`}
                       </a>
                     </li>
                   );
