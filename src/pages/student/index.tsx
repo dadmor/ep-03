@@ -88,6 +88,3 @@ export const StudentModule = (
     element={<StudentModuleWrapper />}
   />
 );
-
-// Re-eksport tras dla kompatybilności wstecznej
-export { studentRoutes } from './routes';
