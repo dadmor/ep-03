@@ -1,4 +1,4 @@
-// src/App.tsx - POPRAWIONY ABY STUDENT MIAŁ OSOBNY LAYOUT
+// src/App.tsx - PEŁNA MODULARNOŚĆ
 import { Authenticated, ErrorComponent, Refine, useGetIdentity } from "@refinedev/core";
 import routerBindings, {
   CatchAllNavigate,
@@ -6,7 +6,7 @@ import routerBindings, {
   UnsavedChangesNotifier,
 } from "@refinedev/react-router";
 import { dataProvider, liveProvider } from "@refinedev/supabase";
-import { BrowserRouter, Outlet, Route, Routes, Navigate } from "react-router";
+import { BrowserRouter, Outlet, Route, Routes, Navigate } from "react-router-dom";
 import { Layout } from "./components/layout";
 import { authProvider, supabaseClient } from "./utility";
 
@@ -38,8 +38,13 @@ import {
 // Import panelu ucznia
 import { studentRoutes } from "./pages/student";
 
-import { authRoutes } from "./pages/auth";
+
+
 import LandingPage from "./pages/Landing";
+import { LoginPage } from "./pages/auth/login";
+import { RegisterModule } from "./pages/auth/register";
+import { ForgotPasswordPage } from "./pages/auth/forgot-password";
+import { UpdatePasswordPage } from "./pages/auth/update-password";
 
 // Komponent sprawdzający rolę i przekierowujący
 const RoleBasedRedirect = () => {
@@ -61,26 +66,17 @@ function App() {
         authProvider={authProvider}
         routerProvider={routerBindings}
         resources={[
-          // Główne zasoby
           dashboardResource,
-          
-          // Zarządzanie kursami (hierarchia)
           coursesResource,
           topicsResource,
           activitiesResource,
-          
-          // Zarządzanie użytkownikami
           groupsResource,
           usersResource,
-          
-          // Administracja
           vendorsResource,
           reportsResource,
-
-          // Kreatory AI
-          courseStructureResource,     // Generator struktury kursu
-          educationalMaterialResource, // Kreator materiałów
-          quizWizardResource,         // Kreator quizów
+          courseStructureResource,
+          educationalMaterialResource,
+          quizWizardResource,
         ]}
         options={{
           syncWithLocation: true,
@@ -92,7 +88,12 @@ function App() {
         <Routes>
           {/* Publiczne trasy */}
           <Route path="/" element={<LandingPage />} />
-          {...authRoutes}
+          
+          {/* MODULARNIE - każda strona to osobny moduł */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register/*" element={<RegisterModule />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/update-password" element={<UpdatePasswordPage />} />
 
           {/* Chronione trasy - dla adminów i nauczycieli */}
           <Route
@@ -107,11 +108,9 @@ function App() {
               </Authenticated>
             }
           >
-            {/* PRZEKIEROWANIA DLA NIEISTNIEJĄCYCH TRAS */}
             <Route path="/admin" element={<RoleBasedRedirect />} />
             <Route path="/teacher" element={<RoleBasedRedirect />} />
             
-            {/* Dashboard jako strona główna dla adminów/nauczycieli */}
             <Route
               path="/dashboard"
               element={<Navigate to="/dashboard/overview" replace />}
@@ -119,28 +118,20 @@ function App() {
 
             {/* Trasy pogrupowane logicznie */}
             {...dashboardRoutes}
-            
-            {/* Zarządzanie kursami */}
             {...coursesRoutes}
             {...topicsRoutes}
             {...activitiesRoutes}
             {...questionsRoutes}
-            
-            {/* Kreatory AI */}
             {...courseStructureRoutes}
             {...educationalMaterialRoutes}
             {...quizWizardRoutes}
-            
-            {/* Zarządzanie użytkownikami */}
             {...groupsRoutes}
             {...usersRoutes}
-            
-            {/* Administracja */}
             {...vendorsRoutes}
             {...reportsRoutes}
           </Route>
 
-          {/* Panel ucznia - OSOBNY LAYOUT BEZ WSPÓLNEGO WRAPPERA */}
+          {/* Panel ucznia */}
           <Route
             element={
               <Authenticated
@@ -151,28 +142,12 @@ function App() {
               </Authenticated>
             }
           >
-            {/* Przekierowanie dla /student */}
             <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
-            
-            {/* Trasy ucznia z własnym layoutem */}
             {...studentRoutes}
           </Route>
 
           {/* Catch all dla nieznanych tras */}
           <Route path="*" element={<ErrorComponent />} />
-
-          {/* Dodatkowe zabezpieczenie */}
-          <Route
-            path="*"
-            element={
-              <Authenticated
-                key="catch-all-redirect"
-                fallback={<Navigate to="/login" replace />}
-              >
-                <RoleBasedRedirect />
-              </Authenticated>
-            }
-          />
         </Routes>
 
         <UnsavedChangesNotifier />

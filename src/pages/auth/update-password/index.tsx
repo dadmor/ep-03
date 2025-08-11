@@ -1,23 +1,32 @@
-// src/pages/auth/update-password.tsx
-import React from 'react';
-import { useUpdatePassword } from '@refinedev/core';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle, Key, AlertTriangle, Info } from 'lucide-react';
-import { NarrowCol } from '@/components/layout/NarrowCol';
-import { supabaseClient } from '@/utility';
+// ============================================
+// src/pages/auth/update-password/index.tsx
+// KOMPLETNY MODUŁ AKTUALIZACJI HASŁA
+// ============================================
 
+import React from "react";
+import { useUpdatePassword } from "@refinedev/core";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, CheckCircle, Key, AlertTriangle, Info } from "lucide-react";
+import { NarrowCol } from "@/components/layout/NarrowCol";
+import { supabaseClient } from "@/utility";
 
 export const UpdatePasswordPage: React.FC = () => {
   const navigate = useNavigate();
-  const { mutate: updatePassword, isLoading, error } = useUpdatePassword();
-  const [password, setPassword] = React.useState('');
-  const [confirmPassword, setConfirmPassword] = React.useState('');
-  const [formError, setFormError] = React.useState('');
+  const { mutate: updatePassword, isLoading } = useUpdatePassword();
+  const [password, setPassword] = React.useState("");
+  const [confirmPassword, setConfirmPassword] = React.useState("");
+  const [formError, setFormError] = React.useState("");
   const [isValidSession, setIsValidSession] = React.useState(true);
   const [isCheckingSession, setIsCheckingSession] = React.useState(true);
   const [updateSuccess, setUpdateSuccess] = React.useState(false);
@@ -27,24 +36,18 @@ export const UpdatePasswordPage: React.FC = () => {
     const checkSession = async () => {
       try {
         const { data } = await supabaseClient.auth.getSession();
-        
-        // Sprawdź w URL czy to recovery
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const type = hashParams.get('type');
-        
-        // Sprawdź czy mamy sesję i czy to sesja recovery
-        if (!data.session && type !== 'recovery') {
-          console.log('No valid recovery session found');
+        const hashParams = new URLSearchParams(
+          window.location.hash.substring(1)
+        );
+        const type = hashParams.get("type");
+
+        if (!data.session && type !== "recovery") {
           setIsValidSession(false);
-          setTimeout(() => {
-            navigate('/forgot-password');
-          }, 3000);
+          setTimeout(() => navigate("/forgot-password"), 3000);
         } else {
-          console.log('Valid session found');
           setIsValidSession(true);
         }
       } catch (error) {
-        console.error('Session check error:', error);
         setIsValidSession(false);
       } finally {
         setIsCheckingSession(false);
@@ -56,21 +59,21 @@ export const UpdatePasswordPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError('');
+    setFormError("");
 
     // Walidacja
     if (password !== confirmPassword) {
-      setFormError('Hasła nie są identyczne');
+      setFormError("Hasła nie są identyczne");
       return;
     }
 
     if (password.length < 6) {
-      setFormError('Hasło musi mieć co najmniej 6 znaków');
+      setFormError("Hasło musi mieć co najmniej 6 znaków");
       return;
     }
 
     if (password.length > 72) {
-      setFormError('Hasło nie może być dłuższe niż 72 znaki');
+      setFormError("Hasło nie może być dłuższe niż 72 znaki");
       return;
     }
 
@@ -80,15 +83,11 @@ export const UpdatePasswordPage: React.FC = () => {
       {
         onSuccess: () => {
           setUpdateSuccess(true);
-          // Po 3 sekundach przekieruj do logowania
-          setTimeout(() => {
-            navigate('/login?passwordChanged=true');
-          }, 3000);
+          setTimeout(() => navigate("/login?passwordChanged=true"), 3000);
         },
         onError: (error: any) => {
-          console.error('Password update error:', error);
-          setFormError(error?.message || 'Błąd aktualizacji hasła');
-        }
+          setFormError(error?.message || "Błąd aktualizacji hasła");
+        },
       }
     );
   };
@@ -116,7 +115,8 @@ export const UpdatePasswordPage: React.FC = () => {
               <AlertDescription>
                 <strong>Nieprawidłowa lub wygasła sesja.</strong>
                 <br />
-                Link do resetowania hasła mógł wygasnąć. Za chwilę zostaniesz przekierowany do strony resetowania hasła...
+                Link do resetowania hasła mógł wygasnąć. Za chwilę zostaniesz
+                przekierowany...
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -140,7 +140,8 @@ export const UpdatePasswordPage: React.FC = () => {
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                Twoje hasło zostało pomyślnie zmienione. Za chwilę zostaniesz przekierowany do strony logowania...
+                Twoje hasło zostało pomyślnie zmienione. Za chwilę zostaniesz
+                przekierowany do strony logowania...
               </AlertDescription>
             </Alert>
           </CardContent>
@@ -205,20 +206,14 @@ export const UpdatePasswordPage: React.FC = () => {
             </Alert>
 
             {/* Błędy */}
-            {(error || formError) && (
+            {formError && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  {formError || error?.message || 'Błąd aktualizacji hasła'}
-                </AlertDescription>
+                <AlertDescription>{formError}</AlertDescription>
               </Alert>
             )}
 
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading}
-            >
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLoading ? "Aktualizowanie..." : "Zaktualizuj hasło"}
             </Button>
@@ -226,11 +221,8 @@ export const UpdatePasswordPage: React.FC = () => {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Pamiętasz hasło?{' '}
-              <a 
-                href="/login" 
-                className="text-blue-600 hover:text-blue-500"
-              >
+              Pamiętasz hasło?{" "}
+              <a href="/login" className="text-blue-600 hover:text-blue-500">
                 Wróć do logowania
               </a>
             </p>
