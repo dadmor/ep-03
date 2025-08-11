@@ -1,4 +1,7 @@
+// ============================================
 // src/pages/auth/login/services/loginService.ts
+// KOMPLETNY SERWIS LOGIN Z WŁASNĄ OBSŁUGĄ BŁĘDÓW
+// ============================================
 
 import { supabaseClient } from '@/utility';
 
@@ -14,31 +17,48 @@ const LOGIN_ERRORS: Record<string, string> = {
   'Too many requests': 'Zbyt wiele prób. Spróbuj ponownie za chwilę.',
 };
 
-// Funkcja pomocnicza do parsowania błędów
-const parseLoginError = (error: any): string => {
-  if (!error) return 'Nieznany błąd';
-  
-  // Sprawdź dokładne dopasowanie po code
-  if (error.code && LOGIN_ERRORS[error.code]) {
-    return LOGIN_ERRORS[error.code];
+// Parser błędów dla modułu login
+const parseLoginError = (error: any) => {
+  if (!error) {
+    return {
+      message: 'Nieznany błąd',
+      name: 'UnknownError',
+      statusCode: 500
+    };
   }
   
-  // Sprawdź czy message zawiera znany błąd
-  if (error.message) {
-    for (const [key, value] of Object.entries(LOGIN_ERRORS)) {
-      if (error.message.includes(key)) {
-        return value;
-      }
+  const errorMessage = error.message || error.error_description || '';
+  
+  // Sprawdź znane błędy
+  for (const [key, value] of Object.entries(LOGIN_ERRORS)) {
+    if (errorMessage.includes(key)) {
+      return {
+        message: value,
+        name: 'LoginError',
+        statusCode: error.code === 'invalid_credentials' ? 401 : 400
+      };
     }
   }
   
-  // Zwróć oryginalny message lub domyślny
-  return error.message || 'Błąd logowania';
+  return {
+    message: errorMessage || 'Błąd logowania',
+    name: 'LoginError',
+    statusCode: 400
+  };
 };
 
 export const loginService = {
+  // Wersja dla komponentów (zwraca prosty obiekt)
   login: async (email: string, password: string) => {
     try {
+      // Walidacja
+      if (!email || !password) {
+        return {
+          success: false,
+          error: "Email i hasło są wymagane"
+        };
+      }
+
       const { data, error } = await supabaseClient.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
@@ -46,11 +66,18 @@ export const loginService = {
       
       if (error) {
         console.log('Login error:', error);
-        throw new Error(parseLoginError(error));
+        const parsed = parseLoginError(error);
+        return {
+          success: false,
+          error: parsed.message
+        };
       }
 
       if (!data.session) {
-        throw new Error('Nie udało się utworzyć sesji');
+        return {
+          success: false,
+          error: 'Nie udało się utworzyć sesji'
+        };
       }
 
       // Pobierz dane użytkownika
@@ -70,6 +97,24 @@ export const loginService = {
         error: error.message || 'Nieznany błąd'
       };
     }
+  },
+
+  // Wersja dla Refine (zwraca format zgodny z AuthBindings)
+  loginForRefine: async (email: string, password: string) => {
+    const result = await loginService.login(email, password);
+    
+    if (!result.success) {
+      return {
+        success: false,
+        error: {
+          message: result.error,
+          name: 'LoginError',
+          statusCode: 400
+        }
+      };
+    }
+    
+    return result;
   },
 
   checkAuth: async () => {
