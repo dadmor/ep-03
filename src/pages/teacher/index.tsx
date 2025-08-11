@@ -1,37 +1,16 @@
+// src/pages/teacher/index.tsx
 /**
- * MODUŁ TEACHER - ARCHITEKTURA MIKROSERWISOWA
- * 
- * UWAGA DLA INNYCH DEVELOPERÓW I AI:
- * ====================================
- * TO JEST SAMOWYSTARCZALNY MODUŁ W ARCHITEKTURZE MIKROSERWISOWEJ!
- * 
- * NIE WOLNO:
- * - Wyciągać komponentów do wspólnych folderów
- * - Używać wspólnego Layout z components/layout
- * - Dzielić logiki między moduły
- * - Importować niczego z innych modułów (np. student)
- * 
- * WSZYSTKO CO POTRZEBUJE TEN MODUŁ JEST TUTAJ:
- * - Własny Layout (./components/TeacherLayout)
- * - Własne Menu (./components/TeacherMenu)
- * - Własne Resources dla Refine
- * - Własne komponenty UI
- * 
- * KAŻDY MODUŁ JEST NIEZALEŻNY I MOŻE MIEĆ ZUPEŁNIE INNY WYGLĄD!
+ * MODUŁ TEACHER — izolowany, z własnym guardem roli
  */
 
 import { lazy, Suspense } from "react";
 import { Route, Routes, Outlet, Navigate } from "react-router-dom";
-import { 
-  AccessGuard, 
-  LoadingFallback,
-  ModulePanel 
-} from "@/components/modules";
-import { Authenticated } from "@refinedev/core";
+import { Authenticated, useGetIdentity } from "@refinedev/core";
 import { CatchAllNavigate } from "@refinedev/react-router";
-import { Home, BookOpen, FileText, Users, Package, ChartBar } from "lucide-react";
+import { useEffect } from "react";
 
-// Import wszystkich tras TEGO MODUŁU
+import { TeacherLayout } from "./TeacherLayout";
+
 import { dashboardRoutes } from "./dashboard";
 import { coursesRoutes } from "./courses";
 import { topicsRoutes } from "./topics";
@@ -45,61 +24,6 @@ import { educationalMaterialRoutes } from "./educational-material-wizard";
 import { quizWizardRoutes } from "./quiz-wizard";
 import { questionsRoutes } from "./questions";
 
-// RESOURCES DLA TEGO MODUŁU - będą widoczne w menu przez useMenu()
-const teacherResources = [
-  {
-    name: "dashboard",
-    list: "/teacher/dashboard/overview",
-    meta: {
-      label: "Dashboard",
-      icon: <Home className="w-5 h-5" />,
-    },
-  },
-  {
-    name: "courses",
-    list: "/teacher/courses",
-    create: "/teacher/courses/create",
-    edit: "/teacher/courses/edit/:id",
-    show: "/teacher/courses/show/:id",
-    meta: {
-      label: "Kursy",
-      icon: <BookOpen className="w-5 h-5" />,
-    },
-  },
-  {
-    name: "users",
-    list: "/teacher/users",
-    create: "/teacher/users/create",
-    edit: "/teacher/users/edit/:id",
-    meta: {
-      label: "Użytkownicy",
-      icon: <Users className="w-5 h-5" />,
-    },
-  },
-  {
-    name: "vendors",
-    list: "/teacher/vendors",
-    create: "/teacher/vendors/create",
-    edit: "/teacher/vendors/edit/:id",
-    meta: {
-      label: "Vendorzy",
-      icon: <Package className="w-5 h-5" />,
-    },
-  },
-  {
-    name: "reports",
-    list: "/teacher/reports",
-    meta: {
-      label: "Raporty",
-      icon: <ChartBar className="w-5 h-5" />,
-    },
-  },
-];
-
-// Import layoutu Z TEGO MODUŁU
-import { TeacherLayout } from "./TeacherLayout";
-
-// Wszystkie trasy nauczyciela - WSZYSTKO W TYM MODULE!
 const allTeacherRoutes = [
   ...dashboardRoutes,
   ...coursesRoutes,
@@ -115,58 +39,60 @@ const allTeacherRoutes = [
   ...reportsRoutes,
 ];
 
-// Panel Component - WEWNĄTRZ MODUŁU!
 const TeacherPanelComponent = () => (
-  <ModulePanel 
-    routes={allTeacherRoutes}
-    defaultPath="dashboard/overview"
-    resources={teacherResources} // Resources dla useMenu()
-    layout={
-      <Routes>
-        <Route
-          element={
-            <TeacherLayout> {/* WŁASNY LAYOUT MODUŁU! */}
-              <Outlet />
-            </TeacherLayout>
-          }
-        >
-          <Route index element={<Navigate to="dashboard/overview" replace />} />
-          {...allTeacherRoutes}
-        </Route>
-      </Routes>
-    }
-  />
+  <Routes>
+    <Route
+      element={
+        <TeacherLayout>
+          <Outlet />
+        </TeacherLayout>
+      }
+    >
+      <Route index element={<Navigate to="dashboard/overview" replace />} />
+      <Route path="dashboard" element={<Navigate to="dashboard/overview" replace />} />
+      {allTeacherRoutes}
+    </Route>
+  </Routes>
 );
 
-// Lazy load panelu nauczyciela - PROSTY SPOSÓB!
 const TeacherPanel = lazy(() => Promise.resolve({ default: TeacherPanelComponent }));
 
-// Eksport modułu - obsługuje /teacher/*
+const LoadingFallback = ({ text, colorClass }: { text: string; colorClass: string }) => (
+  <div className="fixed inset-0 flex items-center justify-center bg-background">
+    <div className="text-center">
+      <div className={`inline-block h-12 w-12 animate-spin rounded-full border-4 border-current border-r-transparent ${colorClass}`} />
+      <p className="mt-4 text-muted-foreground">{text}</p>
+    </div>
+  </div>
+);
+
+// Guard: wpuszcza tylko teacher/admin, resztę przekierowuje do student dashboard
+const TeacherAccessGuard = ({ children }: { children: React.ReactNode }) => {
+  const { data: identity, isLoading } = useGetIdentity<any>();
+
+  if (isLoading || !identity) {
+    return <LoadingFallback text="Sprawdzanie uprawnień..." colorClass="border-indigo-600" />;
+  }
+
+  if (!["teacher", "admin"].includes(identity.role)) {
+    return <Navigate to="/student/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 export const TeacherModule = (
   <Route
     path="/teacher/*"
     element={
-      <Authenticated
-        key="teacher-auth-check"
-        fallback={<CatchAllNavigate to="/login" />}
-      >
-        <AccessGuard
-          allowedRoles={['teacher', 'admin']}
-          fallbackPath="/student/dashboard"
-          loadingText="Ładowanie panelu nauczyciela..."
-          loadingColorClass="border-indigo-600"
-        >
-          <Suspense 
-            fallback={
-              <LoadingFallback 
-                text="Ładowanie panelu nauczyciela..." 
-                colorClass="border-indigo-600" 
-              />
-            }
+      <Authenticated key="teacher-auth" fallback={<CatchAllNavigate to="/login" />}>
+        <TeacherAccessGuard>
+          <Suspense
+            fallback={<LoadingFallback text="Ładowanie panelu nauczyciela..." colorClass="border-indigo-600" />}
           >
             <TeacherPanel />
           </Suspense>
-        </AccessGuard>
+        </TeacherAccessGuard>
       </Authenticated>
     }
   />

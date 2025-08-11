@@ -1,11 +1,9 @@
-// ============================================
 // src/pages/auth/login/LoginPage.tsx
-// GŁÓWNY KOMPONENT STRONY (lazy loaded)
-// ============================================
+// prosty redirect po zalogowaniu wg roli
 
 import React from "react";
-import { useLogin, useIsAuthenticated, useGetIdentity } from "@refinedev/core";
-import { Link, useSearchParams, Navigate } from "react-router-dom";
+import { useIsAuthenticated, useGetIdentity } from "@refinedev/core";
+import { useSearchParams, Navigate } from "react-router-dom";
 import { LoginLayout } from "./components/LoginLayout";
 import { LoginForm } from "./components/LoginForm";
 import { useLoginLogic } from "./hooks/useLoginLogic";
@@ -20,7 +18,6 @@ const LoginPage: React.FC = () => {
   const verified = searchParams.get("verified") === "true";
   const passwordChanged = searchParams.get("passwordChanged") === "true";
 
-  // Loader podczas sprawdzania autentykacji
   if (authLoading || userLoading) {
     return (
       <LoginLayout>
@@ -31,15 +28,20 @@ const LoginPage: React.FC = () => {
     );
   }
 
-  // Przekierowanie jeśli zalogowany
   if (isAuthenticated && user) {
-    const redirectPath = user.role ? `/${user.role}` : "/profiles";
+    const redirectPath =
+      user.role === "teacher" || user.role === "admin"
+        ? "/teacher/dashboard/overview"
+        : user.role === "student"
+        ? "/student/dashboard"
+        : "/profiles";
+
     return <Navigate to={redirectPath} replace />;
   }
 
   return (
     <LoginLayout>
-      <LoginForm 
+      <LoginForm
         {...loginLogic}
         showVerifiedMessage={verified}
         showPasswordChangedMessage={passwordChanged}
