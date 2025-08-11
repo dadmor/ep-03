@@ -1,4 +1,5 @@
-//src/pages/auth/login/services/loginService.ts
+// src/pages/auth/login/services/loginService.ts
+
 import { supabaseClient } from '@/utility';
 
 // Lokalne błędy tylko dla login
@@ -13,6 +14,28 @@ const LOGIN_ERRORS: Record<string, string> = {
   'Too many requests': 'Zbyt wiele prób. Spróbuj ponownie za chwilę.',
 };
 
+// Funkcja pomocnicza do parsowania błędów
+const parseLoginError = (error: any): string => {
+  if (!error) return 'Nieznany błąd';
+  
+  // Sprawdź dokładne dopasowanie po code
+  if (error.code && LOGIN_ERRORS[error.code]) {
+    return LOGIN_ERRORS[error.code];
+  }
+  
+  // Sprawdź czy message zawiera znany błąd
+  if (error.message) {
+    for (const [key, value] of Object.entries(LOGIN_ERRORS)) {
+      if (error.message.includes(key)) {
+        return value;
+      }
+    }
+  }
+  
+  // Zwróć oryginalny message lub domyślny
+  return error.message || 'Błąd logowania';
+};
+
 export const loginService = {
   login: async (email: string, password: string) => {
     try {
@@ -23,13 +46,7 @@ export const loginService = {
       
       if (error) {
         console.log('Login error:', error);
-        // Sprawdź po code i message
-        const errorMessage = LOGIN_ERRORS[error.code] || 
-                           LOGIN_ERRORS[error.message] || 
-                           error.message || 
-                           'Błąd logowania';
-        
-        throw new Error(errorMessage);
+        throw new Error(parseLoginError(error));
       }
 
       if (!data.session) {
