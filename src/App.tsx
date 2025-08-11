@@ -1,6 +1,11 @@
-// src/App.tsx - NAPRAWIONA ARCHITEKTURA MIKROSERWISOWA
+// src/App.tsx - ARCHITEKTURA MIKROSERWISOWA
+
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Refine } from "@refinedev/core";
+import { dataProvider } from "@refinedev/supabase";
+import { supabaseClient } from "./utility";
+import { authProvider } from "./utility/auth/authProvider";
 
 // Import Landing Page
 import LandingPage from "./pages/Landing";
@@ -13,7 +18,7 @@ import {
   UpdatePasswordModule 
 } from "./pages/auth";
 
-// Import modułów aplikacji (każdy z własnym lazy loading i Refine)
+// Import modułów aplikacji
 import { TeacherModule } from "./pages/teacher";
 import { StudentModule } from "./pages/student";
 
@@ -30,22 +35,33 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          {/* Publiczne trasy */}
-          <Route path="/" element={<LandingPage />} />
-          
-          {/* MODUŁY AUTH - jako elementy JSX */}
-          {LoginModule}
-          {RegisterModule}
-          {ForgotPasswordModule}
-          {UpdatePasswordModule}
+      <Refine
+        dataProvider={dataProvider(supabaseClient)}
+        authProvider={authProvider}
+        resources={[]}
+        options={{
+          syncWithLocation: false,
+          warnWhenUnsavedChanges: false,
+          useNewQueryKeys: true,
+        }}
+      >
+        <BrowserRouter>
+          <Routes>
+            {/* Landing Page */}
+            <Route path="/" element={<LandingPage />} />
+            
+            {/* MODUŁY AUTH - jako elementy JSX */}
+            {LoginModule}
+            {RegisterModule}
+            {ForgotPasswordModule}
+            {UpdatePasswordModule}
 
-          {/* MODUŁY APLIKACJI - każdy sam zarządza swoimi trasami */}
-          <>{TeacherModule}</>
-          {StudentModule}
-        </Routes>
-      </BrowserRouter>
+            {/* MODUŁY APLIKACJI - już są elementami JSX */}
+            {TeacherModule}
+            {StudentModule}
+          </Routes>
+        </BrowserRouter>
+      </Refine>
     </QueryClientProvider>
   );
 }
