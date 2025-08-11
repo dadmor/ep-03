@@ -1,6 +1,4 @@
-// src/App.tsx
-// ARCHITEKTURA MIKROSERWISOWA — prosta, spójna nawigacja po zalogowaniu
-
+// path: src/App.tsx
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -11,24 +9,18 @@ import { authProvider } from "./utility/auth/authProvider";
 
 import LandingPage from "./pages/landing/Landing";
 
-// Moduły auth (lazy w środku)
-import { LoginModule } from "./pages/auth";
-import { RegisterModule } from "./pages/auth";
-import { ForgotPasswordModule } from "./pages/auth";
-import { UpdatePasswordModule } from "./pages/auth";
+// Auth
+import { LoginModule, RegisterModule, ForgotPasswordModule, UpdatePasswordModule } from "./pages/auth";
 
-// Moduły aplikacji (z własnymi guardami)
+// Panele (ROUTES)
 import { TeacherModule } from "./pages/teacher";
 import { StudentModule } from "./pages/student";
 
+// >>> jedyny import MENU dla teachera
+import { teacherResources } from "./pages/teacher/resources";
+
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: false,
-      staleTime: 5 * 60 * 1000,
-    },
-  },
+  defaultOptions: { queries: { refetchOnWindowFocus: false, retry: false, staleTime: 5 * 60 * 1000 } },
 });
 
 function App() {
@@ -37,9 +29,10 @@ function App() {
       <Refine
         dataProvider={dataProvider(supabaseClient)}
         authProvider={authProvider}
-        resources={[]}
+        // >>> CHUDO: tylko jedna tablica z modułu teachera
+        resources={teacherResources}
         options={{
-          syncWithLocation: false,
+          syncWithLocation: true,
           warnWhenUnsavedChanges: false,
           useNewQueryKeys: true,
           disableTelemetry: true,
@@ -55,7 +48,7 @@ function App() {
             {ForgotPasswordModule}
             {UpdatePasswordModule}
 
-            {/* APP */}
+            {/* APP (ROUTES per rola) */}
             {TeacherModule}
             {StudentModule}
 
