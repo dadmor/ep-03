@@ -8,7 +8,7 @@ import { supabaseClient } from "./utility";
 import { authProvider } from "./utility/auth/authProvider";
 
 // Import Landing Page
-import LandingPage from "./pages/Landing";
+import LandingPage from "./pages/landing/Landing";
 
 // Import modułów auth (każdy z własnym lazy loading)
 import { 
