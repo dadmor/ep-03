@@ -1,6 +1,6 @@
 // src/App.tsx - ARCHITEKTURA MIKROSERWISOWA
 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Refine } from "@refinedev/core";
 import { dataProvider } from "@refinedev/supabase";
@@ -28,6 +28,7 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: false,
       retry: false,
+      staleTime: 5 * 60 * 1000, // 5 minut
     },
   },
 });
@@ -43,6 +44,7 @@ function App() {
           syncWithLocation: false,
           warnWhenUnsavedChanges: false,
           useNewQueryKeys: true,
+          disableTelemetry: true, // Wyłączona telemetria
         }}
       >
         <BrowserRouter>
@@ -59,6 +61,12 @@ function App() {
             {/* MODUŁY APLIKACJI - już są elementami JSX */}
             {TeacherModule}
             {StudentModule}
+            
+            {/* Alias dla /admin */}
+            <Route path="/admin/*" element={<Navigate to="/teacher" replace />} />
+            
+            {/* Catch-all - przekierowanie na stronę główną */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </Refine>

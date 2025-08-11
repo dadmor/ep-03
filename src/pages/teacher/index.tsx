@@ -1,13 +1,8 @@
 // src/pages/teacher/index.tsx
-// MODUŁ TEACHER - KOMPLETNY MIKROSERWIS
-
 import { lazy, Suspense } from "react";
-import { Route, Routes, Navigate } from "react-router-dom";
-import { Refine, Authenticated, useGetIdentity } from "@refinedev/core";
+import { Route, Navigate } from "react-router-dom";
+import { Authenticated, useGetIdentity } from "@refinedev/core";
 import { CatchAllNavigate } from "@refinedev/react-router";
-import routerBindings from "@refinedev/react-router";
-import { dataProvider, liveProvider } from "@refinedev/supabase";
-import { authProvider, supabaseClient } from "@/utility";
 
 // Lazy load głównego komponentu Teacher Panel
 const TeacherPanel = lazy(() => import('./TeacherPanel'));
@@ -38,47 +33,21 @@ const TeacherAccessGuard = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Wrapper z Refine
-const TeacherModuleWrapper = () => {
-  return (
-    <Refine
-      dataProvider={dataProvider(supabaseClient)}
-      liveProvider={liveProvider(supabaseClient)}
-      authProvider={authProvider}
-      routerProvider={routerBindings}
-      resources={[]}
-      options={{
-        syncWithLocation: true,
-        warnWhenUnsavedChanges: true,
-        useNewQueryKeys: true,
-        liveMode: "auto",
-      }}
-    >
-      <Routes>
-        <Route
-          path="/*"
-          element={
-            <Authenticated
-              key="teacher-auth-check"
-              fallback={<CatchAllNavigate to="/login" />}
-            >
-              <TeacherAccessGuard>
-                <Suspense fallback={<TeacherLoadingFallback />}>
-                  <TeacherPanel />
-                </Suspense>
-              </TeacherAccessGuard>
-            </Authenticated>
-          }
-        />
-      </Routes>
-    </Refine>
-  );
-};
-
-// Eksport modułu - BEZ FUNKCJI, TYLKO JSX
+// Eksport modułu - obsługuje /teacher/*
 export const TeacherModule = (
   <Route
     path="/teacher/*"
-    element={<TeacherModuleWrapper />}
+    element={
+      <Authenticated
+        key="teacher-auth-check"
+        fallback={<CatchAllNavigate to="/login" />}
+      >
+        <TeacherAccessGuard>
+          <Suspense fallback={<TeacherLoadingFallback />}>
+            <TeacherPanel />
+          </Suspense>
+        </TeacherAccessGuard>
+      </Authenticated>
+    }
   />
 );
