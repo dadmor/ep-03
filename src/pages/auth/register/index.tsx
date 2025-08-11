@@ -1,38 +1,32 @@
 // ============================================
 // src/pages/auth/register/index.tsx
-// KOMPLETNY MODUŁ REJESTRACJI - MIKROSERWIS
+// MODUŁ REGISTER Z WŁASNYM LAZY LOADING
 // ============================================
 
-import React from "react";
-import { Route, Routes, useNavigate, Navigate } from "react-router-dom";
-import { useRegistrationStore } from "./hooks/useRegistrationStore";
-import { useRegistrationLogic } from "./hooks/useRegistrationLogic";
-import { RegisterLayout } from "./components/RegisterLayout";
-import { Step1BasicInfo } from "./components/Step1BasicInfo";
-import { Step2Password } from "./components/Step2Password";
-import { Step3Confirmation } from "./components/Step3Confirmation";
-import { Step4Success } from "./components/Step4Success";
+import React, { lazy, Suspense } from "react";
+import { Route } from "react-router-dom";
 
+// Lazy load głównego komponentu
+const RegisterFlow = lazy(() => import('./RegisterFlow'));
 
-// Główny komponent flow rejestracji
-const RegisterFlow: React.FC = () => {
-  const store = useRegistrationStore();
-  const logic = useRegistrationLogic(store);
+// Własny fallback dla modułu register
+const RegisterLoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+      <p className="mt-4 text-gray-600">Przygotowywanie rejestracji...</p>
+    </div>
+  </div>
+);
 
-  return (
-    <RegisterLayout currentStep={store.currentStep}>
-      <Routes>
-        <Route path="step1" element={<Step1BasicInfo store={store} logic={logic} />} />
-        <Route path="step2" element={<Step2Password store={store} logic={logic} />} />
-        <Route path="step3" element={<Step3Confirmation store={store} logic={logic} />} />
-        <Route path="step4" element={<Step4Success store={store} />} />
-        <Route path="*" element={<Navigate to="step1" />} />
-      </Routes>
-    </RegisterLayout>
-  );
-};
-
-// Eksport modułu z routingiem
-export const RegisterModule = () => (
-  <Route path="/register/*" element={<RegisterFlow />} />
+// Eksport modułu - BEZ FUNKCJI, TYLKO JSX
+export const RegisterModule = (
+  <Route 
+    path="/register/*" 
+    element={
+      <Suspense fallback={<RegisterLoadingFallback />}>
+        <RegisterFlow />
+      </Suspense>
+    } 
+  />
 );

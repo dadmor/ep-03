@@ -1,35 +1,32 @@
 // ============================================
 // src/pages/auth/forgot-password/index.tsx
-// KOMPLETNY MODUŁ RESETOWANIA HASŁA - MIKROSERWIS
+// MODUŁ FORGOT PASSWORD Z WŁASNYM LAZY LOADING
 // ============================================
 
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Route } from 'react-router-dom';
-import { useForgotPasswordLogic } from './hooks/useForgotPasswordLogic';
-import { ForgotPasswordLayout } from './components/ForgotPasswordLayout';
-import { EmailSentSuccess } from './components/EmailSentSuccess';
-import { ForgotPasswordForm } from './components/ForgotPasswordForm';
 
-// Główny komponent strony
-const ForgotPasswordPage: React.FC = () => {
-  const logic = useForgotPasswordLogic();
+// Lazy load głównego komponentu
+const ForgotPasswordPage = lazy(() => import('./ForgotPasswordPage'));
 
-  if (logic.isSuccess) {
-    return (
-      <ForgotPasswordLayout>
-        <EmailSentSuccess email={logic.email} />
-      </ForgotPasswordLayout>
-    );
-  }
+// Własny fallback dla modułu forgot password
+const ForgotPasswordLoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto"></div>
+      <p className="mt-4 text-gray-600">Ładowanie formularza resetowania...</p>
+    </div>
+  </div>
+);
 
-  return (
-    <ForgotPasswordLayout>
-      <ForgotPasswordForm {...logic} />
-    </ForgotPasswordLayout>
-  );
-};
-
-// Eksport modułu z routingiem
-export const ForgotPasswordModule = () => (
-  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+// Eksport modułu - BEZ FUNKCJI, TYLKO JSX
+export const ForgotPasswordModule = (
+  <Route 
+    path="/forgot-password" 
+    element={
+      <Suspense fallback={<ForgotPasswordLoadingFallback />}>
+        <ForgotPasswordPage />
+      </Suspense>
+    } 
+  />
 );

@@ -1,62 +1,32 @@
 // ============================================
 // src/pages/auth/update-password/index.tsx
-// KOMPLETNY MODUŁ AKTUALIZACJI HASŁA - MIKROSERWIS
+// MODUŁ UPDATE PASSWORD Z WŁASNYM LAZY LOADING
 // ============================================
 
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Route } from "react-router-dom";
-import { useSessionValidation } from "./hooks/useSessionValidation";
-import { useUpdatePasswordLogic } from "./hooks/useUpdatePasswordLogic";
-import { UpdatePasswordLayout } from "./components/UpdatePasswordLayout";
-import { SessionValidator } from "./components/SessionValidator";
-import { UpdateSuccess } from "./components/UpdateSuccess";
-import { UpdatePasswordForm } from "./components/UpdatePasswordForm";
 
-// Główny komponent strony
-const UpdatePasswordPage: React.FC = () => {
-  const sessionValidation = useSessionValidation();
-  const updateLogic = useUpdatePasswordLogic();
+// Lazy load głównego komponentu
+const UpdatePasswordPage = lazy(() => import('./UpdatePasswordPage'));
 
-  // Sprawdzanie sesji
-  if (sessionValidation.isChecking) {
-    return (
-      <UpdatePasswordLayout>
-        <SessionValidator isChecking={true} />
-      </UpdatePasswordLayout>
-    );
-  }
+// Własny fallback dla modułu update password
+const UpdatePasswordLoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+      <p className="mt-4 text-gray-600">Weryfikacja linku resetowania...</p>
+    </div>
+  </div>
+);
 
-  // Błędna sesja
-  if (!sessionValidation.isValid) {
-    return (
-      <UpdatePasswordLayout>
-        <SessionValidator 
-          isChecking={false} 
-          isValid={false} 
-          error={sessionValidation.error}
-        />
-      </UpdatePasswordLayout>
-    );
-  }
-
-  // Sukces aktualizacji
-  if (updateLogic.isSuccess) {
-    return (
-      <UpdatePasswordLayout>
-        <UpdateSuccess />
-      </UpdatePasswordLayout>
-    );
-  }
-
-  // Formularz aktualizacji
-  return (
-    <UpdatePasswordLayout>
-      <UpdatePasswordForm {...updateLogic} />
-    </UpdatePasswordLayout>
-  );
-};
-
-// Eksport modułu z routingiem
-export const UpdatePasswordModule = () => (
-  <Route path="/update-password" element={<UpdatePasswordPage />} />
+// Eksport modułu - BEZ FUNKCJI, TYLKO JSX
+export const UpdatePasswordModule = (
+  <Route 
+    path="/update-password" 
+    element={
+      <Suspense fallback={<UpdatePasswordLoadingFallback />}>
+        <UpdatePasswordPage />
+      </Suspense>
+    } 
+  />
 );

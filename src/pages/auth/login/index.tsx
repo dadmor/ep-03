@@ -1,64 +1,32 @@
 // ============================================
 // src/pages/auth/login/index.tsx
-// KOMPLETNY MODUŁ LOGOWANIA - MIKROSERWIS
+// MODUŁ LOGIN Z WŁASNYM LAZY LOADING
 // ============================================
 
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Route } from "react-router-dom";
-import { useLogin, useIsAuthenticated, useGetIdentity } from "@refinedev/core";
-import { Link, useSearchParams, Navigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertTriangle, Info, Mail, Lock, CheckCircle } from "lucide-react";
-import { LoginUser } from "./types";
-import { useLoginLogic } from "./hooks/useLoginLogic";
-import { LoginForm } from "./components/LoginForm";
-import { LoginLayout } from "./components/LoginLayout";
 
+// Lazy load głównego komponentu
+const LoginPage = lazy(() => import('./LoginPage'));
 
-// Główny komponent strony logowania
-const LoginPage: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const { data: isAuthenticated, isLoading: authLoading } = useIsAuthenticated();
-  const { data: user, isLoading: userLoading } = useGetIdentity<LoginUser>();
-  const loginLogic = useLoginLogic();
+// Własny fallback dla modułu login
+const LoginLoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+      <p className="mt-4 text-gray-600">Ładowanie logowania...</p>
+    </div>
+  </div>
+);
 
-  const verified = searchParams.get("verified") === "true";
-  const passwordChanged = searchParams.get("passwordChanged") === "true";
-
-  // Loader podczas sprawdzania autentykacji
-  if (authLoading || userLoading) {
-    return (
-      <LoginLayout>
-        <Card>
-          <CardContent className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </CardContent>
-        </Card>
-      </LoginLayout>
-    );
-  }
-
-  // Przekierowanie jeśli zalogowany
-  if (isAuthenticated && user) {
-    const redirectPath = user.role ? `/${user.role}` : "/profiles";
-    return <Navigate to={redirectPath} replace />;
-  }
-
-  return (
-    <LoginLayout>
-      <LoginForm 
-        {...loginLogic}
-        showVerifiedMessage={verified}
-        showPasswordChangedMessage={passwordChanged}
-      />
-    </LoginLayout>
-  );
-};
-
-// Eksport modułu z routingiem
-export const LoginModule = () => (
-  <Route path="/login" element={<LoginPage />} />
+// Eksport modułu - BEZ FUNKCJI, TYLKO JSX
+export const LoginModule = (
+  <Route 
+    path="/login" 
+    element={
+      <Suspense fallback={<LoginLoadingFallback />}>
+        <LoginPage />
+      </Suspense>
+    } 
+  />
 );

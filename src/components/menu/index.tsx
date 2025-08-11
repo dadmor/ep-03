@@ -4,9 +4,9 @@ import { useLogout, useMenu, useGetIdentity } from "@refinedev/core";
 import { NavLink } from "react-router";
 import { LogOut, Menu as MenuIcon, X } from "lucide-react";
 import { UserMicroProfile } from "../layout/UserMicroProfile";
-import { cn } from "@/utility";
+import { cn, User } from "@/utility";
 import { Button, ScrollArea, Separator } from "../ui";
-import { User } from "@/utility/auth/authProvider";
+
 
 interface MenuProps {
   onClose?: () => void;

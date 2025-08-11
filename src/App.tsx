@@ -1,4 +1,4 @@
-// src/App.tsx - PEŁNA MODULARNOŚĆ
+// src/App.tsx - PEŁNA MODULARNOŚĆ Z LAZY LOADING
 import { Authenticated, ErrorComponent, Refine, useGetIdentity } from "@refinedev/core";
 import routerBindings, {
   CatchAllNavigate,
@@ -38,13 +38,16 @@ import {
 // Import panelu ucznia
 import { studentRoutes } from "./pages/student";
 
-
-
+// Import Landing Page
 import LandingPage from "./pages/Landing";
-import { LoginPage } from "./pages/auth/login";
-import { RegisterModule } from "./pages/auth/register";
-import { ForgotPasswordPage } from "./pages/auth/forgot-password";
-import { UpdatePasswordPage } from "./pages/auth/update-password";
+
+// Import modułów auth - każdy z własnym lazy loading
+import { 
+  LoginModule,
+  RegisterModule,
+  ForgotPasswordModule,
+  UpdatePasswordModule 
+} from "./pages/auth";
 
 // Komponent sprawdzający rolę i przekierowujący
 const RoleBasedRedirect = () => {
@@ -89,11 +92,11 @@ function App() {
           {/* Publiczne trasy */}
           <Route path="/" element={<LandingPage />} />
           
-          {/* MODULARNIE - każda strona to osobny moduł */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register/*" element={<RegisterModule />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/update-password" element={<UpdatePasswordPage />} />
+          {/* MODUŁY AUTH - używane jako elementy JSX */}
+          {LoginModule}
+          {RegisterModule}
+          {ForgotPasswordModule}
+          {UpdatePasswordModule}
 
           {/* Chronione trasy - dla adminów i nauczycieli */}
           <Route
