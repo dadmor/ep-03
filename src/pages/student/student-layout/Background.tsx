@@ -2,7 +2,7 @@ export const Background: React.FC = () => {
     return (
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-0 overflow-hidden p-0 lg:p-4 lg:pb-28 pt-0"
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden p-0 lg:p-2.5 lg:pb-28 pt-0"
       >
         <div className="relative w-full h-full">
           <div className="absolute inset-0 bg-background rounded-3xl" />

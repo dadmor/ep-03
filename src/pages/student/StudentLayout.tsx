@@ -85,11 +85,11 @@ export const StudentLayout: React.FC<PropsWithChildren> = ({ children }) => {
         </main>
       </div>
 
-      {/* Bottom Navigation - tylko mobile */}
+      {/* Bottom Navigation - mobile i desktop */}
       <nav
         aria-label="Nawigacja dolna"
-        className="fixed bottom-0 z-40 left-0 right-0  bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 border-t"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        className="fixed py-3.5 bottom-0 z-40 left-0 right-0 lg:left-72 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 border-t"
+        
       >
         <StudentMenu variant="bottom" />
       </nav>
