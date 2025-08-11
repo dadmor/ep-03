@@ -1,5 +1,5 @@
-// src/pages/student/index.tsx
-// MODUŁ STUDENT - KOMPLETNY MIKROSERWIS
+// src/pages/teacher/index.tsx
+// MODUŁ TEACHER - KOMPLETNY MIKROSERWIS
 
 import { lazy, Suspense } from "react";
 import { Route, Routes, Navigate } from "react-router-dom";
@@ -9,37 +9,37 @@ import routerBindings from "@refinedev/react-router";
 import { dataProvider, liveProvider } from "@refinedev/supabase";
 import { authProvider, supabaseClient } from "@/utility";
 
-// Lazy load głównego komponentu Student Panel
-const StudentPanel = lazy(() => import('./StudentPanel'));
+// Lazy load głównego komponentu Teacher Panel
+const TeacherPanel = lazy(() => import('./TeacherPanel'));
 
 // Loading fallback
-const StudentLoadingFallback = () => (
+const TeacherLoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen">
     <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-      <p className="mt-4 text-gray-600">Ładowanie panelu ucznia...</p>
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+      <p className="mt-4 text-gray-600">Ładowanie panelu nauczyciela...</p>
     </div>
   </div>
 );
 
-// Komponent sprawdzający dostęp do panelu ucznia
-const StudentAccessGuard = ({ children }: { children: React.ReactNode }) => {
+// Komponent sprawdzający dostęp do panelu nauczyciela
+const TeacherAccessGuard = ({ children }: { children: React.ReactNode }) => {
   const { data: identity, isLoading } = useGetIdentity<any>();
   
   if (isLoading) {
-    return <StudentLoadingFallback />;
+    return <TeacherLoadingFallback />;
   }
   
-  // Tylko student ma dostęp
-  if (identity?.role !== 'student') {
-    return <Navigate to="/dashboard/overview" replace />;
+  // Tylko teacher i admin mają dostęp
+  if (identity?.role !== 'teacher' && identity?.role !== 'admin') {
+    return <Navigate to="/student/dashboard" replace />;
   }
   
   return <>{children}</>;
 };
 
 // Wrapper z Refine
-const StudentModuleWrapper = () => {
+const TeacherModuleWrapper = () => {
   return (
     <Refine
       dataProvider={dataProvider(supabaseClient)}
@@ -59,14 +59,14 @@ const StudentModuleWrapper = () => {
           path="/*"
           element={
             <Authenticated
-              key="student-auth-check"
+              key="teacher-auth-check"
               fallback={<CatchAllNavigate to="/login" />}
             >
-              <StudentAccessGuard>
-                <Suspense fallback={<StudentLoadingFallback />}>
-                  <StudentPanel />
+              <TeacherAccessGuard>
+                <Suspense fallback={<TeacherLoadingFallback />}>
+                  <TeacherPanel />
                 </Suspense>
-              </StudentAccessGuard>
+              </TeacherAccessGuard>
             </Authenticated>
           }
         />
@@ -76,12 +76,9 @@ const StudentModuleWrapper = () => {
 };
 
 // Eksport modułu - BEZ FUNKCJI, TYLKO JSX
-export const StudentModule = (
+export const TeacherModule = (
   <Route
-    path="/student/*"
-    element={<StudentModuleWrapper />}
+    path="/teacher/*"
+    element={<TeacherModuleWrapper />}
   />
 );
-
-// Re-eksport tras dla kompatybilności wstecznej
-export { studentRoutes } from './routes';

@@ -1,9 +1,0 @@
-// src/pages/student/components/index.ts - FIXED WITHOUT StudentCourses
-export { StudentDashboard } from './StudentDashboard';
-export { StudentCourseDetail } from './StudentCourseDetail';
-export { StudentLesson } from './StudentLesson';
-export { StudentQuiz } from './StudentQuiz';
-export { StudentGamification } from './StudentGamification';
-export { StudentLeaderboard } from './StudentLeaderboard';
-export { StudentAchievements } from './StudentAchievements';
-export { StudentProfile } from './StudentProfile';
