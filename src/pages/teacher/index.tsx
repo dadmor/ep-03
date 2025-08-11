@@ -1,37 +1,71 @@
 // src/pages/teacher/index.tsx
 import { lazy, Suspense } from "react";
-import { Route, Navigate } from "react-router-dom";
-import { Authenticated, useGetIdentity } from "@refinedev/core";
+import { Route, Routes, Outlet, Navigate } from "react-router-dom";
+import { 
+  AccessGuard, 
+  LoadingFallback,
+  ModulePanel 
+} from "@/components/modules";
+import { Authenticated } from "@refinedev/core";
 import { CatchAllNavigate } from "@refinedev/react-router";
+import { Layout } from "@/components/layout";
 
-// Lazy load głównego komponentu Teacher Panel
-const TeacherPanel = lazy(() => import('./TeacherPanel'));
+// Import wszystkich tras
+import { dashboardRoutes } from "./dashboard";
+import { coursesRoutes } from "./courses";
+import { topicsRoutes } from "./topics";
+import { activitiesRoutes } from "./activities";
+import { groupsRoutes } from "./groups";
+import { usersRoutes } from "./users";
+import { vendorsRoutes } from "./vendors";
+import { reportsRoutes } from "./reports";
+import { courseStructureRoutes } from "./course-structure-wizard";
+import { educationalMaterialRoutes } from "./educational-material-wizard";
+import { quizWizardRoutes } from "./quiz-wizard";
+import { questionsRoutes } from "./questions";
 
-// Loading fallback
-const TeacherLoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-      <p className="mt-4 text-gray-600">Ładowanie panelu nauczyciela...</p>
-    </div>
-  </div>
-);
+// Lazy load panelu nauczyciela
+const TeacherPanel = lazy(() => import("@/components/modules/ModulePanel").then(module => {
+  // Wszystkie trasy nauczyciela
+  const allTeacherRoutes = [
+    ...dashboardRoutes,
+    ...coursesRoutes,
+    ...topicsRoutes,
+    ...activitiesRoutes,
+    ...questionsRoutes,
+    ...courseStructureRoutes,
+    ...educationalMaterialRoutes,
+    ...quizWizardRoutes,
+    ...groupsRoutes,
+    ...usersRoutes,
+    ...vendorsRoutes,
+    ...reportsRoutes,
+  ];
 
-// Komponent sprawdzający dostęp do panelu nauczyciela
-const TeacherAccessGuard = ({ children }: { children: React.ReactNode }) => {
-  const { data: identity, isLoading } = useGetIdentity<any>();
-  
-  if (isLoading) {
-    return <TeacherLoadingFallback />;
-  }
-  
-  // Tylko teacher i admin mają dostęp
-  if (identity?.role !== 'teacher' && identity?.role !== 'admin') {
-    return <Navigate to="/student/dashboard" replace />;
-  }
-  
-  return <>{children}</>;
-};
+  // Zwróć komponent z konfiguracją
+  return {
+    default: () => (
+      <ModulePanel 
+        routes={allTeacherRoutes}
+        defaultPath="dashboard/overview"
+        layout={
+          <Routes>
+            <Route
+              element={
+                <Layout>
+                  <Outlet />
+                </Layout>
+              }
+            >
+              <Route index element={<Navigate to="dashboard/overview" replace />} />
+              {...allTeacherRoutes}
+            </Route>
+          </Routes>
+        }
+      />
+    )
+  };
+}));
 
 // Eksport modułu - obsługuje /teacher/*
 export const TeacherModule = (
@@ -42,11 +76,23 @@ export const TeacherModule = (
         key="teacher-auth-check"
         fallback={<CatchAllNavigate to="/login" />}
       >
-        <TeacherAccessGuard>
-          <Suspense fallback={<TeacherLoadingFallback />}>
+        <AccessGuard
+          allowedRoles={['teacher', 'admin']}
+          fallbackPath="/student/dashboard"
+          loadingText="Ładowanie panelu nauczyciela..."
+          loadingColorClass="border-indigo-600"
+        >
+          <Suspense 
+            fallback={
+              <LoadingFallback 
+                text="Ładowanie panelu nauczyciela..." 
+                colorClass="border-indigo-600" 
+              />
+            }
+          >
             <TeacherPanel />
           </Suspense>
-        </TeacherAccessGuard>
+        </AccessGuard>
       </Authenticated>
     }
   />

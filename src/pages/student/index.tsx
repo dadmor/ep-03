@@ -1,77 +1,83 @@
 // src/pages/student/index.tsx
-// MODUŁ STUDENT - KOMPLETNY MIKROSERWIS
-
 import { lazy, Suspense } from "react";
-import { Route, Routes, Navigate } from "react-router-dom";
-import { Refine, Authenticated, useGetIdentity } from "@refinedev/core";
-import { CatchAllNavigate } from "@refinedev/react-router";
-import routerBindings from "@refinedev/react-router";
-import { dataProvider, liveProvider } from "@refinedev/supabase";
-import { authProvider, supabaseClient } from "@/utility";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { 
+  ModuleWrapper, 
+  AccessGuard, 
+  LoadingFallback,
+  ModulePanel 
+} from "@/components/modules";
 
-// Lazy load głównego komponentu Student Panel
-const StudentPanel = lazy(() => import('./StudentPanel'));
+// Import layoutu
+import { StudentLayout } from "./components/StudentLayout";
 
-// Loading fallback
-const StudentLoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-      <p className="mt-4 text-gray-600">Ładowanie panelu ucznia...</p>
-    </div>
-  </div>
-);
+// Import wszystkich tras
+import { dashboardRoutes } from "./dashboard";
+import { coursesRoutes } from "./courses";
+import { courseDetailRoutes } from "./course-detail";
+import { lessonsRoutes } from "./lessons";
+import { quizzesRoutes } from "./quizzes";
+import { gamificationRoutes } from "./gamification";
+import { leaderboardRoutes } from "./leaderboard";
+import { achievementsRoutes } from "./achievements";
+import { profileRoutes } from "./profile";
 
-// Komponent sprawdzający dostęp do panelu ucznia
-const StudentAccessGuard = ({ children }: { children: React.ReactNode }) => {
-  const { data: identity, isLoading } = useGetIdentity<any>();
-  
-  if (isLoading) {
-    return <StudentLoadingFallback />;
-  }
-  
-  // Tylko student ma dostęp
-  if (identity?.role !== 'student') {
-    return <Navigate to="/dashboard/overview" replace />;
-  }
-  
-  return <>{children}</>;
-};
+// Lazy load panelu studenta
+const StudentPanel = lazy(() => import("@/components/modules/ModulePanel").then(module => {
+  // Wszystkie trasy studenta
+  const allStudentRoutes = [
+    ...dashboardRoutes,
+    ...coursesRoutes,
+    ...courseDetailRoutes,
+    ...lessonsRoutes,
+    ...quizzesRoutes,
+    ...gamificationRoutes,
+    ...leaderboardRoutes,
+    ...achievementsRoutes,
+    ...profileRoutes,
+  ];
 
-// Wrapper z Refine
+  // Zwróć komponent z konfiguracją
+  return {
+    default: () => (
+      <ModulePanel 
+        routes={allStudentRoutes}
+        layout={
+          <StudentLayout>
+            <Routes>
+              <Route index element={<Navigate to="dashboard" replace />} />
+              {...allStudentRoutes}
+              <Route path="*" element={<Navigate to="dashboard" replace />} />
+            </Routes>
+          </StudentLayout>
+        }
+      />
+    )
+  };
+}));
+
+// Wrapper modułu studenta
 const StudentModuleWrapper = () => {
   return (
-    <Refine
-      dataProvider={dataProvider(supabaseClient)}
-      liveProvider={liveProvider(supabaseClient)}
-      authProvider={authProvider}
-      routerProvider={routerBindings}
-      resources={[]}
-      options={{
-        syncWithLocation: true,
-        warnWhenUnsavedChanges: true,
-        useNewQueryKeys: true,
-        liveMode: "auto",
-      }}
-    >
-      <Routes>
-        <Route
-          path="/*"
-          element={
-            <Authenticated
-              key="student-auth-check"
-              fallback={<CatchAllNavigate to="/login" />}
-            >
-              <StudentAccessGuard>
-                <Suspense fallback={<StudentLoadingFallback />}>
-                  <StudentPanel />
-                </Suspense>
-              </StudentAccessGuard>
-            </Authenticated>
+    <ModuleWrapper authKey="student-auth-check">
+      <AccessGuard
+        allowedRoles={['student']}
+        fallbackPath="/dashboard/overview"
+        loadingText="Ładowanie panelu ucznia..."
+        loadingColorClass="border-blue-600"
+      >
+        <Suspense 
+          fallback={
+            <LoadingFallback 
+              text="Ładowanie panelu ucznia..." 
+              colorClass="border-blue-600" 
+            />
           }
-        />
-      </Routes>
-    </Refine>
+        >
+          <StudentPanel />
+        </Suspense>
+      </AccessGuard>
+    </ModuleWrapper>
   );
 };
 
