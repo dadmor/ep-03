@@ -1,42 +1,34 @@
-// ============================================
-// src/pages/auth/forgot-password/hooks/useForgotPasswordLogic.ts
-// ============================================
-
+//src/pages/auth/forgot-password/hooks/useForgotPasswordLogic.ts
 import React from 'react';
-import { useForgotPassword } from '@refinedev/core';
-import type { ForgotPasswordLogic } from '../types';
+import { forgotPasswordService } from '../services/forgotPasswordService';
 import { validateForgotPasswordEmail } from '../utils/forgotPasswordValidation';
-import { parseForgotPasswordError } from '../utils/forgotPasswordErrors';
-
+import type { ForgotPasswordLogic } from '../types';
 
 export const useForgotPasswordLogic = (): ForgotPasswordLogic => {
-  const { mutate: forgotPassword, isLoading } = useForgotPassword();
   const [email, setEmail] = React.useState('');
   const [error, setError] = React.useState<string | null>(null);
   const [isSuccess, setIsSuccess] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     
-    // Walidacja
     const validationError = validateForgotPasswordEmail(email);
     if (validationError) {
       setError(validationError);
       return;
     }
     
-    forgotPassword(
-      { email: email.trim() },
-      {
-        onSuccess: () => {
-          setIsSuccess(true);
-        },
-        onError: (error: any) => {
-          setError(parseForgotPasswordError(error));
-        }
-      }
-    );
+    setIsLoading(true);
+    const result = await forgotPasswordService.sendResetEmail(email);
+    setIsLoading(false);
+    
+    if (result.success) {
+      setIsSuccess(true);
+    } else {
+      setError(result.error);
+    }
   };
 
   return {

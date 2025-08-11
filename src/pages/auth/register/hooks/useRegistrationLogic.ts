@@ -1,25 +1,18 @@
-// ============================================
-// src/pages/auth/register/hooks/useRegistrationLogic.ts
-// ============================================
-
+//src/pages/auth/register/hooks/useRegistrationLogic.ts
 import React from "react";
-import { useRegister } from "@refinedev/core";
 import { useNavigate } from "react-router-dom";
-import type { RegistrationStore, RegistrationLogic } from "../types";
+import { registerService } from "../services/registerService";
 import { validateEmail, validateName, validatePassword } from "../utils/registrationValidation";
-import { parseRegistrationError } from "../utils/registrationErrors";
-
+import type { RegistrationStore, RegistrationLogic } from "../types";
 
 export const useRegistrationLogic = (store: RegistrationStore): RegistrationLogic => {
   const navigate = useNavigate();
-  const { mutate: register } = useRegister();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const submitStep1 = async (data: { email: string; name: string }): Promise<boolean> => {
     setError(null);
     
-    // Walidacja
     const emailError = validateEmail(data.email);
     if (emailError) {
       setError(emailError);
@@ -32,7 +25,6 @@ export const useRegistrationLogic = (store: RegistrationStore): RegistrationLogi
       return false;
     }
     
-    // Zapisz dane i przejdź dalej
     store.setData(data);
     store.nextStep();
     navigate("/register/step2");
@@ -42,7 +34,6 @@ export const useRegistrationLogic = (store: RegistrationStore): RegistrationLogi
   const submitStep2 = async (data: { password: string; confirmPassword: string }): Promise<boolean> => {
     setError(null);
     
-    // Walidacja
     const passwordError = validatePassword(data.password);
     if (passwordError) {
       setError(passwordError);
@@ -54,7 +45,6 @@ export const useRegistrationLogic = (store: RegistrationStore): RegistrationLogi
       return false;
     }
     
-    // Zapisz dane i przejdź dalej
     store.setData(data);
     store.nextStep();
     navigate("/register/step3");
@@ -71,29 +61,23 @@ export const useRegistrationLogic = (store: RegistrationStore): RegistrationLogi
       return false;
     }
 
-    return new Promise((resolve) => {
-      register(
-        {
-          email: store.data.email,
-          password: store.data.password,
-          name: store.data.name
-        },
-        {
-          onSuccess: () => {
-            setIsSubmitting(false);
-            store.setData({ registrationComplete: true });
-            store.nextStep();
-            navigate("/register/step4");
-            resolve(true);
-          },
-          onError: (error: any) => {
-            setError(parseRegistrationError(error));
-            setIsSubmitting(false);
-            resolve(false);
-          }
-        }
-      );
-    });
+    const result = await registerService.register(
+      store.data.email,
+      store.data.password,
+      store.data.name
+    );
+
+    setIsSubmitting(false);
+
+    if (result.success) {
+      store.setData({ registrationComplete: true });
+      store.nextStep();
+      navigate("/register/step4");
+      return true;
+    } else {
+      setError(result.error);
+      return false;
+    }
   };
 
   return {

@@ -3,7 +3,7 @@
 // MODUŁ LOGIN Z WŁASNYM LAZY LOADING
 // ============================================
 
-import React, { lazy, Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { Route } from "react-router-dom";
 
 // Lazy load głównego komponentu

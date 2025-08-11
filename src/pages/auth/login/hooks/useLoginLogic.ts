@@ -1,20 +1,16 @@
-// ============================================
-// src/pages/auth/login/hooks/useLoginLogic.ts
-// ============================================
-
+// /src/pages/auth/login/hooks/useLoginLogic.ts
 import React from "react";
-import { useLogin } from "@refinedev/core";
-import type { LoginCredentials } from "../types";
-import { parseLoginError } from "../utils/loginErrors";
-
+import { useNavigate } from "react-router-dom";
+import { loginService } from "../services/loginService";
 
 export const useLoginLogic = () => {
-  const { mutate: loginMutation, isLoading } = useLogin<LoginCredentials>();
+  const navigate = useNavigate();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
+  const [isLoading, setIsLoading] = React.useState(false);
 
-  const handleSubmit = React.useCallback((e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!email.trim() || !password.trim()) {
@@ -23,19 +19,18 @@ export const useLoginLogic = () => {
     }
 
     setError(null);
+    setIsLoading(true);
 
-    loginMutation(
-      { email: email.trim(), password },
-      {
-        onSuccess: () => {
-          // Refine automatycznie przekieruje
-        },
-        onError: (error: any) => {
-          setError(parseLoginError(error));
-        },
-      }
-    );
-  }, [email, password, loginMutation]);
+    const result = await loginService.login(email, password);
+    
+    setIsLoading(false);
+    
+    if (result.success) {
+      navigate(result.redirectTo || '/');
+    } else {
+      setError(result.error);
+    }
+  };
 
   return {
     email,
