@@ -123,7 +123,7 @@ export const CoursesList = () => {
                 <Button
                   variant="outline"
                   onClick={() =>
-                    handleNavigateToWizard("/course-structure/step1")
+                    handleNavigateToWizard("/teacher/course-structure/step1")
                   }
                 >
                   <Layout className="w-4 h-4 mr-2" />

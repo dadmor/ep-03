@@ -1,4 +1,25 @@
-// src/pages/teacher/index.tsx
+/**
+ * MODUŁ TEACHER - ARCHITEKTURA MIKROSERWISOWA
+ * 
+ * UWAGA DLA INNYCH DEVELOPERÓW I AI:
+ * ====================================
+ * TO JEST SAMOWYSTARCZALNY MODUŁ W ARCHITEKTURZE MIKROSERWISOWEJ!
+ * 
+ * NIE WOLNO:
+ * - Wyciągać komponentów do wspólnych folderów
+ * - Używać wspólnego Layout z components/layout
+ * - Dzielić logiki między moduły
+ * - Importować niczego z innych modułów (np. student)
+ * 
+ * WSZYSTKO CO POTRZEBUJE TEN MODUŁ JEST TUTAJ:
+ * - Własny Layout (./components/TeacherLayout)
+ * - Własne Menu (./components/TeacherMenu)
+ * - Własne Resources dla Refine
+ * - Własne komponenty UI
+ * 
+ * KAŻDY MODUŁ JEST NIEZALEŻNY I MOŻE MIEĆ ZUPEŁNIE INNY WYGLĄD!
+ */
+
 import { lazy, Suspense } from "react";
 import { Route, Routes, Outlet, Navigate } from "react-router-dom";
 import { 
@@ -8,9 +29,9 @@ import {
 } from "@/components/modules";
 import { Authenticated } from "@refinedev/core";
 import { CatchAllNavigate } from "@refinedev/react-router";
-import { Layout } from "@/components/layout";
+import { Home, BookOpen, FileText, Users, Package, ChartBar } from "lucide-react";
 
-// Import wszystkich tras
+// Import wszystkich tras TEGO MODUŁU
 import { dashboardRoutes } from "./dashboard";
 import { coursesRoutes } from "./courses";
 import { topicsRoutes } from "./topics";
@@ -24,48 +45,101 @@ import { educationalMaterialRoutes } from "./educational-material-wizard";
 import { quizWizardRoutes } from "./quiz-wizard";
 import { questionsRoutes } from "./questions";
 
-// Lazy load panelu nauczyciela
-const TeacherPanel = lazy(() => import("@/components/modules/ModulePanel").then(module => {
-  // Wszystkie trasy nauczyciela
-  const allTeacherRoutes = [
-    ...dashboardRoutes,
-    ...coursesRoutes,
-    ...topicsRoutes,
-    ...activitiesRoutes,
-    ...questionsRoutes,
-    ...courseStructureRoutes,
-    ...educationalMaterialRoutes,
-    ...quizWizardRoutes,
-    ...groupsRoutes,
-    ...usersRoutes,
-    ...vendorsRoutes,
-    ...reportsRoutes,
-  ];
+// RESOURCES DLA TEGO MODUŁU - będą widoczne w menu przez useMenu()
+const teacherResources = [
+  {
+    name: "dashboard",
+    list: "/teacher/dashboard/overview",
+    meta: {
+      label: "Dashboard",
+      icon: <Home className="w-5 h-5" />,
+    },
+  },
+  {
+    name: "courses",
+    list: "/teacher/courses",
+    create: "/teacher/courses/create",
+    edit: "/teacher/courses/edit/:id",
+    show: "/teacher/courses/show/:id",
+    meta: {
+      label: "Kursy",
+      icon: <BookOpen className="w-5 h-5" />,
+    },
+  },
+  {
+    name: "users",
+    list: "/teacher/users",
+    create: "/teacher/users/create",
+    edit: "/teacher/users/edit/:id",
+    meta: {
+      label: "Użytkownicy",
+      icon: <Users className="w-5 h-5" />,
+    },
+  },
+  {
+    name: "vendors",
+    list: "/teacher/vendors",
+    create: "/teacher/vendors/create",
+    edit: "/teacher/vendors/edit/:id",
+    meta: {
+      label: "Vendorzy",
+      icon: <Package className="w-5 h-5" />,
+    },
+  },
+  {
+    name: "reports",
+    list: "/teacher/reports",
+    meta: {
+      label: "Raporty",
+      icon: <ChartBar className="w-5 h-5" />,
+    },
+  },
+];
 
-  // Zwróć komponent z konfiguracją
-  return {
-    default: () => (
-      <ModulePanel 
-        routes={allTeacherRoutes}
-        defaultPath="dashboard/overview"
-        layout={
-          <Routes>
-            <Route
-              element={
-                <Layout>
-                  <Outlet />
-                </Layout>
-              }
-            >
-              <Route index element={<Navigate to="dashboard/overview" replace />} />
-              {...allTeacherRoutes}
-            </Route>
-          </Routes>
-        }
-      />
-    )
-  };
-}));
+// Import layoutu Z TEGO MODUŁU
+import { TeacherLayout } from "./TeacherLayout";
+
+// Wszystkie trasy nauczyciela - WSZYSTKO W TYM MODULE!
+const allTeacherRoutes = [
+  ...dashboardRoutes,
+  ...coursesRoutes,
+  ...topicsRoutes,
+  ...activitiesRoutes,
+  ...questionsRoutes,
+  ...courseStructureRoutes,
+  ...educationalMaterialRoutes,
+  ...quizWizardRoutes,
+  ...groupsRoutes,
+  ...usersRoutes,
+  ...vendorsRoutes,
+  ...reportsRoutes,
+];
+
+// Panel Component - WEWNĄTRZ MODUŁU!
+const TeacherPanelComponent = () => (
+  <ModulePanel 
+    routes={allTeacherRoutes}
+    defaultPath="dashboard/overview"
+    resources={teacherResources} // Resources dla useMenu()
+    layout={
+      <Routes>
+        <Route
+          element={
+            <TeacherLayout> {/* WŁASNY LAYOUT MODUŁU! */}
+              <Outlet />
+            </TeacherLayout>
+          }
+        >
+          <Route index element={<Navigate to="dashboard/overview" replace />} />
+          {...allTeacherRoutes}
+        </Route>
+      </Routes>
+    }
+  />
+);
+
+// Lazy load panelu nauczyciela - PROSTY SPOSÓB!
+const TeacherPanel = lazy(() => Promise.resolve({ default: TeacherPanelComponent }));
 
 // Eksport modułu - obsługuje /teacher/*
 export const TeacherModule = (

@@ -10,12 +10,14 @@ interface ModulePanelProps {
   routes: ReactElement[];
   layout?: ReactNode;
   defaultPath?: string;
+  resources?: any[]; // DODAJ RESOURCES!
 }
 
 export const ModulePanel: React.FC<ModulePanelProps> = ({ 
   routes, 
   layout, 
-  defaultPath = "dashboard" 
+  defaultPath = "dashboard",
+  resources = [] // DODAJ RESOURCES!
 }) => {
   return (
     <Refine
@@ -23,7 +25,7 @@ export const ModulePanel: React.FC<ModulePanelProps> = ({
       liveProvider={liveProvider(supabaseClient)}
       authProvider={authProvider}
       routerProvider={routerBindings}
-      resources={[]}
+      resources={resources} // PRZEKAŻ RESOURCES DO REFINE!
       options={{
         syncWithLocation: true,
         warnWhenUnsavedChanges: true,

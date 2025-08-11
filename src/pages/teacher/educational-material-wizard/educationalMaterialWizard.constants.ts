@@ -328,11 +328,11 @@ export const MATERIAL_API_CONFIG = {
 
 // ===== NAVIGATION PATHS =====
 export const MATERIAL_PATHS = {
-  dashboard: "/educational-material",
-  step1: "/educational-material/step1",
-  step2: "/educational-material/step2",
-  step3: "/educational-material/step3",
-  step4: "/educational-material/step4",
-  step5: "/educational-material/step5",
+  dashboard: "/teacher/educational-material",
+  step1: "/teacher/educational-material/step1",
+  step2: "/teacher/educational-material/step2",
+  step3: "/teacher/educational-material/step3",
+  step4: "/teacher/educational-material/step4",
+  step5: "/teacher/educational-material/step5",
   courses: "/courses",
 };

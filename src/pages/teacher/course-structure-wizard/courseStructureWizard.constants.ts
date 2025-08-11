@@ -411,13 +411,13 @@ export const COURSE_UI_TEXTS = {
 
 // ===== NAVIGATION PATHS =====
 export const COURSE_PATHS = {
-  dashboard: "/course-structure",
-  step1: "/course-structure/step1",
-  step2: "/course-structure/step2",
-  step3: "/course-structure/step3",
-  step4: "/course-structure/step4",
-  step5: "/course-structure/step5",
-  courses: "/courses",
+  dashboard: "/teacher/course-structure",
+  step1: "/teacher/course-structure/step1",
+  step2: "/teacher/course-structure/step2",
+  step3: "/teacher/course-structure/step3",
+  step4: "/teacher/course-structure/step4",
+  step5: "/teacher/course-structure/step5",
+  courses: "/teacher/courses",
 };
 
 // ===== COURSE TYPE CONFIGS =====

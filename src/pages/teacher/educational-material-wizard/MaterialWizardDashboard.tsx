@@ -146,7 +146,7 @@ export const MaterialWizardDashboard: React.FC = () => {
           
           <GridBox variant="1-2-3" className="gap-4">
             <button
-              onClick={() => navigate("/courses")}
+              onClick={() => navigate("/teacher/courses")}
               className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
             >
               <FlexBox variant="start" className="mb-2">
@@ -157,7 +157,7 @@ export const MaterialWizardDashboard: React.FC = () => {
             </button>
 
             <button
-              onClick={() => navigate("/topics")}
+              onClick={() => navigate("/teacher/topics")}
               className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
             >
               <FlexBox variant="start" className="mb-2">
@@ -168,7 +168,7 @@ export const MaterialWizardDashboard: React.FC = () => {
             </button>
 
             <button
-              onClick={() => navigate("/activities")}
+              onClick={() => navigate("/teacher/activities")}
               className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
             >
               <FlexBox variant="start" className="mb-2">

@@ -16,7 +16,7 @@ export const StepsHero = ({ step }: StepsHeroProps) => {
         variant="ghost"
         size="icon"
         className="absolute top-4 right-4 hover:bg-gray-100"
-        onClick={() => navigate("/course-structure")}
+        onClick={() => navigate("/teacher/course-structure")}
       >
         <X className="h-5 w-5" />
       </Button>

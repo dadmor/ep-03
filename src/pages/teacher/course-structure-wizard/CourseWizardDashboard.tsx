@@ -148,7 +148,7 @@ export const CourseWizardDashboard: React.FC = () => {
           
           <GridBox variant="1-2-3" className="gap-4">
             <button
-              onClick={() => navigate("/courses")}
+              onClick={() => navigate("/teacher/courses")}
               className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
             >
               <FlexBox variant="start" className="mb-2">
@@ -159,7 +159,7 @@ export const CourseWizardDashboard: React.FC = () => {
             </button>
 
             <button
-              onClick={() => navigate("/educational-material")}
+              onClick={() => navigate("/teacher/educational-material")}
               className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
             >
               <FlexBox variant="start" className="mb-2">
@@ -170,7 +170,7 @@ export const CourseWizardDashboard: React.FC = () => {
             </button>
 
             <button
-              onClick={() => navigate("/quiz-wizard")}
+              onClick={() => navigate("/teacher/quiz-wizard")}
               className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
             >
               <FlexBox variant="start" className="mb-2">
