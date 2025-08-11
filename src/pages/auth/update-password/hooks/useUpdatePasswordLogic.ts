@@ -51,6 +51,6 @@ export const useUpdatePasswordLogic = (): UpdatePasswordLogic => {
     isLoading,
     error,
     isSuccess,
-    handleSubmit
+    handleSubmit,
   };
 };
