@@ -4,9 +4,10 @@ import { BarChart3 } from "lucide-react";
 import { ReportsOverview } from "./overview";
 import { EngagementReport } from "./engagement";
 import { ProgressReport } from "./progress";
-import { PerformanceReport } from "./performance";
+
 import { GamificationReport } from "./gamification";
 import { ReportUsersSummary } from "./users-summary";
+import { PerformanceReport } from "./performance";
 
 /** RODZIC do menu (klik -> overview) */
 export const reportsResource = {

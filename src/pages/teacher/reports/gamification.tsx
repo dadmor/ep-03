@@ -43,41 +43,44 @@ import {
   Legend,
   ZAxis
 } from "recharts";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-interface UserGamificationData {
-  userId: string;
-  userName?: string;
-  totalPoints: number;
-  currentLevel: number;
-  dailyStreak: number;
-  lastActive: string;
-  quizzesCompleted: number;
-  perfectScores: number;
-  totalTimeSpent: number;
-  idlePointsRate: number;
+// Definicje typów z właściwymi nazwami pól
+interface UserStats {
+  user_id: string;
+  total_points: number;
+  current_level: number;
+  daily_streak: number;
+  last_active: string;
+  perfect_scores: number;
+  total_time_spent?: number;
+  users?: {
+    full_name?: string;
+    email?: string;
+    role?: string;
+  };
 }
 
-interface LevelDistribution {
-  level: number;
-  count: number;
-  percentage: number;
+interface Group {
+  id: number;
+  name: string;
 }
 
-interface GamificationEvent {
-  userId: string;
-  eventType: string;
-  points: number;
-  createdAt: string;
-  metadata?: any;
+interface GroupMember {
+  user_id: string;
+  group_id: number;
+}
+
+interface ActivityProgress {
+  user_id: string;
+  activity_id: number;
+  started_at: string;
+  completed_at?: string | null;
+  score?: number | null;
+  time_spent?: number;
+  activities?: {
+    type?: 'quiz' | 'material';
+  };
 }
 
 const LEVEL_COLORS = [
@@ -103,8 +106,41 @@ export const GamificationReport: React.FC = () => {
   const [timeRange, setTimeRange] = useState("30d");
   const [showOnlyActive, setShowOnlyActive] = useState(false);
 
-  // Pobierz dane
-  const { data: userStatsData } = useList<UserGamificationData>({
+  // Oblicz zakres dat
+  const getDateRange = () => {
+    const end = new Date();
+    const start = new Date();
+    switch (timeRange) {
+      case "7d":
+        start.setDate(start.getDate() - 7);
+        break;
+      case "30d":
+        start.setDate(start.getDate() - 30);
+        break;
+      case "90d":
+        start.setDate(start.getDate() - 90);
+        break;
+    }
+    return { start, end };
+  };
+
+  const { start: startDate } = getDateRange();
+
+  // snapshot – bez auto-refetchu (wzorzec z overview)
+  const staticQuery = {
+    queryOptions: {
+      staleTime: Infinity,
+      gcTime: 30 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      refetchInterval: false,
+      retry: 0,
+    } as const,
+  };
+
+  // Pobierz dane użytkowników z statystykami
+  const { data: userStatsData } = useList<UserStats>({
     resource: "user_stats",
     pagination: { mode: "off" },
     sorters: [
@@ -115,15 +151,19 @@ export const GamificationReport: React.FC = () => {
     ],
     meta: {
       select: "*, users(full_name, email, role)"
-    }
+    },
+    ...staticQuery
   });
 
-  const { data: groupsData } = useList({
+  // Pobierz grupy
+  const { data: groupsData } = useList<Group>({
     resource: "groups",
-    pagination: { mode: "off" }
+    pagination: { mode: "off" },
+    ...staticQuery
   });
 
-  const { data: groupMembersData } = useList({
+  // Pobierz członków grup
+  const { data: groupMembersData } = useList<GroupMember>({
     resource: "group_members",
     filters: selectedGroup !== "all" ? [
       {
@@ -132,41 +172,46 @@ export const GamificationReport: React.FC = () => {
         value: parseInt(selectedGroup)
       }
     ] : [],
-    pagination: { mode: "off" }
+    pagination: { mode: "off" },
+    ...staticQuery
   });
 
-  const { data: gamificationLogsData } = useList<GamificationEvent>({
-    resource: "gamification_log",
+  // Pobierz postępy aktywności dla analizy
+  const { data: progressData } = useList<ActivityProgress>({
+    resource: "activity_progress",
     filters: [
       {
-        field: "created_at",
+        field: "started_at",
         operator: "gte",
-        value: new Date(Date.now() - (timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90) * 24 * 60 * 60 * 1000).toISOString()
+        value: startDate.toISOString()
       }
     ],
     pagination: { mode: "off" },
-    sorters: [
-      {
-        field: "created_at",
-        order: "desc"
-      }
-    ]
+    meta: {
+      select: "*, activities(type)"
+    },
+    ...staticQuery
   });
 
-  // Filtruj dane
+  // Filtruj dane użytkowników
   const filteredUserStats = useMemo(() => {
     let filtered = userStatsData?.data || [];
     
+    // Filtruj tylko uczniów
+    filtered = filtered.filter(stat => 
+      !stat.users?.role || stat.users.role === 'student'
+    );
+    
     if (selectedGroup !== "all" && groupMembersData?.data) {
       const groupUserIds = groupMembersData.data.map(gm => gm.user_id);
-      filtered = filtered.filter(stat => groupUserIds.includes(stat.userId));
+      filtered = filtered.filter(stat => groupUserIds.includes(stat.user_id));
     }
     
     if (showOnlyActive) {
       const activeSince = new Date();
       activeSince.setDate(activeSince.getDate() - 7);
       filtered = filtered.filter(stat => 
-        new Date(stat.lastActive) > activeSince
+        new Date(stat.last_active) > activeSince
       );
     }
     
@@ -176,12 +221,12 @@ export const GamificationReport: React.FC = () => {
   // Główne statystyki
   const mainStats = useMemo(() => {
     const totalUsers = filteredUserStats.length;
-    const totalPoints = filteredUserStats.reduce((sum, user) => sum + user.totalPoints, 0);
+    const totalPoints = filteredUserStats.reduce((sum, user) => sum + user.total_points, 0);
     const avgLevel = totalUsers > 0
-      ? Math.round(filteredUserStats.reduce((sum, user) => sum + user.currentLevel, 0) / totalUsers)
+      ? Math.round(filteredUserStats.reduce((sum, user) => sum + user.current_level, 0) / totalUsers)
       : 0;
-    const activeStreaks = filteredUserStats.filter(user => user.dailyStreak > 0).length;
-    const maxStreak = Math.max(...filteredUserStats.map(user => user.dailyStreak), 0);
+    const activeStreaks = filteredUserStats.filter(user => user.daily_streak > 0).length;
+    const maxStreak = Math.max(...filteredUserStats.map(user => user.daily_streak), 0);
     
     return {
       totalUsers,
@@ -197,7 +242,7 @@ export const GamificationReport: React.FC = () => {
     const distribution = new Map<number, number>();
     
     filteredUserStats.forEach(user => {
-      const levelGroup = Math.floor((user.currentLevel - 1) / 10) * 10 + 1;
+      const levelGroup = Math.floor((user.current_level - 1) / 10) * 10 + 1;
       distribution.set(levelGroup, (distribution.get(levelGroup) || 0) + 1);
     });
     
@@ -217,16 +262,27 @@ export const GamificationReport: React.FC = () => {
     return filteredUserStats.slice(0, 10);
   }, [filteredUserStats]);
 
-  // Punkty vs Aktywność (scatter plot)
+  // Punkty vs Aktywność
   const pointsVsActivity = useMemo(() => {
+    if (!progressData?.data) return [];
+    
+    // Policz quizy dla każdego użytkownika
+    const userQuizCounts = new Map<string, number>();
+    progressData.data.forEach(progress => {
+      if (progress.activities?.type === 'quiz' && progress.completed_at) {
+        const count = userQuizCounts.get(progress.user_id) || 0;
+        userQuizCounts.set(progress.user_id, count + 1);
+      }
+    });
+    
     return filteredUserStats.map(user => ({
-      points: user.totalPoints,
-      quizzes: user.quizzesCompleted,
-      level: user.currentLevel,
-      streak: user.dailyStreak,
-      timeHours: Math.round(user.totalTimeSpent / 60)
+      points: user.total_points,
+      quizzes: userQuizCounts.get(user.user_id) || 0,
+      level: user.current_level,
+      streak: user.daily_streak,
+      timeHours: Math.round((user.total_time_spent || 0) / 60)
     }));
-  }, [filteredUserStats]);
+  }, [filteredUserStats, progressData?.data]);
 
   // Daily streaks histogram
   const streakDistribution = useMemo(() => {
@@ -240,11 +296,11 @@ export const GamificationReport: React.FC = () => {
     ];
     
     filteredUserStats.forEach(user => {
-      if (user.dailyStreak === 0) streaks[0].count++;
-      else if (user.dailyStreak <= 3) streaks[1].count++;
-      else if (user.dailyStreak <= 7) streaks[2].count++;
-      else if (user.dailyStreak <= 14) streaks[3].count++;
-      else if (user.dailyStreak <= 30) streaks[4].count++;
+      if (user.daily_streak === 0) streaks[0].count++;
+      else if (user.daily_streak <= 3) streaks[1].count++;
+      else if (user.daily_streak <= 7) streaks[2].count++;
+      else if (user.daily_streak <= 14) streaks[3].count++;
+      else if (user.daily_streak <= 30) streaks[4].count++;
       else streaks[5].count++;
     });
     
@@ -253,49 +309,87 @@ export const GamificationReport: React.FC = () => {
 
   // Aktywność punktowa w czasie
   const pointsTimeline = useMemo(() => {
-    if (!gamificationLogsData?.data) return [];
+    if (!progressData?.data) return [];
     
-    const dailyPoints = new Map<string, number>();
+    // Grupuj według dnia
+    const dailyStats = new Map<string, { points: number; activities: number }>();
     
-    gamificationLogsData.data.forEach(event => {
-      const date = new Date(event.createdAt).toLocaleDateString('pl-PL');
-      dailyPoints.set(date, (dailyPoints.get(date) || 0) + event.points);
+    // Wygeneruj ostatnie 14 dni
+    const days = [];
+    for (let i = 13; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      days.push(dateStr);
+      dailyStats.set(dateStr, { points: 0, activities: 0 });
+    }
+    
+    // Symulacja punktów na podstawie aktywności
+    progressData.data.forEach(progress => {
+      const dateStr = progress.started_at.split('T')[0];
+      if (dailyStats.has(dateStr)) {
+        const stats = dailyStats.get(dateStr)!;
+        stats.activities++;
+        // Symulacja punktów: 10 za materiał, 20-50 za quiz w zależności od wyniku
+        if (progress.activities?.type === 'material' && progress.completed_at) {
+          stats.points += 10;
+        } else if (progress.activities?.type === 'quiz' && progress.score !== null && progress.score !== undefined) {
+          stats.points += Math.round(20 + (progress.score / 100) * 30);
+        }
+      }
     });
     
-    return Array.from(dailyPoints.entries())
-      .map(([date, points]) => ({ date, points }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(-14); // Ostatnie 14 dni
-  }, [gamificationLogsData?.data]);
+    return days.map(date => ({
+      date: new Date(date + 'T00:00:00').toLocaleDateString('pl-PL', { 
+        day: 'numeric', 
+        month: 'short' 
+      }),
+      points: dailyStats.get(date)?.points || 0
+    }));
+  }, [progressData?.data]);
 
   // Typy zdobywanych punktów
   const pointsByType = useMemo(() => {
-    if (!gamificationLogsData?.data) return [];
+    if (!progressData?.data) return [];
     
-    const typeMap = new Map<string, number>();
+    let quizPoints = 0;
+    let materialPoints = 0;
+    const dailyLoginPoints = filteredUserStats.filter(u => u.daily_streak > 0).length * 5;
+    const levelUpPoints = filteredUserStats.filter(u => u.current_level > 1).length * 50;
     
-    gamificationLogsData.data.forEach(event => {
-      typeMap.set(event.eventType, (typeMap.get(event.eventType) || 0) + event.points);
+    progressData.data.forEach(progress => {
+      if (progress.activities?.type === 'quiz' && progress.score !== null && progress.score !== undefined) {
+        quizPoints += Math.round(20 + (progress.score / 100) * 30);
+      } else if (progress.activities?.type === 'material' && progress.completed_at) {
+        materialPoints += 10;
+      }
     });
     
-    const typeLabels: Record<string, string> = {
-      'quiz_complete': 'Ukończone quizy',
-      'daily_login': 'Codzienne logowanie',
-      'idle_claim': 'Punkty pasywne',
-      'level_up': 'Awans poziomów'
-    };
+    return [
+      { type: 'Ukończone quizy', points: quizPoints, color: '#8884d8' },
+      { type: 'Materiały', points: materialPoints, color: '#82ca9d' },
+      { type: 'Codzienne logowanie', points: dailyLoginPoints, color: '#ffc658' },
+      { type: 'Awans poziomów', points: levelUpPoints, color: '#ff8042' }
+    ].filter(item => item.points > 0)
+     .sort((a, b) => b.points - a.points);
+  }, [progressData?.data, filteredUserStats]);
+
+  // Najlepsi uczniowie z ukończonymi quizami
+  const topStudentsWithQuizzes = useMemo(() => {
+    if (!progressData?.data) return [];
     
-    return Array.from(typeMap.entries())
-      .map(([type, points]) => ({
-        type: typeLabels[type] || type,
-        points,
-        color: type === 'quiz_complete' ? '#8884d8' :
-               type === 'daily_login' ? '#82ca9d' :
-               type === 'idle_claim' ? '#ffc658' :
-               '#ff8042'
-      }))
-      .sort((a, b) => b.points - a.points);
-  }, [gamificationLogsData?.data]);
+    const quizzesByUser = new Map<string, number>();
+    progressData.data.forEach(p => {
+      if (p.activities?.type === 'quiz' && p.completed_at) {
+        quizzesByUser.set(p.user_id, (quizzesByUser.get(p.user_id) || 0) + 1);
+      }
+    });
+    
+    return topPlayers.map(player => ({
+      ...player,
+      quizzesCompleted: quizzesByUser.get(player.user_id) || 0
+    }));
+  }, [topPlayers, progressData?.data]);
 
   return (
     <SubPage>
@@ -415,8 +509,8 @@ export const GamificationReport: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {topPlayers.map((player, index) => (
-                <div key={player.userId} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
+              {topStudentsWithQuizzes.map((player, index) => (
+                <div key={player.user_id} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
                       ${index === 0 ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-500' : 
@@ -427,36 +521,41 @@ export const GamificationReport: React.FC = () => {
                     </div>
                     <Avatar>
                       <AvatarFallback className="text-xs">
-                        U{index + 1}
+                        {player.users?.full_name 
+                          ? player.users.full_name.split(' ').map(n => n[0]).join('').toUpperCase()
+                          : `U${index + 1}`
+                        }
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium">Uczeń #{index + 1}</p>
+                      <p className="font-medium">
+                        {player.users?.full_name || `Uczeń #${index + 1}`}
+                      </p>
                       <div className="flex gap-2 mt-1">
                         <Badge 
                           variant="outline" 
                           className="text-xs"
-                          style={{ borderColor: getLevelColor(player.currentLevel), color: getLevelColor(player.currentLevel) }}
+                          style={{ borderColor: getLevelColor(player.current_level), color: getLevelColor(player.current_level) }}
                         >
-                          Poziom {player.currentLevel}
+                          Poziom {player.current_level}
                         </Badge>
-                        {player.dailyStreak > 0 && (
+                        {player.daily_streak > 0 && (
                           <Badge variant="secondary" className="text-xs">
                             <Flame className="w-3 h-3 mr-1" />
-                            {player.dailyStreak} dni
+                            {player.daily_streak} dni
                           </Badge>
                         )}
-                        {player.perfectScores > 0 && (
+                        {player.perfect_scores > 0 && (
                           <Badge variant="secondary" className="text-xs">
                             <Star className="w-3 h-3 mr-1" />
-                            {player.perfectScores} perfect
+                            {player.perfect_scores} perfect
                           </Badge>
                         )}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold">{player.totalPoints.toLocaleString('pl-PL')}</p>
+                    <p className="text-lg font-bold">{player.total_points.toLocaleString('pl-PL')}</p>
                     <p className="text-xs text-muted-foreground">punktów</p>
                   </div>
                 </div>
@@ -478,10 +577,11 @@ export const GamificationReport: React.FC = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ percentage }) => `${percentage}%`}
+                  label={({ percentage }) => percentage > 0 ? `${percentage}%` : ''}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="count"
+                  isAnimationActive={false}
                 >
                   {levelDistribution.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={LEVEL_COLORS[index]} />
@@ -489,7 +589,7 @@ export const GamificationReport: React.FC = () => {
                 </Pie>
                 <Tooltip />
                 <Legend 
-                  formatter={(value, entry) => `Poziom ${entry.payload.level}`}
+                  formatter={(value, entry) => entry?.payload && 'level' in entry.payload ? `Poziom ${entry.payload.level}` : ''}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -515,6 +615,7 @@ export const GamificationReport: React.FC = () => {
                   name="Uczniowie" 
                   data={pointsVsActivity} 
                   fill="#8884d8"
+                  isAnimationActive={false}
                 />
               </ScatterChart>
             </ResponsiveContainer>
@@ -528,12 +629,15 @@ export const GamificationReport: React.FC = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={streakDistribution}>
+              <BarChart 
+                key={`${streakDistribution.map(d => d.count).join('-')}`}
+                data={streakDistribution}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="range" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="count" fill="#fbbf24" name="Liczba uczniów">
+                <Bar dataKey="count" fill="#fbbf24" name="Liczba uczniów" isAnimationActive={false}>
                   {streakDistribution.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
@@ -558,7 +662,10 @@ export const GamificationReport: React.FC = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={pointsTimeline}>
+              <LineChart 
+                key={`${pointsTimeline.map(d => d.points).join('-')}`}
+                data={pointsTimeline}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
@@ -570,6 +677,7 @@ export const GamificationReport: React.FC = () => {
                   strokeWidth={2}
                   dot={{ fill: '#8884d8' }}
                   name="Punkty"
+                  isAnimationActive={false}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -589,10 +697,11 @@ export const GamificationReport: React.FC = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ percentage, value }) => `${value.toLocaleString('pl-PL')}`}
+                  label={({ value }) => value !== undefined && value > 0 ? `${value.toLocaleString('pl-PL')}` : ''}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="points"
+                  isAnimationActive={false}
                 >
                   {pointsByType.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -622,7 +731,7 @@ export const GamificationReport: React.FC = () => {
                 <span className="text-sm font-medium">Najaktywniejszy uczeń</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                {topPlayers[0]?.quizzesCompleted || 0} ukończonych quizów
+                {topStudentsWithQuizzes[0]?.quizzesCompleted || 0} ukończonych quizów
               </p>
             </div>
             <div className="space-y-2">
@@ -640,7 +749,10 @@ export const GamificationReport: React.FC = () => {
                 <span className="text-sm font-medium">Zaangażowanie</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                {Math.round((mainStats.activeStreaks / mainStats.totalUsers) * 100)}% uczniów ma aktywną serię
+                {mainStats.totalUsers > 0 
+                  ? Math.round((mainStats.activeStreaks / mainStats.totalUsers) * 100)
+                  : 0
+                }% uczniów ma aktywną serię
               </p>
             </div>
           </div>

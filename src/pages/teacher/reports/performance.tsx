@@ -101,6 +101,22 @@ interface QuizResult {
   passingScore: number;
 }
 
+interface Question {
+  id: number;
+  activity_id: number;
+  question: string;
+  order_index: number;
+}
+
+interface QuestionAnalysis {
+  questionId: number;
+  question: string;
+  activityTitle: string;
+  quizAttempts: number;
+  avgQuizScore: number;
+  difficulty: 'easy' | 'medium' | 'hard' | 'very-hard';
+}
+
 export const PerformanceReport: React.FC = () => {
   const [dateRange, setDateRange] = useState("30d");
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
@@ -138,6 +154,13 @@ export const PerformanceReport: React.FC = () => {
   };
 
   const { start: startDate } = getDateRange();
+
+  // Pobierz pytania dla quizów
+  const { data: questionsData } = useList<Question>({
+    resource: "questions",
+    pagination: { mode: "off" },
+    ...staticQuery
+  });
 
   // Pobierz kursy
   const { data: coursesData } = useList<Course>({
@@ -386,38 +409,45 @@ export const PerformanceReport: React.FC = () => {
       .slice(-14); // Ostatnie 14 dni
   }, [filteredProgress]);
 
-  // Najtrudniejsze pytania (mock - w rzeczywistości potrzeba szczegółowych danych o odpowiedziach)
+  // Najtrudniejsze quizy i pytania - na podstawie wyników
   const difficultQuestions = useMemo(() => {
-    // To jest uproszczona wersja - w pełnej implementacji należałoby śledzić odpowiedzi na poziomie pytań
-    const mockQuestions = [
-      {
-        questionId: 1,
-        question: "Które z poniższych stwierdzeń najlepiej opisuje zasadę SOLID?",
-        correctAnswers: 45,
-        totalAnswers: 120,
-        successRate: 37.5,
-        avgTimeSpent: 95
-      },
-      {
-        questionId: 2,
-        question: "Jaka jest złożoność czasowa algorytmu quicksort w najgorszym przypadku?",
-        correctAnswers: 52,
-        totalAnswers: 120,
-        successRate: 43.3,
-        avgTimeSpent: 78
-      },
-      {
-        questionId: 3,
-        question: "Wyjaśnij różnicę między agregacją a kompozycją w programowaniu obiektowym",
-        correctAnswers: 58,
-        totalAnswers: 120,
-        successRate: 48.3,
-        avgTimeSpent: 112
-      }
-    ];
+    if (!questionsData?.data || !quizResults.length) return [];
     
-    return mockQuestions;
-  }, []);
+    // Weź 5 najtrudniejszych quizów (już posortowane po avgScore rosnąco)
+    const hardestQuizzes = quizResults.slice(0, 5);
+    
+    const questionAnalysis: QuestionAnalysis[] = [];
+    
+    hardestQuizzes.forEach(quiz => {
+      // Znajdź pytania dla tego quizu
+      const quizQuestions = questionsData.data
+        .filter(q => q.activity_id === quiz.activityId)
+        .sort((a, b) => a.order_index - b.order_index);
+      
+      // Dodaj każde pytanie z informacją o trudności quizu
+      quizQuestions.forEach((question, index) => {
+        let difficulty: 'easy' | 'medium' | 'hard' | 'very-hard' = 'medium';
+        if (quiz.avgScore < 30) difficulty = 'very-hard';
+        else if (quiz.avgScore < 50) difficulty = 'hard';
+        else if (quiz.avgScore < 70) difficulty = 'medium';
+        else difficulty = 'easy';
+        
+        questionAnalysis.push({
+          questionId: question.id,
+          question: question.question,
+          activityTitle: quiz.activityTitle,
+          quizAttempts: quiz.attempts,
+          avgQuizScore: quiz.avgScore,
+          difficulty
+        });
+      });
+    });
+    
+    // Sortuj po średnim wyniku quizu (najtrudniejsze pierwsze)
+    return questionAnalysis
+      .sort((a, b) => a.avgQuizScore - b.avgQuizScore)
+      .slice(0, 10); // Top 10 pytań
+  }, [questionsData?.data, quizResults]);
 
   return (
     <SubPage>
@@ -729,43 +759,59 @@ export const PerformanceReport: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {difficultQuestions.map((question, index) => (
-                  <div key={question.questionId} className="border rounded-lg p-4 space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline">#{index + 1}</Badge>
-                          <Badge variant={question.successRate < 50 ? "destructive" : "secondary"}>
-                            {question.successRate.toFixed(1)}% poprawnych
+                {difficultQuestions.length > 0 ? (
+                  difficultQuestions.map((question, index) => (
+                    <div key={question.questionId} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="outline">#{index + 1}</Badge>
+                            <Badge variant={
+                              question.difficulty === 'very-hard' ? "destructive" : 
+                              question.difficulty === 'hard' ? "secondary" : 
+                              "default"
+                            }>
+                              Quiz: {question.avgQuizScore}% średnio
+                            </Badge>
+                          </div>
+                          <p className="text-sm font-medium">{question.question}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Z quizu: {question.activityTitle} • {question.quizAttempts} podejść
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Średni wynik quizu</p>
+                          <p className="font-medium">{question.avgQuizScore}%</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Liczba podejść</p>
+                          <p className="font-medium">{question.quizAttempts}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Poziom trudności</p>
+                          <Badge variant={
+                            question.difficulty === 'very-hard' ? "destructive" : 
+                            question.difficulty === 'hard' ? "secondary" : 
+                            question.difficulty === 'medium' ? "outline" :
+                            "default"
+                          }>
+                            {question.difficulty === 'very-hard' ? "Bardzo trudne" : 
+                             question.difficulty === 'hard' ? "Trudne" : 
+                             question.difficulty === 'medium' ? "Średnie" :
+                             "Łatwe"}
                           </Badge>
                         </div>
-                        <p className="text-sm font-medium">{question.question}</p>
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Poprawne odpowiedzi</p>
-                        <p className="font-medium">{question.correctAnswers}/{question.totalAnswers}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Średni czas</p>
-                        <p className="font-medium">{question.avgTimeSpent}s</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Poziom trudności</p>
-                        <Badge variant={
-                          question.successRate < 30 ? "destructive" : 
-                          question.successRate < 50 ? "secondary" : 
-                          "default"
-                        }>
-                          {question.successRate < 30 ? "Bardzo trudne" : 
-                           question.successRate < 50 ? "Trudne" : 
-                           "Średnie"}
-                        </Badge>
-                      </div>
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Brak danych o pytaniach w wybranym okresie.</p>
+                    <p className="text-sm mt-2">Upewnij się, że wybrane quizy mają pytania.</p>
                   </div>
-                ))}
+                )}
               </div>
               <div className="mt-4 p-4 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground">
