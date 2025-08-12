@@ -171,6 +171,9 @@ export const ReportUsersSummary: React.FC = () => {
   const { data: userStatsData } = useList<UserStats>({
     resource: "user_stats",
     pagination: { mode: "off" },
+    meta: {
+      select: "*, users!user_stats_user_id_fkey(email, full_name)"
+    },
     ...staticQuery
   });
 
@@ -213,7 +216,10 @@ export const ReportUsersSummary: React.FC = () => {
         ? Math.floor((Date.now() - new Date(stats.last_active).getTime()) / (1000 * 60 * 60 * 24))
         : 999;
       
-      if (!stats || daysSinceLastActive > 30) {
+      // Jeśli brak statystyk, użytkownik jest nieaktywny
+      if (!stats) {
+        segment = 'dormant';
+      } else if (daysSinceLastActive > 30) {
         segment = 'dormant';
       } else if (daysSinceLastActive > 14) {
         segment = 'atRisk';
@@ -304,7 +310,30 @@ export const ReportUsersSummary: React.FC = () => {
       if (segment) segment.count++;
     });
 
+    console.log('Segmentacja użytkowników:', segments);
+    console.log('Liczba enrichedUsers:', enrichedUsers.length);
+
+    // Zwróć tylko segmenty z użytkownikami dla wykresu
     return segments.filter(s => s.count > 0);
+  }, [enrichedUsers]);
+
+  // Wszystkie segmenty do opisu (nawet puste)
+  const allSegments = useMemo(() => {
+    const segments = [
+      { name: 'Champions', key: 'champions', count: 0, color: SEGMENT_COLORS.champions, description: 'Wysokie punkty, aktywna seria' },
+      { name: 'Lojaliści', key: 'loyalists', count: 0, color: SEGMENT_COLORS.loyalists, description: 'Regularna aktywność' },
+      { name: 'Potencjalni', key: 'potentials', count: 0, color: SEGMENT_COLORS.potentials, description: 'Niska regularność' },
+      { name: 'Nowi', key: 'newUsers', count: 0, color: SEGMENT_COLORS.newUsers, description: 'Niedawno dołączyli' },
+      { name: 'Zagrożeni', key: 'atRisk', count: 0, color: SEGMENT_COLORS.atRisk, description: 'Spadek aktywności' },
+      { name: 'Nieaktywni', key: 'dormant', count: 0, color: SEGMENT_COLORS.dormant, description: 'Brak aktywności >30 dni' }
+    ];
+
+    enrichedUsers.forEach(user => {
+      const segment = segments.find(s => s.key === user.segment);
+      if (segment) segment.count++;
+    });
+
+    return segments;
   }, [enrichedUsers]);
 
   // Rozkład aktywności
@@ -492,7 +521,7 @@ export const ReportUsersSummary: React.FC = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Wszystkie segmenty</SelectItem>
-              {userSegments.map(segment => (
+              {allSegments.map(segment => (
                 <SelectItem key={segment.key} value={segment.key}>
                   {segment.name} ({segment.count})
                 </SelectItem>
@@ -576,7 +605,7 @@ export const ReportUsersSummary: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {userSegments.map(segment => (
+                  {allSegments.map(segment => (
                     <div key={segment.key} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center gap-3">
                         <div 
@@ -609,40 +638,40 @@ export const ReportUsersSummary: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-3">
-                {userSegments.find(s => s.key === 'atRisk')?.count ? (
+                {allSegments.find(s => s.key === 'atRisk')?.count ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-orange-600">
                       <UserX className="h-4 w-4" />
                       <span className="text-sm font-medium">Użytkownicy zagrożeni</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {userSegments.find(s => s.key === 'atRisk')?.count} użytkowników wymaga uwagi - 
+                      {allSegments.find(s => s.key === 'atRisk')?.count} użytkowników wymaga uwagi - 
                       rozważ wysłanie powiadomień motywacyjnych
                     </p>
                   </div>
                 ) : null}
                 
-                {userSegments.find(s => s.key === 'champions')?.count ? (
+                {allSegments.find(s => s.key === 'champions')?.count ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-purple-600">
                       <Award className="h-4 w-4" />
                       <span className="text-sm font-medium">Champions do wykorzystania</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {userSegments.find(s => s.key === 'champions')?.count} najaktywniejszych użytkowników - 
+                      {allSegments.find(s => s.key === 'champions')?.count} najaktywniejszych użytkowników - 
                       mogą być mentorami lub ambasadorami
                     </p>
                   </div>
                 ) : null}
                 
-                {userSegments.find(s => s.key === 'newUsers')?.count ? (
+                {allSegments.find(s => s.key === 'newUsers')?.count ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-blue-600">
                       <Users className="h-4 w-4" />
                       <span className="text-sm font-medium">Nowi użytkownicy</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {userSegments.find(s => s.key === 'newUsers')?.count} nowych użytkowników - 
+                      {allSegments.find(s => s.key === 'newUsers')?.count} nowych użytkowników - 
                       upewnij się, że mają dobre wsparcie onboardingowe
                     </p>
                   </div>
@@ -660,6 +689,7 @@ export const ReportUsersSummary: React.FC = () => {
                 <CardTitle>Wzorzec aktywności użytkowników</CardTitle>
               </CardHeader>
               <CardContent>
+                <ResponsiveContainer width="100%" height={300}>
                 <ResponsiveContainer width="100%" height={300}>
                   <AreaChart data={activityPattern}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -689,6 +719,7 @@ export const ReportUsersSummary: React.FC = () => {
                     />
                   </AreaChart>
                 </ResponsiveContainer>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
@@ -701,6 +732,7 @@ export const ReportUsersSummary: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
+                <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={activityDistribution}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
@@ -712,6 +744,7 @@ export const ReportUsersSummary: React.FC = () => {
                       ))}
                     </Bar>
                   </BarChart>
+                </ResponsiveContainer>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
@@ -766,6 +799,7 @@ export const ReportUsersSummary: React.FC = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
+              <ResponsiveContainer width="100%" height={400}>
                 <ScatterChart>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="timeHours" name="Czas nauki (h)" />
@@ -787,6 +821,7 @@ export const ReportUsersSummary: React.FC = () => {
                     ))}
                   </Scatter>
                 </ScatterChart>
+              </ResponsiveContainer>
               </ResponsiveContainer>
             </CardContent>
           </Card>
@@ -835,6 +870,7 @@ export const ReportUsersSummary: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
+                <ResponsiveContainer width="100%" height={250}>
                   <RadialBarChart cx="50%" cy="50%" innerRadius="10%" outerRadius="90%" data={[
                     { name: 'Ukończenia', value: 68, fill: '#8884d8' },
                     { name: 'Zdawalność', value: 74, fill: '#82ca9d' },
@@ -844,6 +880,7 @@ export const ReportUsersSummary: React.FC = () => {
                     <Legend />
                     <Tooltip />
                   </RadialBarChart>
+                </ResponsiveContainer>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
@@ -962,7 +999,7 @@ export const ReportUsersSummary: React.FC = () => {
                 <div className="space-y-4">
                   <div className="text-center py-8">
                     <div className="text-4xl font-bold text-orange-600 mb-2">
-                      {userSegments.find(s => s.key === 'atRisk')?.count || 0}
+                      {allSegments.find(s => s.key === 'atRisk')?.count || 0}
                     </div>
                     <p className="text-sm text-muted-foreground">
                       użytkowników zagrożonych odejściem
@@ -1026,7 +1063,7 @@ export const ReportUsersSummary: React.FC = () => {
                               color: SEGMENT_COLORS[user.segment as keyof typeof SEGMENT_COLORS] || '#8884d8'
                             }}
                           >
-                            {userSegments.find(s => s.key === user.segment)?.name || user.segment}
+                            {allSegments.find(s => s.key === user.segment)?.name || user.segment}
                           </Badge>
                           <Badge variant="secondary" className="text-xs">
                             Poziom {user.stats?.current_level || 0}
