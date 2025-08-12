@@ -79,7 +79,7 @@ export const StudentLayout: React.FC<PropsWithChildren> = ({ children }) => {
           </div>
 
           {/* Content with bottom padding for mobile nav */}
-          <div className="min-h-[calc(100vh-4rem)] pb-24 lg:pb-0">
+          <div className="min-h-[calc(100vh-4rem)] pb-32 lg:pb-24">
             {children}
           </div>
         </main>
@@ -88,7 +88,7 @@ export const StudentLayout: React.FC<PropsWithChildren> = ({ children }) => {
       {/* Bottom Navigation - mobile i desktop */}
       <nav
         aria-label="Nawigacja dolna"
-        className="fixed py-3.5 bottom-0 z-40 left-0 right-0 lg:left-72 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 border-t"
+        className="fixed py-3.5 bottom-0 z-40 left-0 right-0 lg:left-72 bg-card/95 backdrop-blur-xl border-t"
         
       >
         <StudentMenu variant="bottom" />

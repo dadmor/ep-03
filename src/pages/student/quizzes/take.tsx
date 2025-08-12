@@ -92,39 +92,43 @@ export const QuizTake = () => {
     setAnswers(prev => ({ ...prev, [questionId]: optionId }));
   };
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    try {
-      const answersArray = Object.entries(answers).map(([questionId, optionId]) => ({
-        question_id: parseInt(questionId),
-        option_id: optionId
-      }));
+// W handleSubmit dodaj przekierowanie do wyniku:
+const handleSubmit = async () => {
+  setIsSubmitting(true);
+  try {
+    const answersArray = Object.entries(answers).map(([questionId, optionId]) => ({
+      question_id: parseInt(questionId),
+      option_id: optionId
+    }));
 
-      const { data: result, error } = await supabaseClient.rpc('finish_quiz', {
-        p_activity_id: parseInt(quizId!),
-        p_answers: answersArray
-      });
+    const { data: result, error } = await supabaseClient.rpc('finish_quiz', {
+      p_activity_id: parseInt(quizId!),
+      p_answers: answersArray
+    });
 
-      if (error) throw error;
+    if (error) throw error;
 
-      if (result) {
-        const { score, passed, points_earned } = result;
-        
-        if (passed) {
-          toast.success(`Quiz zaliczony! Wynik: ${score}%`);
-        } else {
-          toast.error(`Quiz niezaliczony. Wynik: ${score}%`);
+    if (result) {
+      // Zamiast toasta i prostego przekierowania:
+      navigate(`/student/courses/${courseId}/quiz/${quizId}/result`, {
+        state: {
+          courseId,
+          quizId,
+          result: {
+            ...result,
+            passing_score: quiz?.passing_score || 70,
+            max_attempts: quiz?.max_attempts,
+            attempts_used: quiz?.attempts || 1
+          }
         }
-        
-        invalidateRPCCache('get_course_structure');
-        navigate(`/student/courses/${courseId}`);
-      }
-    } catch (error) {
-      toast.error("Nie udało się przesłać odpowiedzi");
-    } finally {
-      setIsSubmitting(false);
+      });
     }
-  };
+  } catch (error) {
+    toast.error("Nie udało się przesłać odpowiedzi");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   if (quizLoading || questionsLoading) {
     return (
