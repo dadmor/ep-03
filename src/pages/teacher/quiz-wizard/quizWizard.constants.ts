@@ -356,12 +356,13 @@ export const QUIZ_API_CONFIG = {
 };
 
 // ===== NAVIGATION PATHS =====
+// ===== NAVIGATION PATHS =====
 export const QUIZ_PATHS = {
-  dashboard: "/quiz-wizard",
-  step1: "/quiz-wizard/step1",
-  step2: "/quiz-wizard/step2",
-  step3: "/quiz-wizard/step3",
-  step4: "/quiz-wizard/step4",
-  step5: "/quiz-wizard/step5",
-  questions: "/questions/manage",
+  dashboard: "/teacher/quiz-wizard",
+  step1: "/teacher/quiz-wizard/step1",
+  step2: "/teacher/quiz-wizard/step2",
+  step3: "/teacher/quiz-wizard/step3",
+  step4: "/teacher/quiz-wizard/step4",
+  step5: "/teacher/quiz-wizard/step5",
+  questions: "/teacher/questions/manage",
 };

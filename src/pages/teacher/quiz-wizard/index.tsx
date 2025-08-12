@@ -1,4 +1,4 @@
-
+// src/pages/quiz-wizard/index.tsx
 import { Route } from "react-router";
 import { QuizWizardDashboard } from "./QuizWizardDashboard";
 import { QuizWizardStep1 } from "./QuizWizardStep1";

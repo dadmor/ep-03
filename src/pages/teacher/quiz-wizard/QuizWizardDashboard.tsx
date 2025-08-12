@@ -1,3 +1,4 @@
+// src/pages/teacher/quiz-wizard/QuizWizardDashboard.tsx
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
@@ -68,7 +69,7 @@ export const QuizWizardDashboard: React.FC = () => {
 
           <div className="mt-6">
             <Button 
-              onClick={() => navigate(QUIZ_PATHS.step1)}
+              onClick={() => navigate(`/teacher${QUIZ_PATHS.step1}`)}
               className="w-full md:w-auto"
               size="lg"
             >
@@ -141,7 +142,7 @@ export const QuizWizardDashboard: React.FC = () => {
           
           <GridBox variant="1-2-3" className="gap-4">
             <button
-              onClick={() => navigate("/activities")}
+              onClick={() => navigate("/teacher/activities")}
               className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
             >
               <FlexBox variant="start" className="mb-2">
@@ -152,7 +153,7 @@ export const QuizWizardDashboard: React.FC = () => {
             </button>
 
             <button
-              onClick={() => navigate("/questions")}
+              onClick={() => navigate("/teacher/questions")}
               className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
             >
               <FlexBox variant="start" className="mb-2">
@@ -163,7 +164,7 @@ export const QuizWizardDashboard: React.FC = () => {
             </button>
 
             <button
-              onClick={() => navigate("/reports")}
+              onClick={() => navigate("/teacher/reports")}
               className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
             >
               <FlexBox variant="start" className="mb-2">
