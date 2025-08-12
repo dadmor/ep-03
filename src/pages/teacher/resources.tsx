@@ -17,6 +17,9 @@ import { vendorsResource } from "./vendors";
 import {
   reportsResource,
   reportsEngagementResource,
+  reportsProgressResource,
+  reportsPerformanceResource,
+  reportsGamificationResource,
   reportsSummaryResource,
 } from "./reports";
 
@@ -70,11 +73,25 @@ export const teacherResources: IResourceItem[] = [
   usersResource,
   vendorsResource,
 
-  // Raporty (z dziećmi)
+  // Raporty - rodzic widoczny w menu
   reportsResource,
+  
+  // Wszystkie raporty szczegółowe (widoczne w podmenu)
   {
     ...reportsEngagementResource,
     meta: { ...reportsEngagementResource.meta, parent: "reports" },
+  },
+  {
+    ...reportsProgressResource,
+    meta: { ...reportsProgressResource.meta, parent: "reports" },
+  },
+  {
+    ...reportsPerformanceResource,
+    meta: { ...reportsPerformanceResource.meta, parent: "reports" },
+  },
+  {
+    ...reportsGamificationResource,
+    meta: { ...reportsGamificationResource.meta, parent: "reports" },
   },
   {
     ...reportsSummaryResource,
