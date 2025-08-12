@@ -3,6 +3,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Refine } from "@refinedev/core";
+import routerProvider from "@refinedev/react-router";
 import { dataProvider } from "@refinedev/supabase";
 import { supabaseClient } from "./utility";
 import { authProvider } from "./utility/auth/authProvider";
@@ -23,22 +24,24 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: false, staleTime: 5 * 60 * 1000 } },
 });
 
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Refine
-        dataProvider={dataProvider(supabaseClient)}
-        authProvider={authProvider}
-        // >>> CHUDO: tylko jedna tablica z modułu teachera
-        resources={teacherResources}
-        options={{
-          syncWithLocation: true,
-          warnWhenUnsavedChanges: false,
-          useNewQueryKeys: true,
-          disableTelemetry: true,
-        }}
-      >
-        <BrowserRouter>
+      <BrowserRouter>
+        <Refine
+          dataProvider={dataProvider(supabaseClient)}
+          authProvider={authProvider}
+          routerProvider={routerProvider}
+          // >>> CHUDO: tylko jedna tablica z modułu teachera
+          resources={teacherResources}
+          options={{
+            syncWithLocation: true,
+            warnWhenUnsavedChanges: false,
+            useNewQueryKeys: true,
+            disableTelemetry: true,
+          }}
+        >
           <Routes>
             <Route path="/" element={<LandingPage />} />
 
@@ -58,8 +61,8 @@ function App() {
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </BrowserRouter>
-      </Refine>
+        </Refine>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }

@@ -1,3 +1,4 @@
+// src/pages/teacher/users/index.tsx
 import { Route } from "react-router";
 import { Users } from "lucide-react";
 import { UsersList } from "./list";
@@ -10,21 +11,27 @@ export { UsersCreate } from "./create";
 export { UsersEdit } from "./edit";
 export { UsersShow } from "./show";
 
+/**
+ * Ścieżki *absolutne* do menu (Refine -> useMenu), MUSZĄ mieć prefiks /teacher
+ */
 export const usersResource = {
   name: "users",
-  list: "/users",
-  create: "/users/create",
-  edit: "/users/edit/:id",
-  show: "/users/show/:id",
+  list: "/teacher/users",
+  create: "/teacher/users/create",
+  edit: "/teacher/users/edit/:id",
+  show: "/teacher/users/show/:id",
   meta: {
     label: "Użytkownicy",
     icon: <Users className="h-4 w-4" />,
   },
 };
 
+/**
+ * Ścieżki *względne* do routingu wewnątrz modułu /teacher/*
+ */
 export const usersRoutes = [
-  <Route key="users-list" path="/users" element={<UsersList />} />,
-  <Route key="users-create" path="/users/create" element={<UsersCreate />} />,
-  <Route key="users-edit" path="/users/edit/:id" element={<UsersEdit />} />,
-  <Route key="users-show" path="/users/show/:id" element={<UsersShow />} />,
+  <Route key="users-list" path="users" element={<UsersList />} />,
+  <Route key="users-create" path="users/create" element={<UsersCreate />} />,
+  <Route key="users-edit" path="users/edit/:id" element={<UsersEdit />} />,
+  <Route key="users-show" path="users/show/:id" element={<UsersShow />} />,
 ];
