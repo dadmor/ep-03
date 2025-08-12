@@ -174,7 +174,7 @@ export const ActivitiesShow = () => {
             {activity.type === "quiz" && (
               <Button
                 variant="outline"
-                onClick={() => handleNavigateWithState(`/questions/manage/${activity.id}`)}
+                onClick={() => handleNavigateWithState(`/teacher/questions/manage/${activity.id}`)}
               >
                 <ListChecks className="w-4 h-4 mr-2" />
                 Zarządzaj pytaniami ({questionsCount})

@@ -8,7 +8,6 @@ import {
   Users, 
   UserCheck,
   UserX,
-  Calendar,
   Clock,
   Award,
   AlertTriangle,
@@ -72,7 +71,7 @@ interface UserProfile {
   full_name?: string;
   role: 'student' | 'teacher' | 'admin';
   is_active: boolean;
-  created_at: string; // ISO
+  created_at: string;
 }
 
 interface UserStats {
@@ -80,8 +79,8 @@ interface UserStats {
   total_points: number;
   current_level: number;
   daily_streak: number;
-  last_active: string; // ISO
-  total_time_spent: number; // minutes
+  last_active: string;
+  total_time_spent: number;
   activities_completed: number;
   perfect_scores: number;
 }
@@ -89,7 +88,7 @@ interface UserStats {
 interface ActivityProgress {
   user_id: string;
   activity_id: number;
-  started_at: string; // ISO
+  started_at: string;
   completed_at?: string;
   score?: number;
   time_spent?: number;
@@ -120,9 +119,9 @@ export const ReportUsersSummary: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [segmentFilter, setSegmentFilter] = useState<string>("all");
 
-  // Snapshot queries
-  const staticQuery = {
-    queryOptions: {
+  // Stabilne opcje react-query (nie wpływają na key, ale trzymamy jedną referencję)
+  const queryOptions = useMemo(
+    () => ({
       staleTime: Infinity,
       gcTime: 30 * 60 * 1000,
       refetchOnWindowFocus: false,
@@ -130,13 +129,14 @@ export const ReportUsersSummary: React.FC = () => {
       refetchOnMount: false,
       refetchInterval: false,
       retry: 0,
-    } as const,
-  };
+    }),
+    []
+  );
 
-  // Zakres dat
-  const getDateRange = () => {
+  // Stabilny zakres dat – liczone TYLKO przy zmianie timeRange
+  const { startISO, endISO } = useMemo(() => {
     const end = new Date();
-    const start = new Date();
+    const start = new Date(end);
     switch (timeRange) {
       case "7d":
         start.setDate(start.getDate() - 7);
@@ -148,51 +148,72 @@ export const ReportUsersSummary: React.FC = () => {
         start.setDate(start.getDate() - 90);
         break;
     }
-    return { start, end };
-  };
+    // zaokrąglamy do początku dnia, żeby izo nie różnił się milisekundami
+    start.setHours(0, 0, 0, 0);
+    return { startISO: start.toISOString(), endISO: end.toISOString() };
+  }, [timeRange]);
 
-  const { start: startDate } = getDateRange();
+  // Stabilne meta/filters (te obiekty trafiają do queryKey w refine)
+  const usersFilters = useMemo(
+    () =>
+      roleFilter !== "all"
+        ? [
+            {
+              field: "role",
+              operator: "eq",
+              value: roleFilter,
+            } as const,
+          ]
+        : [],
+    [roleFilter]
+  );
 
-  // Pobierz dane
+  const userStatsMeta = useMemo(
+    () => ({ select: "*, users!user_stats_user_id_fkey(email, full_name)" }),
+    []
+  );
+
+  const activityMeta = useMemo(
+    () => ({ select: "*, activities(type)" }),
+    []
+  );
+
+  const activityFilters = useMemo(
+    () => [
+      {
+        field: "started_at",
+        operator: "gte",
+        value: startISO, // stabilny ISO
+      } as const,
+    ],
+    [startISO]
+  );
+
+  // Pobrania
   const { data: usersData } = useList<UserProfile>({
     resource: "users",
     pagination: { mode: "off" },
-    filters: roleFilter !== "all" ? [
-      {
-        field: "role",
-        operator: "eq",
-        value: roleFilter
-      }
-    ] : [],
-    ...staticQuery
+    filters: usersFilters,
+    queryOptions,
   });
 
   const { data: userStatsData } = useList<UserStats>({
     resource: "user_stats",
     pagination: { mode: "off" },
-    meta: {
-      select: "*, users!user_stats_user_id_fkey(email, full_name)"
-    },
-    ...staticQuery
+    meta: userStatsMeta,
+    queryOptions,
   });
 
   const { data: activityData } = useList<ActivityProgress>({
     resource: "activity_progress",
-    filters: [
-      {
-        field: "started_at",
-        operator: "gte",
-        value: startDate.toISOString()
-      }
-    ],
+    filters: activityFilters,
     pagination: { mode: "off" },
-    meta: {
-      select: "*, activities(type)"
-    },
-    ...staticQuery
+    meta: activityMeta,
+    queryOptions,
   });
 
-  // Analiza użytkowników z pełnymi danymi
+  // ---- Analiza i wizualizacje (bez zmian merytorycznych poza stabilnością) ----
+
   const enrichedUsers = useMemo(() => {
     if (!usersData?.data || !userStatsData?.data || !activityData?.data) return [];
 
@@ -209,7 +230,6 @@ export const ReportUsersSummary: React.FC = () => {
       const stats = statsMap.get(user.id);
       const activities = activityMap.get(user.id) || [];
       
-      // Segmentacja
       let segment: keyof typeof SEGMENT_COLORS;
       const daysSinceLastActive = stats?.last_active 
         ? Math.floor((Date.now() - new Date(stats.last_active).getTime()) / (1000 * 60 * 60 * 24))
@@ -231,7 +251,6 @@ export const ReportUsersSummary: React.FC = () => {
         segment = 'potentials';
       }
 
-      // Średni wynik (bez Infinity/NaN)
       const scored = activities.filter(a => typeof a.score === 'number') as Required<Pick<ActivityProgress,'score'>>[];
       const avgScore = scored.length
         ? Math.round(scored.reduce((sum, a) => sum + (a.score as number), 0) / scored.length)
@@ -248,13 +267,11 @@ export const ReportUsersSummary: React.FC = () => {
     });
   }, [usersData?.data, userStatsData?.data, activityData?.data]);
 
-  // Filtr segmentu
   const filteredUsers = useMemo(() => {
     if (segmentFilter === "all") return enrichedUsers;
     return enrichedUsers.filter(user => user.segment === segmentFilter);
   }, [enrichedUsers, segmentFilter]);
 
-  // Główne statystyki
   const mainStats = useMemo(() => {
     const total = filteredUsers.length;
     const active = filteredUsers.filter(u => u.is_active).length;
@@ -282,9 +299,8 @@ export const ReportUsersSummary: React.FC = () => {
     };
   }, [filteredUsers]);
 
-  // Segmentacja użytkowników
   const userSegments = useMemo(() => {
-    const segments = [
+    const base = [
       { name: 'Champions', key: 'champions', count: 0, color: SEGMENT_COLORS.champions, description: 'Wysokie punkty, aktywna seria' },
       { name: 'Lojaliści', key: 'loyalists', count: 0, color: SEGMENT_COLORS.loyalists, description: 'Regularna aktywność' },
       { name: 'Potencjalni', key: 'potentials', count: 0, color: SEGMENT_COLORS.potentials, description: 'Niska regularność' },
@@ -298,12 +314,9 @@ export const ReportUsersSummary: React.FC = () => {
       counts[u.segment] = (counts[u.segment] || 0) + 1;
     });
 
-    return segments
-      .map(s => ({ ...s, count: counts[s.key] || 0 }))
-      .filter(s => s.count > 0);
+    return base.map(s => ({ ...s, count: counts[s.key] || 0 })).filter(s => s.count > 0);
   }, [enrichedUsers]);
 
-  // Wszystkie segmenty do opisu
   const allSegments = useMemo(() => {
     const base = [
       { name: 'Champions', key: 'champions', count: 0, color: SEGMENT_COLORS.champions, description: 'Wysokie punkty, aktywna seria' },
@@ -320,7 +333,6 @@ export const ReportUsersSummary: React.FC = () => {
     return base.map(s => ({ ...s, count: counts[s.key] || 0 }));
   }, [enrichedUsers]);
 
-  // Rozkład aktywności
   const activityDistribution = useMemo(() => {
     const distribution = [
       { name: 'Bardzo aktywni', range: 'Codziennie', count: 0, color: ACTIVITY_COLORS.veryActive },
@@ -347,12 +359,10 @@ export const ReportUsersSummary: React.FC = () => {
     return distribution;
   }, [filteredUsers]);
 
-  // Wzorce aktywności w czasie (stabilne klucze ISO)
   const activityPattern = useMemo(() => {
     const dailyActivity = new Map<string, Set<string>>();
-
     activityData?.data?.forEach(a => {
-      const dayKey = a.started_at.slice(0, 10); // YYYY-MM-DD
+      const dayKey = a.started_at.slice(0, 10);
       const users = dailyActivity.get(dayKey) || new Set();
       users.add(a.user_id);
       dailyActivity.set(dayKey, users);
@@ -367,7 +377,6 @@ export const ReportUsersSummary: React.FC = () => {
     }));
   }, [activityData?.data, filteredUsers]);
 
-  // Punkty vs Czas (scatter)
   const pointsVsTime = useMemo(() => {
     return filteredUsers
       .filter(u => u.stats && (u.stats.total_time_spent || 0) > 0)
@@ -380,7 +389,6 @@ export const ReportUsersSummary: React.FC = () => {
       }));
   }, [filteredUsers]);
 
-  // Top performers
   const topPerformers = useMemo(() => {
     return filteredUsers
       .filter(u => u.stats)
@@ -388,7 +396,6 @@ export const ReportUsersSummary: React.FC = () => {
       .slice(0, 10);
   }, [filteredUsers]);
 
-  // Kohortowa analiza retencji
   const cohortAnalysis = useMemo(() => {
     const cohorts = new Map<string, { total: number; retained: number[] }>();
     const weeks = 4;
@@ -396,14 +403,12 @@ export const ReportUsersSummary: React.FC = () => {
     filteredUsers.forEach(user => {
       const joinWeek = new Date(user.created_at);
       joinWeek.setHours(0, 0, 0, 0);
-      // początek tygodnia (niedziela)
       joinWeek.setDate(joinWeek.getDate() - joinWeek.getDay());
       const cohortKey = joinWeek.toISOString().slice(0,10);
       
       if (!cohorts.has(cohortKey)) {
         cohorts.set(cohortKey, { total: 0, retained: Array(weeks).fill(0) });
       }
-      
       const cohort = cohorts.get(cohortKey)!;
       cohort.total++;
       
@@ -417,7 +422,6 @@ export const ReportUsersSummary: React.FC = () => {
           const activityDate = new Date(a.started_at);
           return activityDate >= weekStart && activityDate < weekEnd;
         });
-        
         if (wasActive) cohort.retained[week]++;
       }
     });
@@ -551,7 +555,6 @@ export const ReportUsersSummary: React.FC = () => {
 
         <TabsContent value="segments" className="space-y-4">
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Wykres segmentacji */}
             <Card>
               <CardHeader>
                 <CardTitle>Segmentacja użytkowników</CardTitle>
@@ -586,7 +589,6 @@ export const ReportUsersSummary: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Opis segmentów */}
             <Card>
               <CardHeader>
                 <CardTitle>Charakterystyka segmentów</CardTitle>
@@ -596,10 +598,7 @@ export const ReportUsersSummary: React.FC = () => {
                   {allSegments.map(segment => (
                     <div key={segment.key} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center gap-3">
-                        <div 
-                          className="w-4 h-4 rounded-full" 
-                          style={{ backgroundColor: segment.color }}
-                        />
+                        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: segment.color }} />
                         <div>
                           <p className="font-medium">{segment.name}</p>
                           <p className="text-xs text-muted-foreground">{segment.description}</p>
@@ -616,7 +615,6 @@ export const ReportUsersSummary: React.FC = () => {
             </Card>
           </div>
 
-          {/* Alerty i rekomendacje */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -633,8 +631,7 @@ export const ReportUsersSummary: React.FC = () => {
                       <span className="text-sm font-medium">Użytkownicy zagrożeni</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {allSegments.find(s => s.key === 'atRisk')?.count} użytkowników wymaga uwagi – 
-                      rozważ wysłanie powiadomień motywacyjnych
+                      {allSegments.find(s => s.key === 'atRisk')?.count} użytkowników wymaga uwagi – rozważ wysłanie powiadomień motywacyjnych
                     </p>
                   </div>
                 ) : null}
@@ -646,8 +643,7 @@ export const ReportUsersSummary: React.FC = () => {
                       <span className="text-sm font-medium">Champions do wykorzystania</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {allSegments.find(s => s.key === 'champions')?.count} najaktywniejszych użytkowników – 
-                      mogą być mentorami lub ambasadorami
+                      {allSegments.find(s => s.key === 'champions')?.count} najaktywniejszych użytkowników – mogą być mentorami lub ambasadorami
                     </p>
                   </div>
                 ) : null}
@@ -659,8 +655,7 @@ export const ReportUsersSummary: React.FC = () => {
                       <span className="text-sm font-medium">Nowi użytkownicy</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {allSegments.find(s => s.key === 'newUsers')?.count} nowych użytkowników – 
-                      upewnij się, że mają dobre wsparcie onboardingowe
+                      {allSegments.find(s => s.key === 'newUsers')?.count} nowych użytkowników – upewnij się, że mają dobre wsparcie onboardingowe
                     </p>
                   </div>
                 ) : null}
@@ -671,7 +666,6 @@ export const ReportUsersSummary: React.FC = () => {
 
         <TabsContent value="activity" className="space-y-4">
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Wzorzec aktywności */}
             <Card className="lg:col-span-2">
               <CardHeader>
                 <CardTitle>Wzorzec aktywności użytkowników</CardTitle>
@@ -711,7 +705,6 @@ export const ReportUsersSummary: React.FC = () => {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Rozkład aktywności */}
             <Card>
               <CardHeader>
                 <CardTitle>Poziomy aktywności</CardTitle>
@@ -733,7 +726,6 @@ export const ReportUsersSummary: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* Statystyki aktywności */}
             <Card>
               <CardHeader>
                 <CardTitle>Metryki zaangażowania</CardTitle>
@@ -813,37 +805,34 @@ export const ReportUsersSummary: React.FC = () => {
               <CardHeader>
                 <CardTitle>Rozkład wyników</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { label: '90-100%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore! >= 90).length, color: '#22c55e' },
-                    { label: '80-89%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore! >= 80 && u.avgScore! < 90).length, color: '#84cc16' },
-                    { label: '70-79%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore! >= 70 && u.avgScore! < 80).length, color: '#eab308' },
-                    { label: '60-69%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore! >= 60 && u.avgScore! < 70).length, color: '#f97316' },
-                    { label: '<60%',   count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore! < 60).length, color: '#ef4444' }
-                  ].map(range => {
-                    const total = filteredUsers.filter(u => u.avgScore !== null).length;
-                    const percent = total > 0 ? (range.count / total) * 100 : 0;
-                    return (
-                      <div key={range.label} className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>{range.label}</span>
-                          <span className="font-medium">{range.count} użytkowników</span>
-                        </div>
-                        <div className="relative h-8 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className="absolute left-0 top-0 h-full transition-all duration-500"
-                            style={{ 
-                              width: `${percent}%`, 
-                              backgroundColor: range.color 
-                            }}
-                          />
-                        </div>
+            <CardContent>
+              <div className="space-y-4">
+                {[
+                  { label: '90-100%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore! >= 90).length, color: '#22c55e' },
+                  { label: '80-89%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore! >= 80 && u.avgScore! < 90).length, color: '#84cc16' },
+                  { label: '70-79%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore! >= 70 && u.avgScore! < 80).length, color: '#eab308' },
+                  { label: '60-69%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore! >= 60 && u.avgScore! < 70).length, color: '#f97316' },
+                  { label: '<60%',   count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore! < 60).length, color: '#ef4444' }
+                ].map(range => {
+                  const total = filteredUsers.filter(u => u.avgScore !== null).length;
+                  const percent = total > 0 ? (range.count / total) * 100 : 0;
+                  return (
+                    <div key={range.label} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>{range.label}</span>
+                        <span className="font-medium">{range.count} użytkowników</span>
                       </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
+                      <div className="relative h-8 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="absolute left-0 top-0 h-full transition-all duration-500"
+                          style={{ width: `${percent}%`, backgroundColor: range.color }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
             </Card>
 
             <Card>
@@ -921,8 +910,7 @@ export const ReportUsersSummary: React.FC = () => {
               </div>
               <div className="mt-4 p-4 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  <strong>Interpretacja:</strong> Wartości pokazują procent użytkowników z danej kohorty, 
-                  którzy byli aktywni w kolejnych tygodniach po dołączeniu.
+                  <strong>Interpretacja:</strong> Wartości pokazują procent użytkowników z danej kohorty, którzy byli aktywni w kolejnych tygodniach po dołączeniu.
                 </p>
               </div>
             </CardContent>
@@ -981,9 +969,7 @@ export const ReportUsersSummary: React.FC = () => {
                     <div className="text-4xl font-bold text-orange-600 mb-2">
                       {allSegments.find(s => s.key === 'atRisk')?.count || 0}
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      użytkowników zagrożonych odejściem
-                    </p>
+                    <p className="text-sm text-muted-foreground">użytkowników zagrożonych odejściem</p>
                   </div>
                   
                   <div className="space-y-2">

@@ -157,11 +157,11 @@ export const ActivitiesList = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => show("activities", activity.id)}>
+                    <DropdownMenuItem onClick={() => show("teacher/activities", activity.id)}>
                       <Eye className="mr-2 h-4 w-4" />
                       Podgląd
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => edit("activities", activity.id)}>
+                    <DropdownMenuItem onClick={() => edit("teacher/activities", activity.id)}>
                       <Edit className="mr-2 h-4 w-4" />
                       Edytuj
                     </DropdownMenuItem>

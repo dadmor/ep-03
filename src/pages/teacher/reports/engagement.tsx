@@ -1,6 +1,6 @@
 // src/pages/teacher/reports/engagement.tsx
-import React, { useMemo } from "react";
-import { useList } from "@refinedev/core";
+import React, { useMemo, useEffect, useState } from "react";
+import { useDataProvider } from "@refinedev/core";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -42,7 +42,6 @@ import {
   AreaChart,
   Area
 } from "recharts";
-import { useState } from "react";
 
 // Definicje typów
 interface ActivityProgress {
@@ -79,19 +78,14 @@ interface EnrichedActivity extends ActivityProgress {
 export const EngagementReport: React.FC = () => {
   const [dateRange, setDateRange] = useState("7d");
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
-
-  // snapshot – bez auto-refetchu (wzorzec z overview)
-  const staticQuery = {
-    queryOptions: {
-      staleTime: Infinity,
-      gcTime: 30 * 60 * 1000,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      refetchOnMount: false,
-      refetchInterval: false,
-      retry: 0,
-    } as const,
-  };
+  const dataProvider = useDataProvider()();
+  
+  // Stan dla danych
+  const [isLoading, setIsLoading] = useState(true);
+  const [activitiesData, setActivitiesData] = useState<ActivityProgress[]>([]);
+  const [activitiesInfoData, setActivitiesInfoData] = useState<Activity[]>([]);
+  const [topicsData, setTopicsData] = useState<Topic[]>([]);
+  const [coursesData, setCoursesData] = useState<Course[]>([]);
 
   // Oblicz zakres dat
   const getDateRange = () => {
@@ -113,61 +107,74 @@ export const EngagementReport: React.FC = () => {
 
   const { start: startDate, end: endDate } = getDateRange();
 
-  // Pobierz aktywności - proste zapytanie
-  const { data: activitiesData } = useList<ActivityProgress>({
-    resource: "activity_progress",
-    filters: [
-      {
-        field: "started_at",
-        operator: "gte",
-        value: startDate.toISOString()
+  // Pobierz dane tylko raz przy montowaniu komponentu
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Pobierz wszystkie dane równolegle
+        const [activities, activitiesInfo, topics, courses] = await Promise.all([
+          dataProvider.getList({
+            resource: "activity_progress",
+            filters: [
+              {
+                field: "started_at",
+                operator: "gte",
+                value: startDate.toISOString()
+              }
+            ],
+            pagination: { mode: "off" }
+          }),
+          dataProvider.getList({
+            resource: "activities",
+            pagination: { mode: "off" },
+            meta: {
+              select: "id, type, topic_id"
+            }
+          }),
+          dataProvider.getList({
+            resource: "topics",
+            pagination: { mode: "off" },
+            meta: {
+              select: "id, course_id"
+            }
+          }),
+          dataProvider.getList({
+            resource: "courses",
+            filters: [
+              {
+                field: "is_published",
+                operator: "eq",
+                value: true
+              }
+            ],
+            pagination: { mode: "off" }
+          })
+        ]);
+
+        setActivitiesData(activities.data as ActivityProgress[]);
+        setActivitiesInfoData(activitiesInfo.data as Activity[]);
+        setTopicsData(topics.data as Topic[]);
+        setCoursesData(courses.data as Course[]);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsLoading(false);
       }
-    ],
-    pagination: { mode: "off" },
-    ...staticQuery
-  });
+    };
 
-  // Pobierz aktywności (dla typów)
-  const { data: activitiesInfoData } = useList<Activity>({
-    resource: "activities",
-    pagination: { mode: "off" },
-    meta: {
-      select: "id, type, topic_id"
-    },
-    ...staticQuery
-  });
-
-  // Pobierz tematy (dla course_id)
-  const { data: topicsData } = useList<Topic>({
-    resource: "topics",
-    pagination: { mode: "off" },
-    meta: {
-      select: "id, course_id"
-    },
-    ...staticQuery
-  });
-
-  // Pobierz listę kursów
-  const { data: coursesData } = useList<Course>({
-    resource: "courses",
-    pagination: { mode: "off" },
-    filters: [
-      {
-        field: "is_published",
-        operator: "eq",
-        value: true
-      }
-    ],
-    ...staticQuery
-  });
+    fetchData();
+    // Pusta tablica zależności - pobierz tylko raz
+  }, []);
 
   // Filtruj dane według wybranego kursu
   const filteredActivities = useMemo((): EnrichedActivity[] => {
-    if (!activitiesData?.data || !activitiesInfoData?.data || !topicsData?.data) return [];
+    if (!activitiesData.length || !activitiesInfoData.length || !topicsData.length) return [];
     
     // Mapuj activity_id -> type i topic_id
     const activityMap = new Map(
-      activitiesInfoData.data.map(a => [
+      activitiesInfoData.map(a => [
         a.id, 
         { type: a.type, topicId: a.topic_id }
       ])
@@ -175,11 +182,11 @@ export const EngagementReport: React.FC = () => {
     
     // Mapuj topic_id -> course_id
     const topicMap = new Map(
-      topicsData.data.map(t => [t.id, t.course_id])
+      topicsData.map(t => [t.id, t.course_id])
     );
     
     // Dodaj informacje do progress
-    const enrichedActivities: EnrichedActivity[] = activitiesData.data.map(progress => {
+    const enrichedActivities: EnrichedActivity[] = activitiesData.map(progress => {
       const activityInfo = activityMap.get(progress.activity_id);
       const courseId = activityInfo?.topicId ? topicMap.get(activityInfo.topicId) : undefined;
       
@@ -194,7 +201,7 @@ export const EngagementReport: React.FC = () => {
     
     const courseIdNum = parseInt(selectedCourse);
     return enrichedActivities.filter(activity => activity.courseId === courseIdNum);
-  }, [activitiesData?.data, activitiesInfoData?.data, topicsData?.data, selectedCourse]);
+  }, [activitiesData, activitiesInfoData, topicsData, selectedCourse]);
 
   // Oblicz statystyki
   const stats = useMemo(() => {
@@ -355,12 +362,12 @@ export const EngagementReport: React.FC = () => {
 
   // Statystyki kursów - uproszczone
   const courseStats = useMemo(() => {
-    if (!coursesData?.data || !filteredActivities.length) return [];
+    if (!coursesData.length || !filteredActivities.length) return [];
     
     const statsMap = new Map<number, { title: string; users: Set<string>; activities: number; completed: number }>();
     
     // Najpierw zainicjalizuj wszystkie kursy
-    coursesData.data.forEach(course => {
+    coursesData.forEach(course => {
       const courseId = typeof course.id === 'number' ? course.id : parseInt(course.id as string);
       if (!isNaN(courseId)) {
         statsMap.set(courseId, { 
@@ -397,7 +404,17 @@ export const EngagementReport: React.FC = () => {
       }))
       .sort((a, b) => b.users - a.users)
       .slice(0, 5); // Limit do 5 kursów
-  }, [filteredActivities, coursesData?.data]);
+  }, [filteredActivities, coursesData]);
+
+  if (isLoading) {
+    return (
+      <SubPage>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Ładowanie danych...</div>
+        </div>
+      </SubPage>
+    );
+  }
 
   return (
     <SubPage>
@@ -419,7 +436,7 @@ export const EngagementReport: React.FC = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Wszystkie kursy</SelectItem>
-              {coursesData?.data?.map(course => {
+              {coursesData.map(course => {
                 const courseId = typeof course.id === 'number' ? course.id : parseInt(course.id as string);
                 return (
                   <SelectItem key={courseId} value={courseId.toString()}>
