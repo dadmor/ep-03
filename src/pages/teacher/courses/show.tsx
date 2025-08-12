@@ -183,7 +183,7 @@ export const CoursesShow = () => {
             </CardTitle>
             <Button
               size="sm"
-              onClick={() => navigateWithReturn(`/topics/create?course_id=${id}`)}
+              onClick={() => navigateWithReturn(`/teacher/topics/create?course_id=${id}`)}
             >
               <Plus className="w-4 h-4 mr-2" />
               Dodaj temat

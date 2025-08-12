@@ -1,4 +1,10 @@
-import { Route } from "react-router";
+// path: src/pages/teacher/courses/index.tsx
+/**
+ * TEACHER > COURSES
+ * - 'list' jest BEZWZGLĘDNE ("/teacher/courses") → menu linkuje poprawnie.
+ * - Ścieżki Route pozostają relatywne (dziedziczą bazę /teacher/*).
+ */
+import { Route } from "react-router-dom";
 import { BookOpen } from "lucide-react";
 import { CoursesList } from "./list";
 import { CoursesCreate } from "./create";
@@ -12,10 +18,10 @@ export { CoursesShow } from "./show";
 
 export const coursesResource = {
   name: "courses",
-  list: "/courses",
-  create: "/courses/create",
-  edit: "/courses/edit/:id",
-  show: "/courses/show/:id",
+  list: "/teacher/courses",
+  create: "/teacher/courses/create",
+  edit: "/teacher/courses/edit/:id",
+  show: "/teacher/courses/show/:id",
   meta: {
     label: "Kursy",
     icon: <BookOpen className="h-4 w-4" />,
@@ -23,8 +29,8 @@ export const coursesResource = {
 };
 
 export const coursesRoutes = [
-  <Route key="courses-list" path="/courses" element={<CoursesList />} />,
-  <Route key="courses-create" path="/courses/create" element={<CoursesCreate />} />,
-  <Route key="courses-edit" path="/courses/edit/:id" element={<CoursesEdit />} />,
-  <Route key="courses-show" path="/courses/show/:id" element={<CoursesShow />} />,
+  <Route key="courses-list" path="courses" element={<CoursesList />} />,
+  <Route key="courses-create" path="courses/create" element={<CoursesCreate />} />,
+  <Route key="courses-edit" path="courses/edit/:id" element={<CoursesEdit />} />,
+  <Route key="courses-show" path="courses/show/:id" element={<CoursesShow />} />,
 ];

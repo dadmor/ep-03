@@ -103,7 +103,7 @@ export const ActivitiesCreate = () => {
         if (activityType === "quiz") {
           // Dla quizu przekieruj do zarządzania pytaniami
           toast.info("Dodaj pytania do quizu");
-          navigate(`/questions/manage/${data.data.id}`);
+          navigate(`/teacher/questions/manage/${data.data.id}`);
         } else {
           // Sprawdź czy mamy zapisany URL powrotu
           const returnUrl = sessionStorage.getItem("returnUrl");
@@ -112,9 +112,9 @@ export const ActivitiesCreate = () => {
             navigate(returnUrl);
           } else if (courseId) {
             // Fallback - wróć do kursu z rozwinietym tematem
-            navigate(`/courses/show/${courseId}?expanded=${topicId}`);
+            navigate(`/teacher/courses/show/${courseId}?expanded=${topicId}`);
           } else {
-            navigate("/courses");
+            navigate("/teacher/courses");
           }
         }
       },

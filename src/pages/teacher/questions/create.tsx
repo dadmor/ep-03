@@ -162,7 +162,7 @@ export const QuestionsCreate = () => {
       {
         onSuccess: () => {
           toast.success("Pytanie zostało dodane");
-          navigate(`/questions/manage/${activityId}`);
+          navigate(`/teacher/questions/manage/${activityId}`);
         },
         onError: (error: any) => {
           console.error("Błąd podczas dodawania pytania:", error);
@@ -356,7 +356,7 @@ export const QuestionsCreate = () => {
           <FlexBox>
             <Button
               variant="outline"
-              onClick={() => navigate(`/questions/manage/${activityId}`)}
+              onClick={() => navigate(`/teacher/questions/manage/${activityId}`)}
             >
               <X className="w-4 h-4 mr-2" />
               Anuluj

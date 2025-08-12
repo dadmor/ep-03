@@ -1,6 +1,13 @@
 // path: src/App.tsx
+/**
+ * APP ROOT
+ * — Jeden <Refine>, ale "resources" dobierane dynamicznie na podstawie segmentu URL.
+ * — Dzięki temu każdy moduł (teacher/student) ma własne menu i strukturę, bez mieszania.
+ * — Routing modułów zostaje w ich pakietach (TeacherModule / StudentModule).
+ */
+
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Refine } from "@refinedev/core";
 import routerProvider from "@refinedev/react-router";
@@ -13,35 +20,49 @@ import LandingPage from "./pages/landing/Landing";
 // Auth
 import { LoginModule, RegisterModule, ForgotPasswordModule, UpdatePasswordModule } from "./pages/auth";
 
-// Panele (ROUTES)
+// Moduły (ROUTES)
 import { TeacherModule } from "./pages/teacher";
 import { StudentModule } from "./pages/student";
 
-// >>> jedyny import MENU dla teachera
+// Zestawy resources per moduł
 import { teacherResources } from "./pages/teacher/resources";
+import { studentResources } from "./pages/student/resources";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: false, staleTime: 5 * 60 * 1000 } },
 });
 
+function RefineResourceSwitcher({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  const segment = pathname.split("/")[1]; // '', 'teacher', 'student', ...
+  const resources =
+    segment === "teacher" ? teacherResources :
+    segment === "student" ? studentResources :
+    []; // public/landing/auth — bez menu
+
+  return (
+    <Refine
+      dataProvider={dataProvider(supabaseClient)}
+      authProvider={authProvider}
+      routerProvider={routerProvider}
+      resources={resources}
+      options={{
+        syncWithLocation: true,
+        warnWhenUnsavedChanges: false,
+        useNewQueryKeys: true,
+        disableTelemetry: true,
+      }}
+    >
+      {children}
+    </Refine>
+  );
+}
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Refine
-          dataProvider={dataProvider(supabaseClient)}
-          authProvider={authProvider}
-          routerProvider={routerProvider}
-          // >>> CHUDO: tylko jedna tablica z modułu teachera
-          resources={teacherResources}
-          options={{
-            syncWithLocation: true,
-            warnWhenUnsavedChanges: false,
-            useNewQueryKeys: true,
-            disableTelemetry: true,
-          }}
-        >
+        <RefineResourceSwitcher>
           <Routes>
             <Route path="/" element={<LandingPage />} />
 
@@ -61,7 +82,7 @@ function App() {
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </Refine>
+        </RefineResourceSwitcher>
       </BrowserRouter>
     </QueryClientProvider>
   );

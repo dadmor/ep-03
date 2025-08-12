@@ -127,7 +127,7 @@ export const MaterialWizardStep5: React.FC = () => {
                 sessionStorage.removeItem('returnUrl');
                 navigate(returnUrl);
               } else {
-                navigate(`${MATERIAL_PATHS.courses}/show/${formData.courseId}?expanded=${formData.topicId}`);
+                navigate(`/teacher${MATERIAL_PATHS.courses}/show/${formData.courseId}?expanded=${formData.topicId}`);
               }
             }, 2000);
           },

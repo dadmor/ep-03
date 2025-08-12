@@ -89,7 +89,7 @@ export const ActivitiesEdit = () => {
           navigate(returnUrl);
         } else if (courseId) {
           // Fallback - wróć do kursu z rozwinietym tematem
-          navigate(`/courses/show/${courseId}?expanded=${topicId}`);
+          navigate(`/teacher/courses/show/${courseId}?expanded=${topicId}`);
         } else {
           list("activities");
         }
@@ -148,7 +148,7 @@ export const ActivitiesEdit = () => {
       navigate(returnUrl);
     } else if (courseId) {
       // Fallback - wróć do kursu z rozwinietym tematem
-      navigate(`/courses/show/${courseId}?expanded=${topicId}`);
+      navigate(`/teacher/courses/show/${courseId}?expanded=${topicId}`);
     } else {
       list("activities");
     }
@@ -166,7 +166,7 @@ export const ActivitiesEdit = () => {
     // Zapisz obecny URL przed przejściem do pytań
     const currentUrl = window.location.pathname + window.location.search;
     sessionStorage.setItem('returnUrl', currentUrl);
-    navigate(`/questions/manage/${activity?.id}`);
+    navigate(`/teacher/questions/manage/${activity?.id}`);
   };
 
   // Oblicz liczbę pytań z różnych możliwych formatów

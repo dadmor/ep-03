@@ -17,14 +17,24 @@ export const BackToCourseButton = ({
   const location = useLocation();
   
   const handleBack = () => {
-    const params = new URLSearchParams(location.search);
-    const returnUrl = params.get('returnUrl');
-    
-    if (returnUrl) {
-      navigate(decodeURIComponent(returnUrl));
-    } else {
-      navigate(-1); // Cofnij się
+    // 1) Priorytet: sessionStorage (większość miejsc zapisuje tu returnUrl)
+    const stored = sessionStorage.getItem("returnUrl");
+    if (stored) {
+      sessionStorage.removeItem("returnUrl");
+      navigate(stored);
+      return;
     }
+
+    // 2) Fallback: query param ?returnUrl=
+    const params = new URLSearchParams(location.search);
+    const qp = params.get("returnUrl");
+    if (qp) {
+      navigate(decodeURIComponent(qp));
+      return;
+    }
+
+    // 3) Ostatecznie – zwykłe cofnięcie w historii
+    navigate(-1);
   };
 
   return (

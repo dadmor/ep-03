@@ -1,5 +1,17 @@
 // path: src/pages/teacher/resources.tsx
+/**
+ * TEACHER RESOURCES — PROSTY, JEDNOZNACZNY UKŁAD
+ * - Każdy resource ma BEZWZGLĘDNĄ ścieżkę w 'list' (np. "/teacher/courses").
+ * - Dzięki temu useMenu() zawsze dostaje poprawny 'route' i nic nie przeskakuje na "/".
+ * - ZERO fallbacków w menu; wszystko wynika z resources.
+ */
+
 import type { IResourceItem } from "@refinedev/core";
+
+import { coursesResource } from "./courses";
+import { topicsResource } from "./topics";
+import { activitiesResource } from "./activities";
+import { groupsResource } from "./groups";
 import { usersResource } from "./users";
 import { vendorsResource } from "./vendors";
 import {
@@ -8,18 +20,27 @@ import {
   reportsSummaryResource,
 } from "./reports";
 
-const teacherRoot: IResourceItem = {
-  name: "teacher-root",
-  meta: { label: "Panel nauczyciela", route: "/teacher/dashboard/overview" },
+// Dashboard jako normalny resource z listą:
+const dashboardResource: IResourceItem = {
+  name: "dashboard",
+  list: "/teacher/dashboard/overview",
+  meta: { label: "Panel nauczyciela" },
 };
 
 export const teacherResources: IResourceItem[] = [
-  // Sekcja 1: Panel nauczyciela
-  teacherRoot,
-  { ...usersResource,   meta: { ...usersResource.meta,   parent: "teacher-root" } },
-  { ...vendorsResource, meta: { ...vendorsResource.meta, parent: "teacher-root" } },
+  dashboardResource,
 
-  // Sekcja 2: Raporty jako osobny top-level (bez parenta)
+  // Program
+  coursesResource,
+  topicsResource,
+  activitiesResource,
+
+  // Użytkownicy/organizacje
+  groupsResource,
+  usersResource,
+  vendorsResource,
+
+  // Raporty (z dziećmi)
   reportsResource,
   { ...reportsEngagementResource, meta: { ...reportsEngagementResource.meta, parent: "reports" } },
   { ...reportsSummaryResource,    meta: { ...reportsSummaryResource.meta,    parent: "reports" } },

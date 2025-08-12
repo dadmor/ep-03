@@ -89,12 +89,12 @@ export const GroupsList = () => {
 
   const navigateToAssignCourses = (groupId: number, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    navigate(`/groups/${groupId}/assign-courses`);
+    navigate(`/teacher/groups/${groupId}/assign-courses`);
   };
 
   const navigateToAssignStudents = (groupId: number, e?: React.MouseEvent) => {
     e?.stopPropagation();
-    navigate(`/groups/${groupId}/assign-students`);
+    navigate(`/teacher/groups/${groupId}/assign-students`);
   };
 
   // Funkcja pomocnicza do wyciągania liczby

@@ -134,7 +134,7 @@ export const ActivityCard = ({
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => navigate(`/questions/manage/${activity.id}`)}
+            onClick={() => navigate(`/teacher/questions/manage/${activity.id}`)}
             title="Zarządzaj pytaniami"
             className="h-8 w-8 p-0"
           >
@@ -145,7 +145,7 @@ export const ActivityCard = ({
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => navigate(`/activities/show/${activity.id}`)}
+          onClick={() => navigate(`/teacher/activities/show/${activity.id}`)}
           title="Podgląd"
           className="h-8 w-8 p-0"
         >
@@ -160,12 +160,12 @@ export const ActivityCard = ({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem
-              onClick={() => navigate(`/activities/show/${activity.id}`)}
+              onClick={() => navigate(`/teacher/activities/show/${activity.id}`)}
             >
               <Eye className="mr-2 h-4 w-4" />
               Podgląd
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEdit("activities", activity.id)}>
+            <DropdownMenuItem onClick={() => onEdit("teacher/activities", activity.id)}>
               <Edit className="mr-2 h-4 w-4" />
               Edytuj
             </DropdownMenuItem>
@@ -189,7 +189,7 @@ export const ActivityCard = ({
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => navigate(`/questions/manage/${activity.id}`)}
+                  onClick={() => navigate(`/teacher/questions/manage/${activity.id}`)}
                   className="text-blue-600 focus:text-blue-600"
                 >
                   <ListChecks className="mr-2 h-4 w-4" />
@@ -197,7 +197,7 @@ export const ActivityCard = ({
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() =>
-                    navigate(`/questions/create?activity_id=${activity.id}`)
+                    navigate(`/teacher/questions/create?activity_id=${activity.id}`)
                   }
                   className="text-blue-600 focus:text-blue-600"
                 >

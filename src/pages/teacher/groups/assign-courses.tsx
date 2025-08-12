@@ -174,7 +174,7 @@ export const GroupsAssignCourses = () => {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => navigate(`/groups/show/${id}`)}
+        onClick={() => navigate(`/teacher/groups/show/${id}`)}
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Powrót do grupy
@@ -341,7 +341,7 @@ export const GroupsAssignCourses = () => {
               <FlexBox>
                 <Button
                   variant="outline"
-                  onClick={() => navigate(`/groups/show/${id}`)}
+                  onClick={() => navigate(`/teacher/groups/show/${id}`)}
                 >
                   Anuluj
                 </Button>

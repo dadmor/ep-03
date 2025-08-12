@@ -136,7 +136,7 @@ export const CoursesShow = () => {
               <CardTitle>Tematy kursu</CardTitle>
               <Button
                 size="sm"
-                onClick={() => navigate(`/topics/create?course_id=${id}`)}
+                onClick={() => navigate(`/teacher/topics/create?course_id=${id}`)}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Dodaj temat
@@ -173,7 +173,7 @@ export const CoursesShow = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/activities/create?topic_id=${topic.id}`)}
+                          onClick={() => navigate(`/teacher/activities/create?topic_id=${topic.id}`)}
                         >
                           <Plus className="w-3 h-3 mr-2" />
                           Dodaj treść
@@ -196,7 +196,7 @@ export const CoursesShow = () => {
                 <p>Brak tematów w tym kursie</p>
                 <Button
                   className="mt-4"
-                  onClick={() => navigate(`/topics/create?course_id=${id}`)}
+                  onClick={() => navigate(`/teacher/topics/create?course_id=${id}`)}
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Dodaj pierwszy temat

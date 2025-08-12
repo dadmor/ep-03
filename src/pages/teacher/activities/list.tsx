@@ -169,7 +169,7 @@ export const ActivitiesList = () => {
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
-                          onClick={() => navigate(`/questions/manage/${activity.id}`)}
+                          onClick={() => navigate(`/teacher/questions/manage/${activity.id}`)}
                           className="text-blue-600"
                         >
                           <ListChecks className="mr-2 h-4 w-4" />

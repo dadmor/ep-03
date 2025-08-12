@@ -54,7 +54,7 @@ export const TopicsEdit = () => {
           navigate(returnUrl);
         } else if (courseId) {
           // Fallback - wróć do kursu z rozwinietym tematem
-          navigate(`/courses/show/${courseId}?expanded=${id}`);
+          navigate(`/teacher/courses/show/${courseId}?expanded=${id}`);
         }
       },
     }
@@ -68,7 +68,7 @@ export const TopicsEdit = () => {
       navigate(returnUrl);
     } else if (courseId) {
       // Fallback - wróć do kursu z rozwinietym tematem
-      navigate(`/courses/show/${courseId}?expanded=${id}`);
+      navigate(`/teacher/courses/show/${courseId}?expanded=${id}`);
     } else {
       show("courses", "");
     }

@@ -1,4 +1,11 @@
-import { Route } from "react-router";
+// path: src/pages/teacher/activities/index.tsx
+/**
+ * TEACHER > ACTIVITIES
+ * - Nie masz listy? 'list' kieruje na create, ale BEZWZGLĘDNIE ("/teacher/...").
+ * - Gdy dodasz ActivitiesList, wystarczy podmienić 'list' na "/teacher/activities"
+ *   i dodać Route jak w topics/courses.
+ */
+import { Route } from "react-router-dom";
 import { ActivitiesCreate } from "./create";
 import { ActivitiesEdit } from "./edit";
 import { ActivitiesShow } from "./show";
@@ -9,17 +16,17 @@ export { ActivitiesShow } from "./show";
 
 export const activitiesResource = {
   name: "activities",
-  create: "/activities/create",
-  edit: "/activities/edit/:id",
-  show: "/activities/show/:id",
+  list: "/teacher/activities/create",
+  create: "/teacher/activities/create",
+  edit: "/teacher/activities/edit/:id",
+  show: "/teacher/activities/show/:id",
   meta: {
     label: "Aktywności",
-    parent: "topics",
   },
 };
 
 export const activitiesRoutes = [
-  <Route key="activities-create" path="/activities/create" element={<ActivitiesCreate />} />,
-  <Route key="activities-edit" path="/activities/edit/:id" element={<ActivitiesEdit />} />,
-  <Route key="activities-show" path="/activities/show/:id" element={<ActivitiesShow />} />,
+  <Route key="activities-create" path="activities/create" element={<ActivitiesCreate />} />,
+  <Route key="activities-edit" path="activities/edit/:id" element={<ActivitiesEdit />} />,
+  <Route key="activities-show" path="activities/show/:id" element={<ActivitiesShow />} />,
 ];

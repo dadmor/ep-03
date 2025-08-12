@@ -228,7 +228,7 @@ export const GroupsShow = () => {
               <CardTitle>Uczniowie grupy</CardTitle>
               <Button 
                 size="sm"
-                onClick={() => navigate(`/groups/${id}/assign-students`)}
+                onClick={() => navigate(`/teacher/groups/${id}/assign-students`)}
               >
                 <UserPlus className="w-4 h-4 mr-2" />
                 Dodaj ucznia
@@ -310,7 +310,7 @@ export const GroupsShow = () => {
                   size="sm"
                   variant="outline"
                   className="mt-4"
-                  onClick={() => navigate(`/groups/${id}/assign-students`)}
+                  onClick={() => navigate(`/teacher/groups/${id}/assign-students`)}
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
                   Dodaj pierwszego ucznia
@@ -327,7 +327,7 @@ export const GroupsShow = () => {
               <CardTitle>Przypisane kursy</CardTitle>
               <Button
                 size="sm"
-                onClick={() => navigate(`/groups/${id}/assign-courses`)}
+                onClick={() => navigate(`/teacher/groups/${id}/assign-courses`)}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Przypisz kurs
@@ -427,7 +427,7 @@ export const GroupsShow = () => {
                   size="sm"
                   variant="outline"
                   className="mt-4"
-                  onClick={() => navigate(`/groups/${id}/assign-courses`)}
+                  onClick={() => navigate(`/teacher/groups/${id}/assign-courses`)}
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Przypisz pierwszy kurs
