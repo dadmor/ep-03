@@ -164,14 +164,14 @@ export const TopicCard = ({
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => handleWizardNavigation('/educational-material/step1')}
+                  onClick={() => handleWizardNavigation('/teacher/educational-material/step1')}
                   className="text-purple-600 focus:text-purple-600"
                 >
                   <Sparkles className="mr-2 h-4 w-4" />
                   Generuj materiał z AI
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => handleWizardNavigation('/quiz-wizard/step1')}
+                  onClick={() => handleWizardNavigation('/teacher/quiz-wizard/step1')}
                   className="text-blue-600 focus:text-blue-600"
                 >
                   <Brain className="mr-2 h-4 w-4" />

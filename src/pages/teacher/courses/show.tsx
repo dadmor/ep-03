@@ -272,7 +272,7 @@ export const CoursesShow = () => {
                             size="sm"
                             variant="secondary"
                             onClick={() =>
-                              navigateToWizard("/quiz-wizard/step1", {
+                              navigateToWizard("/teacher/quiz-wizard/step1", {
                                 courseId: course?.id,
                                 courseTitle: course?.title,
                                 topicId: topic.id,
