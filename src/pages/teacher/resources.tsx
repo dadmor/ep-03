@@ -7,7 +7,7 @@
  */
 
 import type { IResourceItem } from "@refinedev/core";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Sparkles } from "lucide-react";
 import { coursesResource } from "./courses";
 import { topicsResource } from "./topics";
 import { activitiesResource } from "./activities";
@@ -22,6 +22,8 @@ import {
   reportsGamificationResource,
   reportsSummaryResource,
 } from "./reports";
+import { courseStructureResource } from "./course-structure-wizard";
+import { quizWizardResource } from "./quiz-wizard";
 
 // Parent resource dla zasobów edukacyjnych
 const educationalResourcesParent: IResourceItem = {
@@ -30,6 +32,16 @@ const educationalResourcesParent: IResourceItem = {
   meta: {
     label: "Zasoby edukacyjne",
     icon: <BookOpen className="h-4 w-4" />
+  },
+};
+
+// Parent resource dla narzędzi AI
+const aiToolsParent: IResourceItem = {
+  name: "ai-tools",
+  list: "/teacher/course-structure", // domyślnie przekieruje na pierwszy wizard
+  meta: {
+    label: "Narzędzia AI",
+    icon: <Sparkles className="h-4 w-4" />
   },
 };
 
@@ -66,6 +78,25 @@ export const teacherResources: IResourceItem[] = [
       ...groupsResource.meta,
       parent: "dashboard",
       label: "Grupy",
+    },
+  },
+
+  // Parent dla narzędzi AI
+  aiToolsParent,
+  {
+    ...courseStructureResource,
+    list: "/teacher/course-structure",
+    meta: {
+      ...courseStructureResource.meta,
+      parent: "ai-tools",
+    },
+  },
+  {
+    ...quizWizardResource,
+    list: "/teacher/quiz-wizard",
+    meta: {
+      ...quizWizardResource.meta,
+      parent: "ai-tools",
     },
   },
 
