@@ -58,6 +58,36 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 
+interface Activity {
+  id: number;
+  title: string;
+  type: string;
+  topic_id: number;
+  passing_score?: number;
+  is_published: boolean;
+}
+
+interface Topic {
+  id: number;
+  title: string;
+  course_id: number;
+}
+
+interface Course {
+  id: number;
+  title: string;
+}
+
+interface ActivityProgress {
+  id: number;
+  user_id: string;
+  activity_id: number;
+  started_at: string;
+  completed_at?: string | null;
+  score?: number | null;
+  time_spent?: number;
+}
+
 interface QuizResult {
   activityId: number;
   activityTitle: string;
@@ -71,19 +101,23 @@ interface QuizResult {
   passingScore: number;
 }
 
-interface QuestionAnalysis {
-  questionId: number;
-  question: string;
-  correctAnswers: number;
-  totalAnswers: number;
-  successRate: number;
-  avgTimeSpent: number;
-}
-
 export const PerformanceReport: React.FC = () => {
   const [dateRange, setDateRange] = useState("30d");
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [selectedTopic, setSelectedTopic] = useState<string>("all");
+
+  // snapshot – bez auto-refetchu
+  const staticQuery = {
+    queryOptions: {
+      staleTime: Infinity,
+      gcTime: 30 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      refetchInterval: false,
+      retry: 0,
+    } as const,
+  };
 
   // Oblicz zakres dat
   const getDateRange = () => {
@@ -105,8 +139,29 @@ export const PerformanceReport: React.FC = () => {
 
   const { start: startDate } = getDateRange();
 
-  // Pobierz dane
-  const { data: activitiesData } = useList({
+  // Pobierz kursy
+  const { data: coursesData } = useList<Course>({
+    resource: "courses",
+    pagination: { mode: "off" },
+    ...staticQuery
+  });
+
+  // Pobierz tematy
+  const { data: topicsData } = useList<Topic>({
+    resource: "topics",
+    filters: selectedCourse !== "all" ? [
+      {
+        field: "course_id",
+        operator: "eq",
+        value: parseInt(selectedCourse)
+      }
+    ] : [],
+    pagination: { mode: "off" },
+    ...staticQuery
+  });
+
+  // Pobierz aktywności (quizy)
+  const { data: activitiesData } = useList<Activity>({
     resource: "activities",
     filters: [
       {
@@ -121,81 +176,69 @@ export const PerformanceReport: React.FC = () => {
       }
     ],
     pagination: { mode: "off" },
-    meta: {
-      select: "*, topics(id, title, courses(id, title)), questions(count)"
-    }
+    ...staticQuery
   });
 
-  const { data: progressData } = useList({
+  // Pobierz postępy z wynikami
+  const { data: progressData } = useList<ActivityProgress>({
     resource: "activity_progress",
     filters: [
       {
         field: "started_at",
         operator: "gte",
         value: startDate.toISOString()
-      },
-      {
-        field: "score",
-        operator: "nnull",
-        value: true
       }
     ],
     pagination: { mode: "off" },
     meta: {
-      select: "*, activities(id, title, type, passing_score)"
-    }
+      // Filtrujemy tylko te z wynikami po stronie klienta
+      query: (q: any) => q.not("score", "is", null)
+    },
+    ...staticQuery
   });
 
-  const { data: questionsData } = useList({
-    resource: "questions",
-    pagination: { mode: "off" },
-    meta: {
-      select: "*, activities(topics(courses(id)))"
-    }
-  });
+  // Mapuj dane - połącz activities z topics i courses
+  const enrichedActivities = useMemo(() => {
+    if (!activitiesData?.data || !topicsData?.data || !coursesData?.data) return [];
+    
+    const topicMap = new Map(topicsData.data.map(t => [t.id, t]));
+    const courseMap = new Map(coursesData.data.map(c => [c.id, c]));
+    
+    return activitiesData.data.map(activity => {
+      const topic = topicMap.get(activity.topic_id);
+      const course = topic ? courseMap.get(topic.course_id) : undefined;
+      
+      return {
+        ...activity,
+        topicTitle: topic?.title || '',
+        courseId: course?.id,
+        courseTitle: course?.title || ''
+      };
+    });
+  }, [activitiesData?.data, topicsData?.data, coursesData?.data]);
 
-  const { data: coursesData } = useList({
-    resource: "courses",
-    pagination: { mode: "off" }
-  });
-
-  const { data: topicsData } = useList({
-    resource: "topics",
-    filters: selectedCourse !== "all" ? [
-      {
-        field: "course_id",
-        operator: "eq",
-        value: parseInt(selectedCourse)
-      }
-    ] : [],
-    pagination: { mode: "off" }
-  });
-
-  // Filtruj dane
+  // Filtruj aktywności
   const filteredActivities = useMemo(() => {
-    let filtered = activitiesData?.data || [];
+    let filtered = enrichedActivities;
     
     if (selectedCourse !== "all") {
-      filtered = filtered.filter(a => 
-        a.topics?.courses?.id === parseInt(selectedCourse)
-      );
+      filtered = filtered.filter(a => a.courseId === parseInt(selectedCourse));
     }
     
     if (selectedTopic !== "all") {
-      filtered = filtered.filter(a => 
-        a.topics?.id === parseInt(selectedTopic)
-      );
+      filtered = filtered.filter(a => a.topic_id === parseInt(selectedTopic));
     }
     
     return filtered;
-  }, [activitiesData?.data, selectedCourse, selectedTopic]);
+  }, [enrichedActivities, selectedCourse, selectedTopic]);
 
+  // Filtruj postępy
   const filteredProgress = useMemo(() => {
     if (!progressData?.data) return [];
     
     const activityIds = filteredActivities.map(a => a.id);
     return progressData.data.filter(p => 
-      activityIds.includes(p.activity_id) && p.activities?.type === 'quiz'
+      activityIds.includes(p.activity_id) && p.score !== null && p.score !== undefined
     );
   }, [progressData?.data, filteredActivities]);
 
@@ -207,7 +250,12 @@ export const PerformanceReport: React.FC = () => {
       const quizProgress = filteredProgress.filter(p => p.activity_id === activity.id);
       
       if (quizProgress.length > 0) {
-        const scores = quizProgress.map(p => p.score || 0);
+        const scores = quizProgress
+          .filter(p => p.score !== null && p.score !== undefined)
+          .map(p => p.score as number);
+        
+        if (scores.length === 0) return; // Skip if no valid scores
+        
         const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
         const passRate = Math.round(
           (scores.filter(s => s >= (activity.passing_score || 70)).length / scores.length) * 100
@@ -216,8 +264,8 @@ export const PerformanceReport: React.FC = () => {
         results.set(activity.id, {
           activityId: activity.id,
           activityTitle: activity.title,
-          topicTitle: activity.topics?.title || '',
-          courseTitle: activity.topics?.courses?.title || '',
+          topicTitle: activity.topicTitle,
+          courseTitle: activity.courseTitle,
           attempts: quizProgress.length,
           avgScore,
           minScore: Math.min(...scores),
@@ -234,13 +282,22 @@ export const PerformanceReport: React.FC = () => {
   // Główne statystyki
   const mainStats = useMemo(() => {
     const totalAttempts = filteredProgress.length;
-    const scores = filteredProgress.map(p => p.score || 0);
-    const avgScore = scores.length > 0
-      ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+    const validScores = filteredProgress
+      .filter(p => p.score !== null && p.score !== undefined)
+      .map(p => p.score as number);
+    
+    const avgScore = validScores.length > 0
+      ? Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length)
       : 0;
-    const passedAttempts = filteredProgress.filter(p => 
-      p.score! >= (p.activities?.passing_score || 70)
-    ).length;
+    
+    // Znajdź passing score dla każdego progress
+    const passedAttempts = filteredProgress.filter(p => {
+      if (p.score === null || p.score === undefined) return false;
+      const activity = filteredActivities.find(a => a.id === p.activity_id);
+      const passingScore = activity?.passing_score || 70;
+      return p.score >= passingScore;
+    }).length;
+    
     const passRate = totalAttempts > 0
       ? Math.round((passedAttempts / totalAttempts) * 100)
       : 0;
@@ -288,10 +345,10 @@ export const PerformanceReport: React.FC = () => {
     
     filteredProgress.forEach(p => {
       const activity = filteredActivities.find(a => a.id === p.activity_id);
-      if (activity?.topics?.title && p.score !== null) {
-        const existing = topicMap.get(activity.topics.title) || { scores: [], topic: activity.topics.title };
+      if (activity?.topicTitle && p.score !== null && p.score !== undefined) {
+        const existing = topicMap.get(activity.topicTitle) || { scores: [], topic: activity.topicTitle };
         existing.scores.push(p.score);
-        topicMap.set(activity.topics.title, existing);
+        topicMap.set(activity.topicTitle, existing);
       }
     });
     
@@ -311,7 +368,7 @@ export const PerformanceReport: React.FC = () => {
     filteredProgress.forEach(p => {
       const date = new Date(p.started_at).toLocaleDateString('pl-PL');
       const scores = dailyScores.get(date) || [];
-      if (p.score !== null) {
+      if (p.score !== null && p.score !== undefined) {
         scores.push(p.score);
         dailyScores.set(date, scores);
       }
@@ -332,7 +389,7 @@ export const PerformanceReport: React.FC = () => {
   // Najtrudniejsze pytania (mock - w rzeczywistości potrzeba szczegółowych danych o odpowiedziach)
   const difficultQuestions = useMemo(() => {
     // To jest uproszczona wersja - w pełnej implementacji należałoby śledzić odpowiedzi na poziomie pytań
-    const mockQuestions: QuestionAnalysis[] = [
+    const mockQuestions = [
       {
         questionId: 1,
         question: "Które z poniższych stwierdzeń najlepiej opisuje zasadę SOLID?",
@@ -510,7 +567,7 @@ export const PerformanceReport: React.FC = () => {
                     <XAxis dataKey="range" />
                     <YAxis />
                     <Tooltip />
-                    <Bar dataKey="count" name="Liczba wyników">
+                    <Bar dataKey="count" name="Liczba wyników" isAnimationActive={false}>
                       {scoreDistribution.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
@@ -572,7 +629,8 @@ export const PerformanceReport: React.FC = () => {
                       dataKey="avgScore" 
                       stroke="#8884d8" 
                       fill="#8884d8" 
-                      fillOpacity={0.6} 
+                      fillOpacity={0.6}
+                      isAnimationActive={false}
                     />
                     <Tooltip />
                   </RadarChart>
@@ -633,6 +691,7 @@ export const PerformanceReport: React.FC = () => {
                     stroke="#8884d8"
                     fillOpacity={0.2}
                     name="Max"
+                    isAnimationActive={false}
                   />
                   <Area
                     type="monotone"
@@ -641,6 +700,7 @@ export const PerformanceReport: React.FC = () => {
                     stroke="#82ca9d"
                     fillOpacity={0.2}
                     name="Min"
+                    isAnimationActive={false}
                   />
                   <Line
                     type="monotone"
@@ -649,8 +709,9 @@ export const PerformanceReport: React.FC = () => {
                     strokeWidth={3}
                     name="Średnia"
                     dot={{ fill: '#ff7300' }}
+                    isAnimationActive={false}
                   />
-                  <Bar dataKey="attempts" fill="#ffc658" name="Liczba prób" yAxisId="right" />
+                  <Bar dataKey="attempts" fill="#ffc658" name="Liczba prób" yAxisId="right" isAnimationActive={false} />
                   <YAxis yAxisId="right" orientation="right" />
                 </ComposedChart>
               </ResponsiveContainer>
