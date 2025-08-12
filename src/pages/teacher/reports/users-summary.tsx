@@ -8,7 +8,6 @@ import {
   Users, 
   UserCheck,
   UserX,
-  TrendingUp,
   Calendar,
   Clock,
   Award,
@@ -73,7 +72,7 @@ interface UserProfile {
   full_name?: string;
   role: 'student' | 'teacher' | 'admin';
   is_active: boolean;
-  created_at: string;
+  created_at: string; // ISO
 }
 
 interface UserStats {
@@ -81,8 +80,8 @@ interface UserStats {
   total_points: number;
   current_level: number;
   daily_streak: number;
-  last_active: string;
-  total_time_spent: number;
+  last_active: string; // ISO
+  total_time_spent: number; // minutes
   activities_completed: number;
   perfect_scores: number;
 }
@@ -90,7 +89,7 @@ interface UserStats {
 interface ActivityProgress {
   user_id: string;
   activity_id: number;
-  started_at: string;
+  started_at: string; // ISO
   completed_at?: string;
   score?: number;
   time_spent?: number;
@@ -134,7 +133,7 @@ export const ReportUsersSummary: React.FC = () => {
     } as const,
   };
 
-  // Oblicz zakres dat
+  // Zakres dat
   const getDateRange = () => {
     const end = new Date();
     const start = new Date();
@@ -201,22 +200,21 @@ export const ReportUsersSummary: React.FC = () => {
     const activityMap = new Map<string, ActivityProgress[]>();
     
     activityData.data.forEach(activity => {
-      const activities = activityMap.get(activity.user_id) || [];
-      activities.push(activity);
-      activityMap.set(activity.user_id, activities);
+      const arr = activityMap.get(activity.user_id) || [];
+      arr.push(activity);
+      activityMap.set(activity.user_id, arr);
     });
 
     return usersData.data.map(user => {
       const stats = statsMap.get(user.id);
       const activities = activityMap.get(user.id) || [];
       
-      // Oblicz segmentację
-      let segment: string;
+      // Segmentacja
+      let segment: keyof typeof SEGMENT_COLORS;
       const daysSinceLastActive = stats?.last_active 
         ? Math.floor((Date.now() - new Date(stats.last_active).getTime()) / (1000 * 60 * 60 * 24))
         : 999;
       
-      // Jeśli brak statystyk, użytkownik jest nieaktywny
       if (!stats) {
         segment = 'dormant';
       } else if (daysSinceLastActive > 30) {
@@ -233,25 +231,24 @@ export const ReportUsersSummary: React.FC = () => {
         segment = 'potentials';
       }
 
+      // Średni wynik (bez Infinity/NaN)
+      const scored = activities.filter(a => typeof a.score === 'number') as Required<Pick<ActivityProgress,'score'>>[];
+      const avgScore = scored.length
+        ? Math.round(scored.reduce((sum, a) => sum + (a.score as number), 0) / scored.length)
+        : null;
+
       return {
         ...user,
         stats,
         activities,
         segment,
         daysSinceLastActive,
-        avgScore: activities.length > 0
-          ? Math.round(
-              activities
-                .filter(a => a.score !== undefined)
-                .reduce((sum, a) => sum + (a.score || 0), 0) / 
-              activities.filter(a => a.score !== undefined).length || 0
-            )
-          : null
+        avgScore
       };
     });
   }, [usersData?.data, userStatsData?.data, activityData?.data]);
 
-  // Filtruj według segmentu
+  // Filtr segmentu
   const filteredUsers = useMemo(() => {
     if (segmentFilter === "all") return enrichedUsers;
     return enrichedUsers.filter(user => user.segment === segmentFilter);
@@ -262,23 +259,14 @@ export const ReportUsersSummary: React.FC = () => {
     const total = filteredUsers.length;
     const active = filteredUsers.filter(u => u.is_active).length;
     const activeLastWeek = filteredUsers.filter(u => u.daysSinceLastActive <= 7).length;
-    const avgLevel = filteredUsers.length > 0
-      ? Math.round(
-          filteredUsers
-            .filter(u => u.stats)
-            .reduce((sum, u) => sum + (u.stats?.current_level || 0), 0) / 
-          filteredUsers.filter(u => u.stats).length
-        )
+    const usersWithStats = filteredUsers.filter(u => u.stats);
+    const avgLevel = usersWithStats.length
+      ? Math.round(usersWithStats.reduce((sum, u) => sum + (u.stats?.current_level || 0), 0) / usersWithStats.length)
       : 0;
     
-    const withStreaks = filteredUsers.filter(u => u.stats && u.stats.daily_streak > 0).length;
-    const avgTimeHours = filteredUsers.length > 0
-      ? Math.round(
-          filteredUsers
-            .filter(u => u.stats)
-            .reduce((sum, u) => sum + (u.stats?.total_time_spent || 0), 0) / 
-          filteredUsers.filter(u => u.stats).length / 60
-        )
+    const withStreaks = usersWithStats.filter(u => (u.stats?.daily_streak || 0) > 0).length;
+    const avgTimeHours = usersWithStats.length
+      ? Math.round(usersWithStats.reduce((sum, u) => sum + (u.stats?.total_time_spent || 0), 0) / usersWithStats.length / 60)
       : 0;
 
     return {
@@ -303,23 +291,21 @@ export const ReportUsersSummary: React.FC = () => {
       { name: 'Nowi', key: 'newUsers', count: 0, color: SEGMENT_COLORS.newUsers, description: 'Niedawno dołączyli' },
       { name: 'Zagrożeni', key: 'atRisk', count: 0, color: SEGMENT_COLORS.atRisk, description: 'Spadek aktywności' },
       { name: 'Nieaktywni', key: 'dormant', count: 0, color: SEGMENT_COLORS.dormant, description: 'Brak aktywności >30 dni' }
-    ];
+    ] as const;
 
-    enrichedUsers.forEach(user => {
-      const segment = segments.find(s => s.key === user.segment);
-      if (segment) segment.count++;
+    const counts: Record<string, number> = {};
+    enrichedUsers.forEach(u => {
+      counts[u.segment] = (counts[u.segment] || 0) + 1;
     });
 
-    console.log('Segmentacja użytkowników:', segments);
-    console.log('Liczba enrichedUsers:', enrichedUsers.length);
-
-    // Zwróć tylko segmenty z użytkownikami dla wykresu
-    return segments.filter(s => s.count > 0);
+    return segments
+      .map(s => ({ ...s, count: counts[s.key] || 0 }))
+      .filter(s => s.count > 0);
   }, [enrichedUsers]);
 
-  // Wszystkie segmenty do opisu (nawet puste)
+  // Wszystkie segmenty do opisu
   const allSegments = useMemo(() => {
-    const segments = [
+    const base = [
       { name: 'Champions', key: 'champions', count: 0, color: SEGMENT_COLORS.champions, description: 'Wysokie punkty, aktywna seria' },
       { name: 'Lojaliści', key: 'loyalists', count: 0, color: SEGMENT_COLORS.loyalists, description: 'Regularna aktywność' },
       { name: 'Potencjalni', key: 'potentials', count: 0, color: SEGMENT_COLORS.potentials, description: 'Niska regularność' },
@@ -327,13 +313,11 @@ export const ReportUsersSummary: React.FC = () => {
       { name: 'Zagrożeni', key: 'atRisk', count: 0, color: SEGMENT_COLORS.atRisk, description: 'Spadek aktywności' },
       { name: 'Nieaktywni', key: 'dormant', count: 0, color: SEGMENT_COLORS.dormant, description: 'Brak aktywności >30 dni' }
     ];
-
-    enrichedUsers.forEach(user => {
-      const segment = segments.find(s => s.key === user.segment);
-      if (segment) segment.count++;
+    const counts: Record<string, number> = {};
+    enrichedUsers.forEach(u => {
+      counts[u.segment] = (counts[u.segment] || 0) + 1;
     });
-
-    return segments;
+    return base.map(s => ({ ...s, count: counts[s.key] || 0 }));
   }, [enrichedUsers]);
 
   // Rozkład aktywności
@@ -363,36 +347,32 @@ export const ReportUsersSummary: React.FC = () => {
     return distribution;
   }, [filteredUsers]);
 
-  // Wzorce aktywności w czasie (dla wykresu)
+  // Wzorce aktywności w czasie (stabilne klucze ISO)
   const activityPattern = useMemo(() => {
     const dailyActivity = new Map<string, Set<string>>();
-    
-    activityData?.data?.forEach(activity => {
-      const date = new Date(activity.started_at).toLocaleDateString('pl-PL');
-      const users = dailyActivity.get(date) || new Set();
-      users.add(activity.user_id);
-      dailyActivity.set(date, users);
+
+    activityData?.data?.forEach(a => {
+      const dayKey = a.started_at.slice(0, 10); // YYYY-MM-DD
+      const users = dailyActivity.get(dayKey) || new Set();
+      users.add(a.user_id);
+      dailyActivity.set(dayKey, users);
     });
 
-    const sortedDates = Array.from(dailyActivity.keys())
-      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
-      .slice(-30); // Ostatnie 30 dni
+    const sortedKeys = Array.from(dailyActivity.keys()).sort().slice(-30);
 
-    return sortedDates.map(date => ({
-      date: new Date(date).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' }),
-      activeUsers: dailyActivity.get(date)?.size || 0,
-      newUsers: filteredUsers.filter(u => 
-        new Date(u.created_at).toLocaleDateString('pl-PL') === date
-      ).length
+    return sortedKeys.map(iso => ({
+      date: new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' }),
+      activeUsers: dailyActivity.get(iso)?.size || 0,
+      newUsers: filteredUsers.filter(u => (u.created_at?.slice(0,10) === iso)).length
     }));
   }, [activityData?.data, filteredUsers]);
 
-  // Punkty vs Czas (scatter plot)
+  // Punkty vs Czas (scatter)
   const pointsVsTime = useMemo(() => {
     return filteredUsers
-      .filter(u => u.stats && u.stats.total_time_spent > 0)
+      .filter(u => u.stats && (u.stats.total_time_spent || 0) > 0)
       .map(user => ({
-        timeHours: Math.round(user.stats!.total_time_spent / 60),
+        timeHours: Math.round((user.stats!.total_time_spent || 0) / 60),
         points: user.stats!.total_points,
         level: user.stats!.current_level,
         streak: user.stats!.daily_streak,
@@ -411,13 +391,14 @@ export const ReportUsersSummary: React.FC = () => {
   // Kohortowa analiza retencji
   const cohortAnalysis = useMemo(() => {
     const cohorts = new Map<string, { total: number; retained: number[] }>();
-    const weeks = 4; // Analizuj 4 tygodnie
+    const weeks = 4;
 
     filteredUsers.forEach(user => {
       const joinWeek = new Date(user.created_at);
       joinWeek.setHours(0, 0, 0, 0);
-      joinWeek.setDate(joinWeek.getDate() - joinWeek.getDay()); // Początek tygodnia
-      const cohortKey = joinWeek.toISOString().split('T')[0];
+      // początek tygodnia (niedziela)
+      joinWeek.setDate(joinWeek.getDate() - joinWeek.getDay());
+      const cohortKey = joinWeek.toISOString().slice(0,10);
       
       if (!cohorts.has(cohortKey)) {
         cohorts.set(cohortKey, { total: 0, retained: Array(weeks).fill(0) });
@@ -426,7 +407,6 @@ export const ReportUsersSummary: React.FC = () => {
       const cohort = cohorts.get(cohortKey)!;
       cohort.total++;
       
-      // Sprawdź retencję w kolejnych tygodniach
       for (let week = 0; week < weeks; week++) {
         const weekStart = new Date(joinWeek);
         weekStart.setDate(weekStart.getDate() + week * 7);
@@ -451,7 +431,7 @@ export const ReportUsersSummary: React.FC = () => {
         week3: data.total > 0 ? Math.round((data.retained[3] / data.total) * 100) : 0,
         total: data.total
       }))
-      .slice(-4); // Ostatnie 4 kohorty
+      .slice(-4);
   }, [filteredUsers]);
 
   const statCards = [
@@ -577,24 +557,32 @@ export const ReportUsersSummary: React.FC = () => {
                 <CardTitle>Segmentacja użytkowników</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={userSegments}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="count"
-                      label={({ name, percent }) => percent !== undefined ? `${name}: ${(percent * 100).toFixed(0)}%` : name}
-                    >
-                      {userSegments.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                {userSegments.length === 0 ? (
+                  <div className="text-sm text-muted-foreground p-6 border rounded-lg">
+                    Brak danych do wyświetlenia dla wybranego zakresu.
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={userSegments}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        dataKey="count"
+                        label={({ name, percent }) =>
+                          percent !== undefined ? `${name}: ${(percent * 100).toFixed(0)}%` : name
+                        }
+                        isAnimationActive={false}
+                      >
+                        {userSegments.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -645,7 +633,7 @@ export const ReportUsersSummary: React.FC = () => {
                       <span className="text-sm font-medium">Użytkownicy zagrożeni</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {allSegments.find(s => s.key === 'atRisk')?.count} użytkowników wymaga uwagi - 
+                      {allSegments.find(s => s.key === 'atRisk')?.count} użytkowników wymaga uwagi – 
                       rozważ wysłanie powiadomień motywacyjnych
                     </p>
                   </div>
@@ -658,7 +646,7 @@ export const ReportUsersSummary: React.FC = () => {
                       <span className="text-sm font-medium">Champions do wykorzystania</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {allSegments.find(s => s.key === 'champions')?.count} najaktywniejszych użytkowników - 
+                      {allSegments.find(s => s.key === 'champions')?.count} najaktywniejszych użytkowników – 
                       mogą być mentorami lub ambasadorami
                     </p>
                   </div>
@@ -671,7 +659,7 @@ export const ReportUsersSummary: React.FC = () => {
                       <span className="text-sm font-medium">Nowi użytkownicy</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {allSegments.find(s => s.key === 'newUsers')?.count} nowych użytkowników - 
+                      {allSegments.find(s => s.key === 'newUsers')?.count} nowych użytkowników – 
                       upewnij się, że mają dobre wsparcie onboardingowe
                     </p>
                   </div>
@@ -689,7 +677,6 @@ export const ReportUsersSummary: React.FC = () => {
                 <CardTitle>Wzorzec aktywności użytkowników</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
                 <ResponsiveContainer width="100%" height={300}>
                   <AreaChart data={activityPattern}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -719,7 +706,6 @@ export const ReportUsersSummary: React.FC = () => {
                     />
                   </AreaChart>
                 </ResponsiveContainer>
-                </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
@@ -732,7 +718,6 @@ export const ReportUsersSummary: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
-                <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={activityDistribution}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
@@ -744,7 +729,6 @@ export const ReportUsersSummary: React.FC = () => {
                       ))}
                     </Bar>
                   </BarChart>
-                </ResponsiveContainer>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
@@ -799,7 +783,6 @@ export const ReportUsersSummary: React.FC = () => {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
-              <ResponsiveContainer width="100%" height={400}>
                 <ScatterChart>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="timeHours" name="Czas nauki (h)" />
@@ -822,7 +805,6 @@ export const ReportUsersSummary: React.FC = () => {
                   </Scatter>
                 </ScatterChart>
               </ResponsiveContainer>
-              </ResponsiveContainer>
             </CardContent>
           </Card>
 
@@ -834,11 +816,11 @@ export const ReportUsersSummary: React.FC = () => {
               <CardContent>
                 <div className="space-y-4">
                   {[
-                    { label: '90-100%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore >= 90).length, color: '#22c55e' },
-                    { label: '80-89%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore >= 80 && u.avgScore < 90).length, color: '#84cc16' },
-                    { label: '70-79%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore >= 70 && u.avgScore < 80).length, color: '#eab308' },
-                    { label: '60-69%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore >= 60 && u.avgScore < 70).length, color: '#f97316' },
-                    { label: '<60%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore < 60).length, color: '#ef4444' }
+                    { label: '90-100%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore! >= 90).length, color: '#22c55e' },
+                    { label: '80-89%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore! >= 80 && u.avgScore! < 90).length, color: '#84cc16' },
+                    { label: '70-79%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore! >= 70 && u.avgScore! < 80).length, color: '#eab308' },
+                    { label: '60-69%', count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore! >= 60 && u.avgScore! < 70).length, color: '#f97316' },
+                    { label: '<60%',   count: filteredUsers.filter(u => u.avgScore !== null && u.avgScore! < 60).length, color: '#ef4444' }
                   ].map(range => {
                     const total = filteredUsers.filter(u => u.avgScore !== null).length;
                     const percent = total > 0 ? (range.count / total) * 100 : 0;
@@ -870,7 +852,6 @@ export const ReportUsersSummary: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
-                <ResponsiveContainer width="100%" height={250}>
                   <RadialBarChart cx="50%" cy="50%" innerRadius="10%" outerRadius="90%" data={[
                     { name: 'Ukończenia', value: 68, fill: '#8884d8' },
                     { name: 'Zdawalność', value: 74, fill: '#82ca9d' },
@@ -880,7 +861,6 @@ export const ReportUsersSummary: React.FC = () => {
                     <Legend />
                     <Tooltip />
                   </RadialBarChart>
-                </ResponsiveContainer>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
@@ -911,25 +891,25 @@ export const ReportUsersSummary: React.FC = () => {
                         <TableCell className="font-medium">{cohort.cohort}</TableCell>
                         <TableCell className="text-center">
                           <div className="inline-flex items-center justify-center w-16 h-8 rounded"
-                               style={{ backgroundColor: `rgba(34, 197, 94, ${cohort.week0 / 100})` }}>
+                              style={{ backgroundColor: `rgba(34, 197, 94, ${cohort.week0 / 100})` }}>
                             {cohort.week0}%
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="inline-flex items-center justify-center w-16 h-8 rounded"
-                               style={{ backgroundColor: `rgba(34, 197, 94, ${cohort.week1 / 100})` }}>
+                              style={{ backgroundColor: `rgba(34, 197, 94, ${cohort.week1 / 100})` }}>
                             {cohort.week1}%
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="inline-flex items-center justify-center w-16 h-8 rounded"
-                               style={{ backgroundColor: `rgba(34, 197, 94, ${cohort.week2 / 100})` }}>
+                              style={{ backgroundColor: `rgba(34, 197, 94, ${cohort.week2 / 100})` }}>
                             {cohort.week2}%
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="inline-flex items-center justify-center w-16 h-8 rounded"
-                               style={{ backgroundColor: `rgba(34, 197, 94, ${cohort.week3 / 100})` }}>
+                              style={{ backgroundColor: `rgba(34, 197, 94, ${cohort.week3 / 100})` }}>
                             {cohort.week3}%
                           </div>
                         </TableCell>
@@ -1049,7 +1029,7 @@ export const ReportUsersSummary: React.FC = () => {
                       <Avatar>
                         <AvatarFallback className="text-xs">
                           {user.full_name?.split(' ').map(n => n[0]).join('') || 
-                           user.email.substring(0, 2).toUpperCase()}
+                          user.email.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div>
@@ -1118,7 +1098,7 @@ export const ReportUsersSummary: React.FC = () => {
                 <div className="space-y-3">
                   {filteredUsers
                     .filter(u => u.avgScore !== null)
-                    .sort((a, b) => (b.avgScore || 0) - (a.avgScore || 0))
+                    .sort((a, b) => (a.avgScore! < b.avgScore! ? 1 : -1))
                     .slice(0, 5)
                     .map((user, index) => (
                       <div key={user.id} className="flex items-center justify-between">
