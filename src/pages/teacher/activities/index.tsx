@@ -21,7 +21,7 @@ export const activitiesResource = {
   edit: "/teacher/activities/edit/:id",
   show: "/teacher/activities/show/:id",
   meta: {
-    label: "Aktywności",
+    hide: true, // Ukrywa pozycję w menu
   },
 };
 

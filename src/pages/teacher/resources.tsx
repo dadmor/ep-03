@@ -24,7 +24,7 @@ import {
 const dashboardResource: IResourceItem = {
   name: "dashboard",
   list: "/teacher/dashboard/overview",
-  meta: { label: "Panel nauczyciela" },
+  meta: { label: "Zasoby edukacyjne" },
 };
 
 export const teacherResources: IResourceItem[] = [
@@ -42,6 +42,12 @@ export const teacherResources: IResourceItem[] = [
 
   // Raporty (z dziećmi)
   reportsResource,
-  { ...reportsEngagementResource, meta: { ...reportsEngagementResource.meta, parent: "reports" } },
-  { ...reportsSummaryResource,    meta: { ...reportsSummaryResource.meta,    parent: "reports" } },
+  {
+    ...reportsEngagementResource,
+    meta: { ...reportsEngagementResource.meta, parent: "reports" },
+  },
+  {
+    ...reportsSummaryResource,
+    meta: { ...reportsSummaryResource.meta, parent: "reports" },
+  },
 ];
