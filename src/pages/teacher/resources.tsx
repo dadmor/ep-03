@@ -7,7 +7,7 @@
  */
 
 import type { IResourceItem } from "@refinedev/core";
-
+import { BookOpen } from "lucide-react";
 import { coursesResource } from "./courses";
 import { topicsResource } from "./topics";
 import { activitiesResource } from "./activities";
@@ -20,23 +20,53 @@ import {
   reportsSummaryResource,
 } from "./reports";
 
-// Dashboard jako normalny resource z listą:
-const dashboardResource: IResourceItem = {
+// Parent resource dla zasobów edukacyjnych
+const educationalResourcesParent: IResourceItem = {
   name: "dashboard",
   list: "/teacher/dashboard/overview",
-  meta: { label: "Zasoby edukacyjne" },
+  meta: {
+    label: "Zasoby edukacyjne",
+    icon: <BookOpen className="h-4 w-4" />
+  },
 };
 
 export const teacherResources: IResourceItem[] = [
-  dashboardResource,
+  // Parent dla zasobów edukacyjnych
+  educationalResourcesParent,
+  {
+    ...coursesResource,
+    meta: {
+      ...coursesResource.meta,
+      parent: "dashboard",
+      label: "Kursy",
+    },
+  },
+  {
+    ...topicsResource,
+    meta: {
+      ...topicsResource.meta,
+      parent: "dashboard",
+      label: "Tematy",
+    },
+  },
+  {
+    ...activitiesResource,
+    meta: {
+      ...activitiesResource.meta,
+      parent: "dashboard",
+      hide: true,
+    },
+  },
+  {
+    ...groupsResource,
+    meta: {
+      ...groupsResource.meta,
+      parent: "dashboard",
+      label: "Grupy",
+    },
+  },
 
-  // Program
-  coursesResource,
-  topicsResource,
-  activitiesResource,
-
-  // Użytkownicy/organizacje
-  groupsResource,
+  // Użytkownicy i organizacje - osobno
   usersResource,
   vendorsResource,
 
