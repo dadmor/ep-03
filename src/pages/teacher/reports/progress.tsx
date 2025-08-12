@@ -75,6 +75,19 @@ export const ProgressReport: React.FC = () => {
   const [expandedCourse, setExpandedCourse] = useState<number | null>(null);
   const [sortBy, setSortBy] = useState<"progress" | "score" | "activity">("progress");
 
+  // snapshot – bez auto-refetchu
+  const staticQuery = {
+    queryOptions: {
+      staleTime: Infinity,
+      gcTime: 30 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      refetchInterval: false,
+      retry: 0,
+    } as const,
+  };
+
   // Pobierz kursy
   const { data: coursesData } = useList({
     resource: "courses",
@@ -85,12 +98,13 @@ export const ProgressReport: React.FC = () => {
         value: true
       }
     ],
-    pagination: { mode: "off" }
+    pagination: { mode: "off" },
+    ...staticQuery
   });
 
-  // Pobierz tematy z aktywnościami
-  const { data: topicsData } = useList({
-    resource: "topics",
+  // Pobierz aktywności (potrzebujemy ich do policzenia ile jest w każdym kursie)
+  const { data: activitiesData } = useList({
+    resource: "activities",
     filters: [
       {
         field: "is_published",
@@ -100,8 +114,9 @@ export const ProgressReport: React.FC = () => {
     ],
     pagination: { mode: "off" },
     meta: {
-      select: "*, activities(count), courses(id, title)"
-    }
+      select: "id, topic_id, type, topics(id, course_id)"
+    },
+    ...staticQuery
   });
 
   // Pobierz postępy
@@ -109,14 +124,16 @@ export const ProgressReport: React.FC = () => {
     resource: "activity_progress",
     pagination: { mode: "off" },
     meta: {
-      select: "*, activities(topic_id, type, topics(course_id, courses(title)))"
-    }
+      select: "*, activities(id, topic_id, type, topics(id, course_id))"
+    },
+    ...staticQuery
   });
 
   // Pobierz grupy
   const { data: groupsData } = useList({
     resource: "groups",
-    pagination: { mode: "off" }
+    pagination: { mode: "off" },
+    ...staticQuery
   });
 
   // Pobierz członków grup
@@ -129,25 +146,28 @@ export const ProgressReport: React.FC = () => {
         operator: "eq",
         value: parseInt(selectedGroup)
       }
-    ] : []
+    ] : [],
+    ...staticQuery
   });
 
   // Przygotuj dane o postępach kursów
   const courseProgressData = useMemo(() => {
-    if (!coursesData?.data || !topicsData?.data || !progressData?.data) return [];
+    if (!coursesData?.data || !activitiesData?.data || !progressData?.data) return [];
 
     const courseMap = new Map<number, CourseProgress>();
 
     coursesData.data.forEach(course => {
+      const courseId = typeof course.id === 'number' ? course.id : parseInt(course.id as string);
+      
       // Policz aktywności w kursie
-      const courseTopics = topicsData.data.filter(t => t.courses?.id === course.id);
-      const totalActivities = courseTopics.reduce((sum, topic) => 
-        sum + (topic.activities?.[0]?.count || 0), 0
+      const courseActivities = activitiesData.data.filter(a => 
+        a.topics?.course_id === courseId
       );
+      const totalActivities = courseActivities.length;
 
       // Policz postępy
       const courseProgress = progressData.data.filter(p => 
-        p.activities?.topics?.course_id === course.id
+        p.activities?.topics?.course_id === courseId
       );
 
       // Filtruj według grupy
@@ -166,9 +186,9 @@ export const ProgressReport: React.FC = () => {
           const count = completedByStudent.get(p.user_id) || 0;
           completedByStudent.set(p.user_id, count + 1);
         }
-        if (p.score !== null) {
+        if (p.score !== null && p.score !== undefined) {
           const scores = scoresByStudent.get(p.user_id) || [];
-          scores.push(p.score);
+          scores.push(Number(p.score));
           scoresByStudent.set(p.user_id, scores);
         }
       });
@@ -183,9 +203,9 @@ export const ProgressReport: React.FC = () => {
         ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length)
         : null;
 
-      courseMap.set(course.id, {
-        courseId: course.id,
-        courseTitle: course.title,
+      courseMap.set(courseId, {
+        courseId,
+        courseTitle: course.title || '',
         totalActivities,
         completedActivities: Math.round(avgCompleted),
         avgScore,
@@ -194,22 +214,24 @@ export const ProgressReport: React.FC = () => {
       });
     });
 
-    return Array.from(courseMap.values()).sort((a, b) => {
-      const aProgress = a.totalActivities > 0 ? (a.completedActivities / a.totalActivities) : 0;
-      const bProgress = b.totalActivities > 0 ? (b.completedActivities / b.totalActivities) : 0;
-      return bProgress - aProgress;
-    });
-  }, [coursesData?.data, topicsData?.data, progressData?.data, selectedGroup, groupMembersData?.data]);
+    return Array.from(courseMap.values())
+      .filter(c => c.totalActivities > 0) // Tylko kursy z aktywnościami
+      .sort((a, b) => {
+        const aProgress = a.totalActivities > 0 ? (a.completedActivities / a.totalActivities) : 0;
+        const bProgress = b.totalActivities > 0 ? (b.completedActivities / b.totalActivities) : 0;
+        return bProgress - aProgress;
+      });
+  }, [coursesData?.data, activitiesData?.data, progressData?.data, selectedGroup, groupMembersData?.data]);
 
   // Przygotuj dane o postępach studentów
   const studentProgressData = useMemo(() => {
     if (!progressData?.data || !courseProgressData.length) return [];
 
-    const studentMap = new Map<string, StudentProgress[]>();
+    const studentMap = new Map<string, Map<number, StudentProgress>>();
 
     courseProgressData.forEach(course => {
       const courseProgress = progressData.data.filter(p => 
-        p.activities?.topics?.courses?.id === course.courseId
+        p.activities?.topics?.course_id === course.courseId
       );
 
       // Filtruj według grupy
@@ -220,28 +242,39 @@ export const ProgressReport: React.FC = () => {
         : courseProgress;
 
       // Grupuj według studenta
-      const studentCourseMap = new Map<string, StudentProgress>();
-
       filteredProgress.forEach(p => {
-        const current = studentCourseMap.get(p.user_id) || {
-          userId: p.user_id,
-          courseId: course.courseId,
-          courseTitle: course.courseTitle,
-          completedActivities: 0,
-          totalActivities: course.totalActivities,
-          avgScore: null,
-          lastActivity: null,
-          timeSpent: 0
-        };
+        if (!studentMap.has(p.user_id)) {
+          studentMap.set(p.user_id, new Map());
+        }
+        
+        const studentCourses = studentMap.get(p.user_id)!;
+        
+        if (!studentCourses.has(course.courseId)) {
+          studentCourses.set(course.courseId, {
+            userId: p.user_id,
+            courseId: course.courseId,
+            courseTitle: course.courseTitle,
+            completedActivities: 0,
+            totalActivities: course.totalActivities,
+            avgScore: null,
+            lastActivity: null,
+            timeSpent: 0
+          });
+        }
+        
+        const current = studentCourses.get(course.courseId)!;
 
         if (p.completed_at) {
           current.completedActivities++;
         }
 
-        if (p.score !== null) {
-          const scores = [];
-          if (current.avgScore !== null) scores.push(current.avgScore);
-          scores.push(p.score);
+        if (p.score !== null && p.score !== undefined) {
+          const scores: number[] = [];
+          if (current.avgScore !== null) {
+            // Przybliżone odtworzenie poprzednich wyników
+            scores.push(current.avgScore);
+          }
+          scores.push(Number(p.score));
           current.avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
         }
 
@@ -250,33 +283,30 @@ export const ProgressReport: React.FC = () => {
         if (!current.lastActivity || new Date(p.started_at) > new Date(current.lastActivity)) {
           current.lastActivity = p.started_at;
         }
-
-        studentCourseMap.set(p.user_id, current);
-      });
-
-      studentCourseMap.forEach((progress, userId) => {
-        const existing = studentMap.get(userId) || [];
-        existing.push(progress);
-        studentMap.set(userId, existing);
       });
     });
 
     // Przekształć na płaską listę i posortuj
     const flatList: StudentProgress[] = [];
-    studentMap.forEach(courses => {
-      flatList.push(...courses);
+    studentMap.forEach((courses) => {
+      courses.forEach(progress => {
+        flatList.push(progress);
+      });
     });
 
     return flatList.sort((a, b) => {
       switch (sortBy) {
-        case "progress":
+        case "progress": {
           const aProgress = a.totalActivities > 0 ? (a.completedActivities / a.totalActivities) : 0;
           const bProgress = b.totalActivities > 0 ? (b.completedActivities / b.totalActivities) : 0;
           return bProgress - aProgress;
+        }
         case "score":
           return (b.avgScore || 0) - (a.avgScore || 0);
         case "activity":
           return new Date(b.lastActivity || 0).getTime() - new Date(a.lastActivity || 0).getTime();
+        default:
+          return 0;
       }
     });
   }, [progressData?.data, courseProgressData, selectedGroup, groupMembersData?.data, sortBy]);
@@ -326,15 +356,19 @@ export const ProgressReport: React.FC = () => {
           ) / courseProgressData.length
         )
       : 0;
-    const avgScore = courseProgressData
-      .filter(c => c.avgScore !== null)
-      .reduce((sum, c, _, arr) => sum + (c.avgScore! / arr.length), 0);
+    
+    const coursesWithScores = courseProgressData.filter(c => c.avgScore !== null);
+    const avgScore = coursesWithScores.length > 0
+      ? Math.round(
+          coursesWithScores.reduce((sum, c) => sum + c.avgScore!, 0) / coursesWithScores.length
+        )
+      : 0;
 
     return {
       totalStudents,
       activeStudents,
       avgCompletion,
-      avgScore: Math.round(avgScore)
+      avgScore
     };
   }, [studentProgressData, courseProgressData]);
 
@@ -359,8 +393,11 @@ export const ProgressReport: React.FC = () => {
             <SelectContent>
               <SelectItem value="all">Wszystkie grupy</SelectItem>
               {groupsData?.data?.map(group => (
-                <SelectItem key={group.id} value={group.id.toString()}>
-                  {group.name}
+                <SelectItem 
+                  key={group.id || 'unknown'} 
+                  value={group.id?.toString() || ''}
+                >
+                  {group.name || 'Bez nazwy'}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -437,7 +474,11 @@ export const ProgressReport: React.FC = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={courseProgressData} layout="vertical">
+              <BarChart 
+                data={courseProgressData} 
+                layout="vertical"
+                key={`${courseProgressData.map(c => c.courseId).join('-')}`}
+              >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" domain={[0, 100]} />
                 <YAxis 
@@ -472,13 +513,15 @@ export const ProgressReport: React.FC = () => {
                   }}
                 />
                 <Bar 
-                  dataKey={(data: CourseProgress) => 
-                    data.totalActivities > 0 
+                  dataKey={(data: CourseProgress) => {
+                    const progress = data.totalActivities > 0 
                       ? Math.round((data.completedActivities / data.totalActivities) * 100)
-                      : 0
-                  }
+                      : 0;
+                    return progress;
+                  }}
                   fill="#8884d8"
                   name="Postęp"
+                  isAnimationActive={false}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -497,7 +540,7 @@ export const ProgressReport: React.FC = () => {
                 <Funnel
                   dataKey="value"
                   data={funnelData}
-                  isAnimationActive
+                  isAnimationActive={false}
                 >
                   <LabelList position="center" fill="#fff" />
                   {funnelData.map((entry, index) => (
@@ -572,7 +615,7 @@ export const ProgressReport: React.FC = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        {Math.round(student.timeSpent / 60)}h {student.timeSpent % 60}m
+                        {Math.floor(student.timeSpent / 60)}h {student.timeSpent % 60}m
                       </TableCell>
                       <TableCell>
                         {student.lastActivity 
