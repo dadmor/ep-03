@@ -334,5 +334,5 @@ export const MATERIAL_PATHS = {
   step3: "/teacher/educational-material/step3",
   step4: "/teacher/educational-material/step4",
   step5: "/teacher/educational-material/step5",
-  courses: "/courses",
+  courses: "/teacher/courses",
 };

@@ -13,12 +13,12 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, BookOpen, FileText, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Sparkles, AlertCircle, Info, BookOpen, FileText } from "lucide-react";
 import {
   QUIZ_WIZARD_SCHEMA,
   QUIZ_ANALYSIS_OPERATION,
@@ -63,7 +63,6 @@ export const QuizWizardStep1: React.FC = () => {
   const navigate = useNavigate();
   const { register, setData } = useFormSchemaStore();
   
-  // Pola formularza
   const [courseId, setCourseId] = useState("");
   const [topicId, setTopicId] = useState("");
   const [topic, setTopic] = useState("");
@@ -81,7 +80,6 @@ export const QuizWizardStep1: React.FC = () => {
   const llmAnalysis = useLLMOperation("quiz-wizard", "analyze-quiz-topic");
   const { steps, errors: errorTexts } = QUIZ_UI_TEXTS;
 
-  // Pobierz listę kursów z tematami
   const { data: coursesData, isLoading: coursesLoading } = useList<Course>({
     resource: "courses",
     meta: {
@@ -95,7 +93,6 @@ export const QuizWizardStep1: React.FC = () => {
     ],
   });
 
-  // Pobierz dane materiału jeśli materialId jest w kontekście
   const { data: materialData, isLoading: materialLoading } = useOne({
     resource: "activities",
     id: contextInfo?.materialId || 0,
@@ -104,7 +101,6 @@ export const QuizWizardStep1: React.FC = () => {
     },
   });
 
-  // Pobierz materiały dla wybranego tematu
   const { data: materialsData, isLoading: materialsLoading } = useList<Material>({
     resource: "activities",
     filters: [
@@ -130,7 +126,6 @@ export const QuizWizardStep1: React.FC = () => {
     },
   });
 
-  // Pobierz tematy dla wybranego kursu
   const selectedCourse = coursesData?.data?.find(c => c.id.toString() === courseId);
   const topics = selectedCourse?.topics || [];
 
@@ -138,13 +133,11 @@ export const QuizWizardStep1: React.FC = () => {
     register(QUIZ_WIZARD_SCHEMA);
     llmAnalysis.registerOperation(QUIZ_ANALYSIS_OPERATION);
 
-    // Sprawdź kontekst z sesji
     const contextStr = sessionStorage.getItem('wizardContext');
     if (contextStr) {
       const context: WizardContext = JSON.parse(contextStr);
       setContextInfo(context);
       
-      // Ustaw wartości z kontekstu
       if (context.courseId) {
         setCourseId(context.courseId.toString());
       }
@@ -165,7 +158,6 @@ export const QuizWizardStep1: React.FC = () => {
     };
   }, []);
 
-  // Automatycznie ustaw temat na podstawie wybranego tematu kursu
   useEffect(() => {
     if (topicId && topics.length > 0) {
       const selectedTopic = topics.find(t => t.id.toString() === topicId);
@@ -224,7 +216,6 @@ export const QuizWizardStep1: React.FC = () => {
         quizSource,
       };
 
-      // Jeśli wybrano materiał, pobierz jego treść
       if (quizSource === "material" && selectedMaterialId) {
         const selectedMaterial = materialsData?.data?.find(
           m => m.id.toString() === selectedMaterialId
@@ -236,7 +227,6 @@ export const QuizWizardStep1: React.FC = () => {
           formData.basedOnMaterial = true;
         }
       } else if (contextInfo?.materialId && materialData?.data) {
-        // Jeśli przyszliśmy z kontekstu materiału
         formData.materialContent = materialData.data.content;
         formData.materialTitle = materialData.data.title;
         formData.materialId = contextInfo.materialId;
@@ -259,10 +249,10 @@ export const QuizWizardStep1: React.FC = () => {
 
   return (
     <SubPage>
-      <div className="border rounded-lg bg-white shadow relative pb-6">
+      <Card className="border-2 shadow-lg">
         <StepsHero step={1} />
 
-        <div className="p-6">
+        <CardContent className="p-8">
           <StepsHeader
             title={steps[1].title}
             description={steps[1].description}
@@ -270,9 +260,9 @@ export const QuizWizardStep1: React.FC = () => {
 
           {/* Alert o kontekście materiału */}
           {contextInfo?.materialId && materialData && (
-            <Alert className="mb-4 bg-blue-50 border-blue-200">
-              <FileText className="h-4 w-4" />
-              <AlertDescription>
+            <Alert className="mb-6 bg-blue-50 border-blue-200">
+              <FileText className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
                 <strong>Generujesz quiz na podstawie materiału:</strong>
                 <br />
                 <span className="text-sm">{materialData.data.title}</span>
@@ -286,7 +276,7 @@ export const QuizWizardStep1: React.FC = () => {
 
           {/* Standardowy alert o kontekście kursu */}
           {contextInfo && !contextInfo.materialId && (
-            <Alert className="mb-4">
+            <Alert className="mb-6">
               <Info className="h-4 w-4" />
               <AlertDescription>
                 Tworzysz quiz dla: <strong>{contextInfo.courseTitle}</strong>
@@ -298,14 +288,15 @@ export const QuizWizardStep1: React.FC = () => {
           )}
 
           {llmAnalysis.error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <span className="text-red-800 text-sm">
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
                 {errorTexts.analysisError} {llmAnalysis.error}
-              </span>
-            </div>
+              </AlertDescription>
+            </Alert>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             {/* Wybór kursu i tematu */}
             <Card className="border-2 border-blue-200 bg-blue-50/50">
               <CardContent className="pt-6">
@@ -315,7 +306,7 @@ export const QuizWizardStep1: React.FC = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="courseId">
                       Kurs <span className="text-red-500">*</span>
                     </Label>
@@ -323,12 +314,12 @@ export const QuizWizardStep1: React.FC = () => {
                       value={courseId}
                       onValueChange={(value) => {
                         setCourseId(value);
-                        setTopicId(""); // Reset topic selection
-                        setSelectedMaterialId(""); // Reset material selection
+                        setTopicId("");
+                        setSelectedMaterialId("");
                       }}
                       disabled={llmAnalysis.loading || coursesLoading || !!contextInfo?.courseId}
                     >
-                      <SelectTrigger className={errors.courseId ? "border-red-300" : ""}>
+                      <SelectTrigger className={errors.courseId ? "border-red-500" : ""}>
                         <SelectValue placeholder="Wybierz kurs..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -343,11 +334,11 @@ export const QuizWizardStep1: React.FC = () => {
                       </SelectContent>
                     </Select>
                     {errors.courseId && (
-                      <p className="text-sm text-red-600 mt-1">{errors.courseId}</p>
+                      <p className="text-sm text-red-600">{errors.courseId}</p>
                     )}
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="topicId">
                       Temat <span className="text-red-500">*</span>
                     </Label>
@@ -355,11 +346,11 @@ export const QuizWizardStep1: React.FC = () => {
                       value={topicId}
                       onValueChange={(value) => {
                         setTopicId(value);
-                        setSelectedMaterialId(""); // Reset material selection
+                        setSelectedMaterialId("");
                       }}
                       disabled={!courseId || llmAnalysis.loading || !!contextInfo?.topicId}
                     >
-                      <SelectTrigger className={errors.topicId ? "border-red-300" : ""}>
+                      <SelectTrigger className={errors.topicId ? "border-red-500" : ""}>
                         <SelectValue placeholder={courseId ? "Wybierz temat..." : "Najpierw wybierz kurs..."} />
                       </SelectTrigger>
                       <SelectContent>
@@ -373,14 +364,12 @@ export const QuizWizardStep1: React.FC = () => {
                       </SelectContent>
                     </Select>
                     {errors.topicId && (
-                      <p className="text-sm text-red-600 mt-1">{errors.topicId}</p>
+                      <p className="text-sm text-red-600">{errors.topicId}</p>
                     )}
                   </div>
                 </div>
               </CardContent>
             </Card>
-
-            <Separator />
 
             {/* Wybór źródła quizu */}
             {topicId && !contextInfo?.materialId && (
@@ -417,7 +406,7 @@ export const QuizWizardStep1: React.FC = () => {
                             </AlertDescription>
                           </Alert>
                         ) : (
-                          <div>
+                          <div className="space-y-2">
                             <Label htmlFor="materialId">
                               Wybierz materiał <span className="text-red-500">*</span>
                             </Label>
@@ -426,7 +415,7 @@ export const QuizWizardStep1: React.FC = () => {
                               onValueChange={setSelectedMaterialId}
                               disabled={llmAnalysis.loading}
                             >
-                              <SelectTrigger className={errors.materialId ? "border-red-300" : ""}>
+                              <SelectTrigger className={errors.materialId ? "border-red-500" : ""}>
                                 <SelectValue placeholder="Wybierz materiał..." />
                               </SelectTrigger>
                               <SelectContent>
@@ -441,9 +430,9 @@ export const QuizWizardStep1: React.FC = () => {
                               </SelectContent>
                             </Select>
                             {errors.materialId && (
-                              <p className="text-sm text-red-600 mt-1">{errors.materialId}</p>
+                              <p className="text-sm text-red-600">{errors.materialId}</p>
                             )}
-                            <p className="text-sm text-muted-foreground mt-2">
+                            <p className="text-sm text-muted-foreground">
                               Pytania będą tworzone WYŁĄCZNIE z treści wybranego materiału
                             </p>
                           </div>
@@ -456,39 +445,35 @@ export const QuizWizardStep1: React.FC = () => {
             )}
 
             {/* Szczegóły quizu */}
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="topic">Temat quizu</Label>
               <Input
                 id="topic"
                 type="text"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder={
-                  QUIZ_WIZARD_SCHEMA.schema.step1.properties.topic.placeholder
-                }
+                placeholder="np. Podstawy programowania w Python"
                 disabled={llmAnalysis.loading}
-                className={errors.topic ? "border-red-300" : ""}
+                className={errors.topic ? "border-red-500" : ""}
               />
               {errors.topic && (
-                <p className="text-sm text-red-600 mt-1">{errors.topic}</p>
+                <p className="text-sm text-red-600">{errors.topic}</p>
               )}
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-gray-500">
                 {contextInfo?.materialId || quizSource === "material"
                   ? "Quiz będzie generowany z treści materiału"
                   : "Możesz dostosować temat quizu lub pozostawić sugerowany"}
               </p>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="difficulty">Poziom trudności</Label>
               <Select
                 value={difficulty}
                 onValueChange={setDifficulty}
                 disabled={llmAnalysis.loading}
               >
-                <SelectTrigger
-                  className={errors.difficulty ? "border-red-300" : ""}
-                >
+                <SelectTrigger className={errors.difficulty ? "border-red-500" : ""}>
                   <SelectValue placeholder="Wybierz poziom..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -498,11 +483,11 @@ export const QuizWizardStep1: React.FC = () => {
                 </SelectContent>
               </Select>
               {errors.difficulty && (
-                <p className="text-sm text-red-600 mt-1">{errors.difficulty}</p>
+                <p className="text-sm text-red-600">{errors.difficulty}</p>
               )}
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="questionsCount">Liczba pytań</Label>
               <Input
                 id="questionsCount"
@@ -514,18 +499,18 @@ export const QuizWizardStep1: React.FC = () => {
                 min={QUIZ_VALIDATION.questionsCount.min}
                 max={QUIZ_VALIDATION.questionsCount.max}
                 disabled={llmAnalysis.loading}
-                className={errors.questionsCount ? "border-red-300" : ""}
+                className={errors.questionsCount ? "border-red-500" : ""}
               />
               {errors.questionsCount && (
-                <p className="text-sm text-red-600 mt-1">
+                <p className="text-sm text-red-600">
                   {errors.questionsCount}
                 </p>
               )}
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label>Typy pytań</Label>
-              <div className="space-y-2 mt-2">
+              <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="single"
@@ -561,29 +546,33 @@ export const QuizWizardStep1: React.FC = () => {
                 </div>
               </div>
               {errors.questionTypes && (
-                <p className="text-sm text-red-600 mt-1">
+                <p className="text-sm text-red-600">
                   {errors.questionTypes}
                 </p>
               )}
             </div>
 
-            <button
+            <Button
               onClick={handleAnalyze}
               disabled={llmAnalysis.loading || (materialLoading && !!contextInfo?.materialId)}
-              className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg flex items-center justify-center gap-2"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              size="lg"
             >
               {llmAnalysis.loading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   {contextInfo?.materialId || quizSource === "material" ? "Analizuję materiał..." : steps[1].loading}
                 </>
               ) : (
-                steps[1].button
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {steps[1].button}
+                </>
               )}
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </SubPage>
   );
 };

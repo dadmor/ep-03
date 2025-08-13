@@ -1,11 +1,14 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFormSchemaStore } from "@/utility/llmFormWizard";
 import { useCreate, useList, BaseRecord } from "@refinedev/core";
-import { Save, ArrowLeft, HelpCircle, AlertCircle, BookOpen } from "lucide-react";
-import { Button, Input, Label, Separator } from "@/components/ui";
+import { Save, ArrowLeft, HelpCircle, AlertCircle, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
 import { StepsHero } from "./StepsHero";
 import StepsHeader from "./StepsHeader";
 import {
@@ -15,6 +18,7 @@ import {
 } from "./quizWizard.constants";
 import { SubPage } from "@/components/layout";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui";
 
 interface Activity extends BaseRecord {
   id: number;
@@ -35,7 +39,6 @@ export const QuizWizardStep5: React.FC = () => {
 
   const { steps, errors: errorTexts } = QUIZ_UI_TEXTS;
 
-  // Pobierz ostatnią pozycję dla wybranego tematu (używamy topicId z formData)
   const { data: activitiesData } = useList<Activity>({
     resource: "activities",
     filters: [
@@ -63,7 +66,6 @@ export const QuizWizardStep5: React.FC = () => {
     ? activitiesData.data[0].position + 1 
     : 1;
 
-  // Sprawdź, czy mamy wszystkie wymagane dane z poprzednich kroków
   useEffect(() => {
     if (!formData.courseId || !formData.topicId || !formData.questions) {
       toast.error("Brak danych z poprzednich kroków. Wracam do początku...");
@@ -92,7 +94,6 @@ export const QuizWizardStep5: React.FC = () => {
     setSaved(false);
 
     try {
-      // 1. Utwórz aktywność typu quiz
       createActivity(
         {
           resource: "activities",
@@ -111,8 +112,7 @@ export const QuizWizardStep5: React.FC = () => {
         {
           onSuccess: async (activityData) => {
             const activityId = activityData.data.id;
-
-            // 2. Dodaj wszystkie pytania
+ 
             try {
               for (let index = 0; index < formData.questions.length; index++) {
                 const question = formData.questions[index];
@@ -140,19 +140,17 @@ export const QuizWizardStep5: React.FC = () => {
                   );
                 });
               }
-
-              // 3. Zapisz w lokalnym store
+ 
               setData("quiz-wizard", {
                 ...formData,
                 finalTitle: finalTitle.trim(),
                 activityId,
                 saved: true,
               });
-
+ 
               setSaving(false);
               setSaved(true);
-
-              // Przekieruj do zarządzania pytaniami
+ 
               setTimeout(() => {
                 navigate(`${QUIZ_PATHS.questions}/${activityId}`);
               }, 2000);
@@ -163,11 +161,18 @@ export const QuizWizardStep5: React.FC = () => {
               toast.error("Wystąpił błąd podczas zapisywania pytań. Spróbuj ponownie.");
             }
           },
-          onError: (error) => {
+          onError: (error: any) => {
             setSaving(false);
             setSaved(false);
             console.error(errorTexts.saveError, error);
-            toast.error(errorTexts.saveError);
+            
+            if (error?.code === '42501') {
+              toast.error("Brak uprawnień do tworzenia quizów. Sprawdź swoje uprawnienia.");
+            } else if (error?.code === '23505') {
+              toast.error("Quiz o takiej nazwie już istnieje.");
+            } else {
+              toast.error(errorTexts.saveError);
+            }
           },
         }
       );
@@ -178,31 +183,32 @@ export const QuizWizardStep5: React.FC = () => {
       toast.error(errorTexts.unexpectedError);
     }
   };
-
+ 
   return (
     <SubPage>
-      <div className="border rounded-lg bg-white shadow relative">
+      <Card className="border-2 shadow-lg">
         <StepsHero step={5} />
-
-        <div className="p-8">
+ 
+        <CardContent className="p-8">
           <StepsHeader
             title={
               <>
-                <HelpCircle className="w-8 h-8 text-blue-500" />
+                <HelpCircle className="w-8 h-8 text-blue-600" />
                 <span>{steps[5].title}</span>
               </>
             }
             description={steps[5].description}
           />
-
+ 
           {saved && (
             <Alert className="mb-6 bg-green-50 border-green-200">
+              <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
                 {steps[5].success}
               </AlertDescription>
             </Alert>
           )}
-
+ 
           <form
             className="space-y-6"
             onSubmit={(e) => {
@@ -211,25 +217,28 @@ export const QuizWizardStep5: React.FC = () => {
             }}
           >
             {/* Informacja o lokalizacji quizu */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <BookOpen className="w-5 h-5 text-blue-600" />
-                <h4 className="font-medium">Lokalizacja quizu</h4>
-              </div>
-              <div className="space-y-1 text-sm">
-                <p>
-                  <span className="text-gray-600">Kurs:</span>{" "}
-                  <span className="font-medium">{formData.courseTitle}</span>
-                </p>
-                <p>
-                  <span className="text-gray-600">Temat:</span>{" "}
-                  <span className="font-medium">{formData.topicTitle}</span>
-                </p>
-              </div>
-            </div>
-
+            <Card className="bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200">
+              <CardContent className="p-4">
+                <h4 className="font-medium mb-3">Lokalizacja quizu:</h4>
+                <ul className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
+                    <span><strong>Kurs:</strong> {formData.courseTitle}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
+                    <span><strong>Temat:</strong> {formData.topicTitle}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
+                    <span><strong>Pozycja:</strong> {nextPosition}</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+ 
             {/* Tytuł quizu */}
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="finalTitle">
                 Tytuł quizu <span className="text-red-500">*</span>
               </Label>
@@ -240,58 +249,67 @@ export const QuizWizardStep5: React.FC = () => {
                 onChange={(e) => setFinalTitle(e.target.value)}
                 placeholder="Tytuł quizu"
                 maxLength={QUIZ_VALIDATION.quizTitle.maxLength}
-                className={errors.finalTitle ? "border-red-300" : ""}
+                className={errors.finalTitle ? "border-red-500" : ""}
               />
               {errors.finalTitle && (
-                <p className="text-sm text-red-600 mt-1">{errors.finalTitle}</p>
+                <p className="text-sm text-red-600">{errors.finalTitle}</p>
               )}
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-gray-500">
                 Możesz dostosować tytuł quizu przed zapisaniem
               </p>
             </div>
-
+ 
             {/* Podsumowanie quizu */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-medium mb-3">Podsumowanie quizu</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Liczba pytań:</span>
-                  <span className="ml-2 font-medium">{formData.questions?.length || 0}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Próg zaliczenia:</span>
-                  <span className="ml-2 font-medium">{formData.passingScore}%</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Limit czasu:</span>
-                  <span className="ml-2 font-medium">
-                    {formData.timeLimit ? `${formData.timeLimit} min` : "Brak"}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Łączna liczba punktów:</span>
-                  <span className="ml-2 font-medium">
-                    {formData.questions?.reduce((sum: number, q: any) => sum + q.points, 0) || 0}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Lista pytań (skrócona) */}
-            <div>
-              <h4 className="font-medium mb-3">Pytania ({formData.questions?.length || 0})</h4>
-              <div className="max-h-64 overflow-y-auto space-y-2 border rounded-lg p-3">
-                {formData.questions?.map((question: any, index: number) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                    <span className="text-sm truncate flex-1">
-                      {index + 1}. {question.question}
-                    </span>
-                    <span className="text-sm font-medium ml-2">{question.points} pkt</span>
+            <Card>
+              <CardContent className="p-4">
+                <h4 className="font-medium mb-3">Podsumowanie quizu</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Liczba pytań:</span>
+                    <span className="ml-2 font-medium">{formData.questions?.length || 0}</span>
                   </div>
-                ))}
-              </div>
+                  <div>
+                    <span className="text-gray-600">Próg zaliczenia:</span>
+                    <span className="ml-2 font-medium">{formData.passingScore}%</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Limit czasu:</span>
+                    <span className="ml-2 font-medium">
+                      {formData.timeLimit ? `${formData.timeLimit} min` : "Brak"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Łączna liczba punktów:</span>
+                    <span className="ml-2 font-medium">
+                      {formData.questions?.reduce((sum: number, q: any) => sum + q.points, 0) || 0}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+ 
+            {/* Lista pytań (skrócona) */}
+            <div className="space-y-2">
+              <h4 className="font-medium">Pytania ({formData.questions?.length || 0})</h4>
+              <Card className="max-h-64 overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="overflow-y-auto max-h-64">
+                    {formData.questions?.map((question: any, index: number) => (
+                      <div 
+                        key={index} 
+                        className="flex items-center justify-between p-3 hover:bg-gray-50 border-b"
+                      >
+                        <span className="text-sm truncate flex-1">
+                          {index + 1}. {question.question}
+                        </span>
+                        <Badge variant="outline" className="ml-2">{question.points} pkt</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-
+ 
             {/* Ostrzeżenie o edycji */}
             <Alert className="bg-yellow-50 border-yellow-200">
               <AlertCircle className="h-4 w-4 text-yellow-800" />
@@ -299,14 +317,16 @@ export const QuizWizardStep5: React.FC = () => {
                 Po zapisaniu będziesz mógł edytować pytania w panelu zarządzania quizem
               </AlertDescription>
             </Alert>
-
+ 
             {/* Informacja o zapisie */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-blue-800 text-sm">{steps[5].saveInfo}</p>
-            </div>
-
+            <Alert className="bg-blue-50 border-blue-200">
+              <AlertDescription className="text-blue-800">
+                {steps[5].saveInfo}
+              </AlertDescription>
+            </Alert>
+ 
             <Separator />
-
+ 
             {/* Przyciski nawigacji */}
             <footer className="flex justify-between gap-4">
               <Button
@@ -319,11 +339,11 @@ export const QuizWizardStep5: React.FC = () => {
                 <ArrowLeft className="w-4 h-4" />
                 Wstecz
               </Button>
-
+ 
               <Button
                 type="submit"
                 disabled={saving || saved}
-                className="flex items-center gap-2 min-w-[160px]"
+                className="flex items-center gap-2 min-w-[160px] bg-blue-600 hover:bg-blue-700"
               >
                 {saving ? (
                   <>
@@ -339,8 +359,8 @@ export const QuizWizardStep5: React.FC = () => {
               </Button>
             </footer>
           </form>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </SubPage>
   );
-};
+ };

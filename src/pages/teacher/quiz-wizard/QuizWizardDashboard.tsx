@@ -1,11 +1,8 @@
-// src/pages/teacher/quiz-wizard/QuizWizardDashboard.tsx
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Lead } from "@/components/reader";
 import { Button } from "@/components/ui/button";
 import { useFormSchemaStore } from "@/utility/llmFormWizard";
-import { FlexBox, GridBox } from "@/components/shared";
 import { 
   Brain, 
   Check, 
@@ -15,10 +12,15 @@ import {
   HelpCircle, 
   ListChecks, 
   Trophy,
-  Rocket
+  Rocket,
+  Clock,
+  Target,
+  ArrowRight,
+  Calendar
 } from "lucide-react";
 import { QUIZ_UI_TEXTS, QUIZ_PATHS } from "./quizWizard.constants";
 import { SubPage } from "@/components/layout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const QuizWizardDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -36,144 +38,190 @@ export const QuizWizardDashboard: React.FC = () => {
       />
 
       <div className="space-y-6">
-        {/* Kreator nowego quizu */}
-        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-6 rounded-lg border border-blue-200">
-          <FlexBox variant="start" className="mb-4">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <Brain className="w-8 h-8 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">{dashboard.wizardTitle}</h2>
-              <p className="text-gray-600">{dashboard.wizardDescription}</p>
-            </div>
-          </FlexBox>
-          
-          <GridBox variant="1-2-2" className="gap-4">
-            <div className="space-y-2">
-              {dashboard.features.slice(0, 3).map((feature, index) => (
-                <FlexBox key={index} variant="start" className="text-sm text-gray-700">
-                  <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                  <span>{feature}</span>
-                </FlexBox>
-              ))}
-            </div>
-            <div className="space-y-2">
-              {dashboard.features.slice(3).map((feature, index) => (
-                <FlexBox key={index} variant="start" className="text-sm text-gray-700">
-                  <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                  <span>{feature}</span>
-                </FlexBox>
-              ))}
-            </div>
-          </GridBox>
+        {/* Główne akcje */}
+        <div className="grid md:grid-cols-2 gap-4 mb-6">
+          {/* Nowy quiz */}
+          <Card 
+            className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-blue-400"
+            onClick={() => navigate(QUIZ_PATHS.step1)}
+          >
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <Rocket className="w-8 h-8 text-blue-600" />
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400" />
+              </div>
+              <CardTitle>Stwórz nowy quiz</CardTitle>
+              <CardDescription>
+                Wygeneruj profesjonalny test sprawdzający z pomocą AI
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                  <span>5-10 minut</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-blue-600" />
+                  <span>Inteligentne pytania</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="mt-6">
-            <Button 
-              onClick={() => navigate(`${QUIZ_PATHS.step1}`)}
-              className="w-full md:w-auto"
-              size="lg"
-            >
-              <Rocket className="w-4 h-4 mr-2" />
-              Stwórz nowy quiz
-            </Button>
-          </div>
+          {/* Funkcje AI */}
+          <Card className="hover:shadow-lg transition-all border-2 border-gray-200">
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="p-3 bg-purple-100 rounded-lg">
+                  <Target className="w-8 h-8 text-purple-600" />
+                </div>
+              </div>
+              <CardTitle>Funkcje AI</CardTitle>
+              <CardDescription>
+                Co potrafi kreator quizów
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {dashboard.features.map((feature, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Ostatni quiz */}
         {hasSavedQuiz && (
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <FlexBox variant="between-center" className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Ostatni quiz</h3>
-              <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                Zapisany
-              </span>
-            </FlexBox>
-            
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm text-gray-600">Tytuł quizu</p>
-                <p className="font-medium text-gray-900">{quizData.quizTitle}</p>
+          <Card className="hover:shadow-lg transition-shadow border-2 border-gray-200">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-lg">Ostatni quiz</CardTitle>
+                  <CardDescription>Kontynuuj pracę nad quizem</CardDescription>
+                </div>
+                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                  Wygenerowany
+                </span>
               </div>
-              
-              {quizData.topic && (
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-gray-600">Temat</p>
-                  <p className="text-gray-900">{quizData.topic}</p>
+                  <p className="text-sm text-gray-600">Tytuł quizu</p>
+                  <p className="font-medium text-gray-900">{quizData.quizTitle}</p>
                 </div>
-              )}
-              
-              {quizData.questions && (
-                <div>
-                  <p className="text-sm text-gray-600">Liczba pytań</p>
-                  <p className="text-gray-900">{quizData.questions.length} pytań</p>
-                </div>
-              )}
-            </div>
+                
+                {quizData.topic && (
+                  <div>
+                    <p className="text-sm text-gray-600">Temat</p>
+                    <p className="text-gray-900">{quizData.topic}</p>
+                  </div>
+                )}
+                
+                {quizData.questions && (
+                  <div className="grid grid-cols-2 gap-4 pt-3 border-t">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-indigo-600">
+                        {quizData.questions.length}
+                      </div>
+                      <div className="text-sm text-gray-600">pytań</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {quizData.passingScore || 70}%
+                      </div>
+                      <div className="text-sm text-gray-600">próg zaliczenia</div>
+                    </div>
+                  </div>
+                )}
 
-            <FlexBox variant="start" className="mt-6 gap-3">
-              <Button 
-                variant="outline"
-                onClick={() => navigate(QUIZ_PATHS.step4)}
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                Podgląd
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => navigate(QUIZ_PATHS.step5)}
-              >
-                <Edit3 className="w-4 h-4 mr-2" />
-                Edytuj
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => navigate(QUIZ_PATHS.step1)}
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Nowy quiz
-              </Button>
-            </FlexBox>
-          </div>
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate(QUIZ_PATHS.step4)}
+                    className="flex-1"
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    Podgląd
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate(QUIZ_PATHS.step5)}
+                    className="flex-1"
+                  >
+                    <Edit3 className="w-4 h-4 mr-2" />
+                    Edytuj
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate(QUIZ_PATHS.step1)}
+                    className="flex-1"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Nowy
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Przydatne linki */}
-        <div className="bg-gray-50 p-6 rounded-lg">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Zarządzanie quizami</h3>
-          
-          <GridBox variant="1-2-3" className="gap-4">
-            <button
-              onClick={() => navigate("/teacher/activities")}
-              className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
-            >
-              <FlexBox variant="start" className="mb-2">
-                <HelpCircle className="w-5 h-5 text-blue-600" />
-                <span className="font-medium">Aktywności</span>
-              </FlexBox>
-              <p className="text-sm text-gray-600">Wszystkie quizy i materiały</p>
-            </button>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card 
+            className="hover:shadow-lg transition-shadow cursor-pointer border-2 border-blue-200"
+            onClick={() => navigate("/teacher/activities")}
+          >
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <HelpCircle className="w-6 h-6 text-blue-600" />
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400" />
+              </div>
+              <CardTitle className="text-lg">Aktywności</CardTitle>
+              <CardDescription>Wszystkie quizy i materiały</CardDescription>
+            </CardHeader>
+          </Card>
 
-            <button
-              onClick={() => navigate("/teacher/questions")}
-              className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
-            >
-              <FlexBox variant="start" className="mb-2">
-                <ListChecks className="w-5 h-5 text-purple-600" />
-                <span className="font-medium">Pytania</span>
-              </FlexBox>
-              <p className="text-sm text-gray-600">Zarządzaj pytaniami</p>
-            </button>
+          <Card 
+            className="hover:shadow-lg transition-shadow cursor-pointer border-2 border-purple-200"
+            onClick={() => navigate("/teacher/questions")}
+          >
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="p-3 bg-purple-100 rounded-lg">
+                  <ListChecks className="w-6 h-6 text-purple-600" />
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400" />
+              </div>
+              <CardTitle className="text-lg">Pytania</CardTitle>
+              <CardDescription>Zarządzaj pytaniami</CardDescription>
+            </CardHeader>
+          </Card>
 
-            <button
-              onClick={() => navigate("/teacher/reports")}
-              className="p-4 bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow text-left"
-            >
-              <FlexBox variant="start" className="mb-2">
-                <Trophy className="w-5 h-5 text-green-600" />
-                <span className="font-medium">Wyniki</span>
-              </FlexBox>
-              <p className="text-sm text-gray-600">Statystyki quizów</p>
-            </button>
-          </GridBox>
+          <Card 
+            className="hover:shadow-lg transition-shadow cursor-pointer border-2 border-green-200"
+            onClick={() => navigate("/teacher/reports")}
+          >
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="p-3 bg-green-100 rounded-lg">
+                  <Trophy className="w-6 h-6 text-green-600" />
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400" />
+              </div>
+              <CardTitle className="text-lg">Wyniki</CardTitle>
+              <CardDescription>Statystyki quizów</CardDescription>
+            </CardHeader>
+          </Card>
         </div>
       </div>
     </SubPage>
