@@ -248,7 +248,7 @@ export const CoursesList = () => {
                     <DropdownMenuItem
                       onClick={() =>
                         handleNavigateToWizard(
-                          "/educational-material/step1",
+                          "/teacher/educational-material/step1",
                           course.id,
                           course.title
                         )
@@ -261,7 +261,7 @@ export const CoursesList = () => {
                     <DropdownMenuItem
                       onClick={() =>
                         handleNavigateToWizard(
-                          "/quiz-wizard/step1",
+                          "/teacher/quiz-wizard/step1",
                           course.id,
                           course.title
                         )

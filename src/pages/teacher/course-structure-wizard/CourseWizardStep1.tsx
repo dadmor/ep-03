@@ -209,7 +209,7 @@ export const CourseWizardStep1: React.FC = () => {
               <div className="space-y-2">
                 <Label htmlFor="curriculum">
                   Podstawa programowa 
-                  <span className="text-gray-500 text-sm ml-2">(opcjonalnie)</span>
+                  <span className="text-gray-500 text-sm ml-2">(opcjonalnie [TODO] uzupełnij DB o zarządzanie podstawą programową)</span>
                 </Label>
                 <Textarea
                   id="curriculum"

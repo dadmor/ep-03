@@ -38,9 +38,8 @@ export const CourseStructureEdit: React.FC = () => {
   const { mutate: createTopic } = useCreate();
 
   // Rejestruj operację LLM
-  useEffect(() => {
-    if (!course) return;
-
+// Rejestruj operację LLM tylko raz przy mount
+useEffect(() => {
     llmAddTopics.registerOperation({
       id: "add-new-topics",
       name: "Dodawanie nowych tematów",
@@ -77,19 +76,27 @@ JSON:
         `,
         responseFormat: "json",
       },
-      inputMapping: (data) => ({
-        courseTitle: course?.title || "",
-        courseDescription: course?.description || "",
-        existingTopics: existingTopics.map(t => t.title).join(", "),
-        requirements: data.requirements,
-        weekNumber: data.weekNumber,
-      }),
+      inputMapping: (data) => {
+        // Pobierz aktualne dane w momencie wykonania
+        const currentCourse = courseData?.data;
+        const currentTopics = topicsData?.data || [];
+        
+        return {
+          courseTitle: currentCourse?.title || "",
+          courseDescription: currentCourse?.description || "",
+          existingTopics: currentTopics.map(t => t.title).join(", "),
+          requirements: data.requirements,
+          weekNumber: data.weekNumber,
+        };
+      },
       outputMapping: (llmResult) => llmResult,
       validation: (result) => !!(result.newTopics && Array.isArray(result.newTopics)),
     });
 
-    return () => llmAddTopics.unregisterOperation();
-  }, [course, existingTopics]);
+    return () => {
+      llmAddTopics.unregisterOperation();
+    };
+  }, []); // Pusta tablica zależności - rejestruj tylko raz
 
   const handleGenerateTopics = async () => {
     if (!requirements.trim()) {

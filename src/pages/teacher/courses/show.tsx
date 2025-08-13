@@ -1,3 +1,4 @@
+// src/pages/teacher/courses/show.tsx
 
 import { useNavigation, useDelete } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -149,13 +150,23 @@ export const CoursesShow = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Szczegóły kursu</h1>
-          <Button 
-            onClick={() => edit("courses", course?.id ?? 0)}
-            size="sm"
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            Edytuj kurs
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => navigateWithReturn(`/teacher/course-structure/edit/${course?.id}`)}
+              size="sm"
+              variant="secondary"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Edytuj z AI
+            </Button>
+            <Button 
+              onClick={() => edit("courses", course?.id ?? 0)}
+              size="sm"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edytuj kurs
+            </Button>
+          </div>
         </div>
         <CourseOverview course={course} />
       </div>
@@ -181,13 +192,23 @@ export const CoursesShow = () => {
                 </span>
               )}
             </CardTitle>
-            <Button
-              size="sm"
-              onClick={() => navigateWithReturn(`/teacher/topics/create?course_id=${id}`)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Dodaj temat
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => navigateWithReturn(`/teacher/course-structure/edit/${course?.id}`)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Dodaj tematy z AI
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => navigateWithReturn(`/teacher/topics/create?course_id=${id}`)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Dodaj temat
+              </Button>
+            </div>
           </FlexBox>
         </CardHeader>
         <CardContent>
@@ -257,7 +278,7 @@ export const CoursesShow = () => {
                           <Button
                             size="sm"
                             onClick={() =>
-                              navigateToWizard("/educational-material/step1", {
+                              navigateToWizard("/teacher/educational-material/step1", {
                                 courseId: course?.id,
                                 courseTitle: course?.title,
                                 topicId: topic.id,
@@ -303,13 +324,7 @@ export const CoursesShow = () => {
                 </Button>
                 <Button
                   variant="secondary"
-                  onClick={() =>
-                    navigateToWizard("/course-structure/step1", {
-                      courseId: course?.id,
-                      courseTitle: course?.title,
-                      mode: "extend",
-                    })
-                  }
+                  onClick={() => navigateWithReturn(`/teacher/course-structure/edit/${course?.id}`)}
                 >
                   <Layout className="w-4 h-4 mr-2" />
                   Wygeneruj strukturę z AI
@@ -346,7 +361,7 @@ export const CoursesShow = () => {
             <Button
               variant="outline"
               className="justify-start h-auto py-3 px-4 bg-white dark:bg-background"
-              onClick={() => navigateToWizard("/course-structure/step1")}
+              onClick={() => navigateWithReturn(`/teacher/course-structure/edit/${course?.id}`)}
             >
               <div className="flex items-start gap-3">
                 <Layout className="w-5 h-5 text-indigo-600 mt-0.5" />
