@@ -50,6 +50,9 @@ export const CourseWizardDashboard: React.FC = () => {
     filters: identity?.vendor_id
       ? [{ field: "vendor_id", operator: "eq", value: identity.vendor_id }]
       : [],
+    meta: {
+      select: "*, topics(count)",
+    },
   });
 
   const courses = coursesData?.data || [];
@@ -148,7 +151,7 @@ export const CourseWizardDashboard: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {courses.map((course) => (
+                {courses.map((course: any) => (
                   <div
                     key={course.id}
                     className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer flex justify-between items-center"
@@ -161,7 +164,7 @@ export const CourseWizardDashboard: React.FC = () => {
                       <div>
                         <h4 className="font-medium">{course.title}</h4>
                         <p className="text-sm text-gray-600">
-                          {course.topics_count || 0} tematów
+                          {course.topics?.[0]?.count || 0} tematów
                         </p>
                       </div>
                     </div>
