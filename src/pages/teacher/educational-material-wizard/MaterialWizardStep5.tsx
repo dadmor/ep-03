@@ -1,9 +1,8 @@
-
 import React, { useState} from "react";
 import { useNavigate } from "react-router-dom";
 import { useFormSchemaStore } from "@/utility/llmFormWizard";
 import { useCreate, useList } from "@refinedev/core";
-import { Save, ArrowLeft, FileText } from "lucide-react";
+import { Save, ArrowLeft, FileText, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +18,7 @@ import {
 import StepsHero from "./StepsHero";
 import StepsHeader from "./StepsHeader";
 import { SubPage } from "@/components/layout";
+import { toast } from "sonner";
 
 export const MaterialWizardStep5: React.FC = () => {
   const navigate = useNavigate();
@@ -39,7 +39,6 @@ export const MaterialWizardStep5: React.FC = () => {
 
   const { steps, errors: errorTexts } = MATERIAL_UI_TEXTS;
 
-  // Pobierz ostatnią pozycję dla wybranego tematu
   const { data: activitiesData } = useList({
     resource: "activities",
     filters: [
@@ -88,6 +87,7 @@ export const MaterialWizardStep5: React.FC = () => {
     if (!validateForm()) return;
 
     setSaving(true);
+    setSaved(false);
 
     try {
       createActivity(
@@ -105,7 +105,6 @@ export const MaterialWizardStep5: React.FC = () => {
         },
         {
           onSuccess: (data) => {
-            // Zapisz w lokalnym store
             setData("educational-material-wizard", {
               ...formData,
               activityTitle: activityTitle.trim(),
@@ -117,10 +116,8 @@ export const MaterialWizardStep5: React.FC = () => {
             setSaving(false);
             setSaved(true);
 
-            // Sprawdź czy mamy URL powrotu
             const returnUrl = sessionStorage.getItem('returnUrl');
             
-            // Przekieruj po timeout
             setTimeout(() => {
               sessionStorage.removeItem('wizardContext');
               if (returnUrl) {
@@ -131,30 +128,37 @@ export const MaterialWizardStep5: React.FC = () => {
               }
             }, 2000);
           },
-          onError: (error) => {
+          onError: (error: any) => {
             setSaving(false);
             console.error(errorTexts.saveError, error);
-            alert(errorTexts.saveError);
+            
+            if (error?.code === '42501') {
+              toast.error("Brak uprawnień do tworzenia materiałów. Sprawdź swoje uprawnienia.");
+            } else if (error?.code === '23505') {
+              toast.error("Materiał o takiej nazwie już istnieje.");
+            } else {
+              toast.error(errorTexts.saveError);
+            }
           },
         }
       );
     } catch (error) {
       setSaving(false);
       console.error(errorTexts.unexpectedError, error);
-      alert(errorTexts.unexpectedError);
+      toast.error(errorTexts.unexpectedError);
     }
   };
 
   return (
     <SubPage>
-      <div className="border rounded-lg bg-white shadow relative">
+      <Card className="border-2 shadow-lg">
         <StepsHero step={5} />
 
-        <div className="p-8">
+        <CardContent className="p-8">
           <StepsHeader
             title={
               <>
-                <FileText className="w-8 h-8 text-purple-500" />
+                <FileText className="w-8 h-8 text-purple-600" />
                 <span>{steps[5].title}</span>
               </>
             }
@@ -163,6 +167,7 @@ export const MaterialWizardStep5: React.FC = () => {
 
           {saved && (
             <Alert className="mb-6 bg-green-50 border-green-200">
+              <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
                 {steps[5].success}
               </AlertDescription>
@@ -177,18 +182,28 @@ export const MaterialWizardStep5: React.FC = () => {
             }}
           >
             {/* Informacja o miejscu docelowym */}
-            <Card className="bg-muted/50">
-              <CardContent className="pt-6">
-                <div className="text-sm space-y-1">
-                  <p><strong>Kurs:</strong> {formData.courseTitle}</p>
-                  <p><strong>Temat:</strong> {formData.topicTitle}</p>
-                  <p><strong>Pozycja:</strong> {nextPosition}</p>
-                </div>
+            <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
+              <CardContent className="p-4">
+                <h4 className="font-medium mb-3">Miejsce docelowe materiału:</h4>
+                <ul className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
+                    <span><strong>Kurs:</strong> {formData.courseTitle}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
+                    <span><strong>Temat:</strong> {formData.topicTitle}</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
+                    <span><strong>Pozycja:</strong> {nextPosition}</span>
+                  </li>
+                </ul>
               </CardContent>
             </Card>
 
             {/* Tytuł aktywności */}
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="activityTitle">
                 Tytuł aktywności <span className="text-red-500">*</span>
               </Label>
@@ -199,15 +214,15 @@ export const MaterialWizardStep5: React.FC = () => {
                 onChange={(e) => setActivityTitle(e.target.value)}
                 placeholder="np. Wprowadzenie do zmiennych"
                 maxLength={MATERIAL_VALIDATION.activityTitle.maxLength}
-                className={errors.activityTitle ? "border-red-300" : ""}
+                className={errors.activityTitle ? "border-red-500" : ""}
               />
               {errors.activityTitle && (
-                <p className="text-sm text-red-600 mt-1">{errors.activityTitle}</p>
+                <p className="text-sm text-red-600">{errors.activityTitle}</p>
               )}
             </div>
 
             {/* Czas trwania */}
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="duration">
                 Czas trwania (min) <span className="text-red-500">*</span>
               </Label>
@@ -218,15 +233,16 @@ export const MaterialWizardStep5: React.FC = () => {
                 onChange={(e) => setDuration(parseInt(e.target.value) || 0)}
                 min={MATERIAL_VALIDATION.duration.min}
                 max={MATERIAL_VALIDATION.duration.max}
-                className={errors.duration ? "border-red-300" : ""}
+                className={`w-24 ${errors.duration ? "border-red-500" : ""}`}
               />
               {errors.duration && (
-                <p className="text-sm text-red-600 mt-1">{errors.duration}</p>
+                <p className="text-sm text-red-600">{errors.duration}</p>
               )}
+              <p className="text-sm text-gray-500">Określ przewidywany czas realizacji materiału</p>
             </div>
 
             {/* Treść materiału */}
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="content">
                 Treść materiału <span className="text-red-500">*</span>
               </Label>
@@ -236,20 +252,22 @@ export const MaterialWizardStep5: React.FC = () => {
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Treść materiału w formacie Markdown..."
                 rows={15}
-                className={`font-mono text-sm ${errors.content ? "border-red-300" : ""}`}
+                className={`font-mono text-sm ${errors.content ? "border-red-500" : ""}`}
               />
               {errors.content && (
-                <p className="text-sm text-red-600 mt-1">{errors.content}</p>
+                <p className="text-sm text-red-600">{errors.content}</p>
               )}
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-500">
                 {content.length} znaków (minimum {MATERIAL_VALIDATION.content.minLength})
               </p>
             </div>
 
             {/* Informacja o zapisie */}
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-              <p className="text-purple-800 text-sm">{steps[5].saveInfo}</p>
-            </div>
+            <Alert className="bg-purple-50 border-purple-200">
+              <AlertDescription className="text-purple-800">
+                {steps[5].saveInfo}
+              </AlertDescription>
+            </Alert>
 
             <Separator />
 
@@ -269,7 +287,7 @@ export const MaterialWizardStep5: React.FC = () => {
               <Button
                 type="submit"
                 disabled={saving || saved}
-                className="flex items-center gap-2 min-w-[160px]"
+                className="flex items-center gap-2 min-w-[160px] bg-purple-600 hover:bg-purple-700"
               >
                 {saving ? (
                   <>
@@ -285,8 +303,8 @@ export const MaterialWizardStep5: React.FC = () => {
               </Button>
             </footer>
           </form>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </SubPage>
   );
 };
