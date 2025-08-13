@@ -23,11 +23,13 @@ import { courseStructureRoutes } from "./course-structure-wizard";
 import { educationalMaterialRoutes } from "./educational-material-wizard";
 import { quizWizardRoutes } from "./quiz-wizard";
 import { questionsRoutes } from "./questions";
+import { aiToolsRoutes } from "./ai-tools";
 
 const allTeacherRoutes = [
   ...dashboardRoutes,
   ...coursesRoutes,
   ...topicsRoutes,
+  ...aiToolsRoutes,
   ...activitiesRoutes,
   ...questionsRoutes,
   ...courseStructureRoutes,

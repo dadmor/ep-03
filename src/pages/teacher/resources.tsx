@@ -24,6 +24,7 @@ import {
 } from "./reports";
 import { courseStructureResource } from "./course-structure-wizard";
 import { quizWizardResource } from "./quiz-wizard";
+import { educationalMaterialResource } from "./educational-material-wizard";
 
 // Parent resource dla zasobów edukacyjnych
 const educationalResourcesParent: IResourceItem = {
@@ -38,7 +39,7 @@ const educationalResourcesParent: IResourceItem = {
 // Parent resource dla narzędzi AI
 const aiToolsParent: IResourceItem = {
   name: "ai-tools",
-  list: "/teacher/course-structure", // domyślnie przekieruje na pierwszy wizard
+  list: "/teacher/ai-tools", // domyślnie przekieruje na pierwszy wizard
   meta: {
     label: "Narzędzia AI",
     icon: <Sparkles className="h-4 w-4" />
@@ -88,6 +89,14 @@ export const teacherResources: IResourceItem[] = [
     list: "/teacher/course-structure",
     meta: {
       ...courseStructureResource.meta,
+      parent: "ai-tools",
+    },
+  },
+  {
+    ...educationalMaterialResource,
+    list: "/teacher/educational-material",
+    meta: {
+      ...educationalMaterialResource.meta,
       parent: "ai-tools",
     },
   },
