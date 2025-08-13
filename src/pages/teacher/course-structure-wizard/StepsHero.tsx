@@ -1,8 +1,8 @@
-// ===== STEPS HERO =====
-// src/pages/course-structure-wizard/StepsHero.tsx
-import { Button, Separator } from "@/components/ui";
+// src/pages/teacher/course-structure-wizard/StepsHero.tsx
+import { Button } from "@/components/ui";
 import { X } from "lucide-react";
 import { useNavigate } from "react-router";
+import { Progress } from "@/components/ui/progress";
 
 interface StepsHeroProps {
   step: number;
@@ -10,6 +10,8 @@ interface StepsHeroProps {
 
 export const StepsHero = ({ step }: StepsHeroProps) => {
   const navigate = useNavigate();
+  const progress = (step / 5) * 100;
+  
   return (
     <>
       <Button
@@ -20,20 +22,25 @@ export const StepsHero = ({ step }: StepsHeroProps) => {
       >
         <X className="h-5 w-5" />
       </Button>
-      <div className="p-8 space-y-12 text-zinc-800">
-        <h1 className="text-6xl font-black">COURSEFORGE</h1>
-        <h2 className="text-4xl">
-          Zaprojektujmy <br /> 
-          <span className="font-bold">strukturę kursu</span>
-        </h2>
-        <p>Krok {step} z 5</p>
+      
+      <div className="bg-gradient-to-r from-purple-600 to-violet-600 text-white p-8 space-y-8">
+        <div className="space-y-4">
+          <h1 className="text-4xl font-black tracking-tight">GENERATOR KURSU</h1>
+          <h2 className="text-2xl font-light">
+            Zaprojektujmy <span className="font-bold">strukturę kursu</span>
+          </h2>
+        </div>
+        
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>Krok {step} z 5</span>
+            <span>{progress}%</span>
+          </div>
+          <Progress value={progress} className="h-2 bg-purple-300" />
+        </div>
       </div>
-      <Separator className="my-8" />
     </>
   );
 };
 
 export default StepsHero;
-
-
-

@@ -442,4 +442,4 @@ export const QUIZ_PATHS = {
   step4: "/teacher/quiz-wizard/step4",
   step5: "/teacher/quiz-wizard/step5",
   questions: "/teacher/questions/manage",
-};
+};  

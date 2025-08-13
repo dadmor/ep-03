@@ -1,4 +1,4 @@
-// src/pages/course-structure-wizard/CourseWizardStep3.tsx
+// src/pages/teacher/course-structure-wizard/CourseWizardStep3.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,9 @@ import {
 import { useFormSchemaStore, useLLMOperation } from "@/utility/llmFormWizard";
 import StepsHero from "./StepsHero";
 import StepsHeader from "./StepsHeader";
+import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Sparkles, Info } from "lucide-react";
 import {
   STRUCTURE_GENERATION_OPERATION,
   COURSE_UI_TEXTS,
@@ -49,7 +52,6 @@ export const CourseWizardStep3: React.FC = () => {
   useEffect(() => {
     llmGeneration.registerOperation(STRUCTURE_GENERATION_OPERATION);
 
-    // Ustaw domyślne wartości na podstawie typu kursu
     if (formData.courseType && formData.courseType in COURSE_TYPE_CONFIG) {
       const courseType = formData.courseType as CourseType;
       const config = COURSE_TYPE_CONFIG[courseType];
@@ -114,16 +116,16 @@ export const CourseWizardStep3: React.FC = () => {
 
   return (
     <SubPage>
-      <div className="border rounded-lg bg-white shadow relative pb-6">
+      <Card className="border-2 shadow-lg">
         <StepsHero step={3} />
-        <div className="space-y-6 p-8">
+        <CardContent className="p-8">
           <StepsHeader
             title={steps[3].title}
             description={steps[3].description}
           />
 
           <div className="space-y-6">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="courseTitle">
                 Tytuł kursu <span className="text-red-500">*</span>
               </Label>
@@ -132,16 +134,14 @@ export const CourseWizardStep3: React.FC = () => {
                 value={courseTitle}
                 onChange={(e) => setCourseTitle(e.target.value)}
                 placeholder="np. Matematyka - Przygotowanie do matury"
-                className={`mt-1 ${errors.courseTitle ? "border-red-300" : ""}`}
+                className={errors.courseTitle ? "border-red-500" : ""}
               />
               {errors.courseTitle && (
-                <p className="text-sm text-red-600 mt-1">
-                  {errors.courseTitle}
-                </p>
+                <p className="text-sm text-red-600">{errors.courseTitle}</p>
               )}
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="description">
                 Opis kursu <span className="text-red-500">*</span>
               </Label>
@@ -151,136 +151,118 @@ export const CourseWizardStep3: React.FC = () => {
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Szczegółowy opis kursu..."
                 rows={4}
-                className={`mt-1 ${errors.description ? "border-red-300" : ""}`}
+                className={errors.description ? "border-red-500" : ""}
               />
               {errors.description && (
-                <p className="text-sm text-red-600 mt-1">
-                  {errors.description}
-                </p>
+                <p className="text-sm text-red-600">{errors.description}</p>
               )}
-              <p className="text-sm text-gray-500 mt-1">
-                {description.length} / {COURSE_VALIDATION.description.minLength}{" "}
-                znaków minimum
+              <p className="text-sm text-gray-500">
+                {description.length} / {COURSE_VALIDATION.description.minLength} znaków minimum
               </p>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="topicsPerWeek">
-                Liczba tematów na tydzień{" "}
-                <span className="text-red-500">*</span>
+                Liczba tematów na tydzień <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="topicsPerWeek"
                 type="number"
                 value={topicsPerWeek}
-                onChange={(e) =>
-                  setTopicsPerWeek(parseInt(e.target.value) || 0)
-                }
+                onChange={(e) => setTopicsPerWeek(parseInt(e.target.value) || 0)}
                 min={COURSE_VALIDATION.topicsPerWeek.min}
                 max={COURSE_VALIDATION.topicsPerWeek.max}
-                className={`mt-1 ${
-                  errors.topicsPerWeek ? "border-red-300" : ""
-                }`}
+                className={errors.topicsPerWeek ? "border-red-500" : ""}
               />
               {errors.topicsPerWeek && (
-                <p className="text-sm text-red-600 mt-1">
-                  {errors.topicsPerWeek}
-                </p>
+                <p className="text-sm text-red-600">{errors.topicsPerWeek}</p>
               )}
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-500">
                 Określa tempo realizacji kursu
               </p>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="includeExercises"
-                  checked={includeExercises}
-                  onCheckedChange={(checked) =>
-                    setIncludeExercises(checked as boolean)
-                  }
-                />
-                <label
-                  htmlFor="includeExercises"
-                  className="text-sm cursor-pointer"
-                >
-                  Dodaj ćwiczenia do każdego tematu
-                </label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="includeQuizzes"
-                  checked={includeQuizzes}
-                  onCheckedChange={(checked) =>
-                    setIncludeQuizzes(checked as boolean)
-                  }
-                />
-                <label
-                  htmlFor="includeQuizzes"
-                  className="text-sm cursor-pointer"
-                >
-                  Dodaj quizy sprawdzające
-                </label>
-              </div>
-
-              {includeQuizzes && (
-                <div className="ml-6">
-                  <Label htmlFor="quizFrequency">Częstotliwość quizów</Label>
-                  <Select
-                    value={quizFrequency}
-                    onValueChange={setQuizFrequency}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="after_each">
-                        Po każdym temacie
-                      </SelectItem>
-                      <SelectItem value="weekly">Co tydzień</SelectItem>
-                      <SelectItem value="biweekly">Co dwa tygodnie</SelectItem>
-                      <SelectItem value="monthly">Co miesiąc</SelectItem>
-                      <SelectItem value="chapter_end">
-                        Na koniec działu
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+            <Card className="bg-purple-50 border-purple-200">
+              <CardContent className="p-4 space-y-4">
+                <h4 className="font-medium text-gray-900">Opcje dodatkowe</h4>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="includeExercises"
+                    checked={includeExercises}
+                    onCheckedChange={(checked) => setIncludeExercises(checked as boolean)}
+                  />
+                  <label htmlFor="includeExercises" className="text-sm cursor-pointer">
+                    Dodaj ćwiczenia do każdego tematu
+                  </label>
                 </div>
-              )}
-            </div>
 
-            <div className="flex justify-between">
-              <Button
-                variant="outline"
-                onClick={() => navigate(COURSE_PATHS.step2)}
-              >
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="includeQuizzes"
+                    checked={includeQuizzes}
+                    onCheckedChange={(checked) => setIncludeQuizzes(checked as boolean)}
+                  />
+                  <label htmlFor="includeQuizzes" className="text-sm cursor-pointer">
+                    Dodaj quizy sprawdzające
+                  </label>
+                </div>
+
+                {includeQuizzes && (
+                  <div className="ml-6 space-y-2">
+                    <Label htmlFor="quizFrequency">Częstotliwość quizów</Label>
+                    <Select value={quizFrequency} onValueChange={setQuizFrequency}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="after_each">Po każdym temacie</SelectItem>
+                        <SelectItem value="weekly">Co tydzień</SelectItem>
+                        <SelectItem value="biweekly">Co dwa tygodnie</SelectItem>
+                        <SelectItem value="monthly">Co miesiąc</SelectItem>
+                        <SelectItem value="chapter_end">Na koniec działu</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {llmGeneration.loading && (
+              <Alert className="bg-purple-50 border-purple-200">
+                <Info className="h-4 w-4 text-purple-600" />
+                <AlertDescription className="text-purple-800">
+                  {steps[3].loadingInfo}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex justify-between pt-6">
+              <Button variant="outline" onClick={() => navigate(COURSE_PATHS.step2)}>
                 Wstecz
               </Button>
 
-              <Button onClick={handleNext} disabled={llmGeneration.loading}>
+              <Button 
+                onClick={handleNext} 
+                disabled={llmGeneration.loading}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
                 {llmGeneration.loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     {steps[3].loading}
                   </>
                 ) : (
-                  steps[3].button
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    {steps[3].button}
+                  </>
                 )}
               </Button>
             </div>
           </div>
-
-          {llmGeneration.loading && (
-            <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-              <span className="text-indigo-800 text-sm">
-                {steps[3].loadingInfo}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </SubPage>
   );
 };

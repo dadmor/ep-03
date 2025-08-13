@@ -1,9 +1,9 @@
-// src/pages/course-structure-wizard/CourseWizardStep5.tsx
+// src/pages/teacher/course-structure-wizard/CourseWizardStep5.tsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFormSchemaStore } from "@/utility/llmFormWizard";
 import { useCreate, useGetIdentity } from "@refinedev/core";
-import { Save, ArrowLeft, Layout } from "lucide-react";
+import { Save, ArrowLeft, Layout, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import StepsHero from "./StepsHero";
 import StepsHeader from "./StepsHeader";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   COURSE_UI_TEXTS,
   COURSE_PATHS,
@@ -41,7 +42,6 @@ export const CourseWizardStep5: React.FC = () => {
       return;
     }
 
-    // Sprawdź czy mamy vendor_id
     if (!identity?.vendor_id) {
       toast.error("Brak informacji o vendor_id. Skontaktuj się z administratorem.");
       return;
@@ -51,12 +51,11 @@ export const CourseWizardStep5: React.FC = () => {
     setSaved(false);
 
     try {
-      // 1. Utwórz kurs z vendor_id
       createCourse(
         {
           resource: "courses",
           values: {
-            vendor_id: identity.vendor_id, // Użyj vendor_id z kontekstu użytkownika
+            vendor_id: identity.vendor_id,
             title: courseName.trim(),
             description: formData.description,
             icon_emoji: iconEmoji,
@@ -68,7 +67,6 @@ export const CourseWizardStep5: React.FC = () => {
             const courseId = courseData.data.id;
             let topicPosition = 1;
 
-            // 2. Utwórz tematy dla każdego tygodnia
             try {
               for (const week of formData.structure) {
                 for (const topic of week.topics) {
@@ -92,7 +90,6 @@ export const CourseWizardStep5: React.FC = () => {
                 }
               }
 
-              // 3. Zapisz w lokalnym store
               setData("course-structure-wizard", {
                 ...formData,
                 courseName: courseName.trim(),
@@ -103,7 +100,6 @@ export const CourseWizardStep5: React.FC = () => {
               setSaving(false);
               setSaved(true);
 
-              // Przekieruj do kursu
               setTimeout(() => {
                 navigate(`${COURSE_PATHS.courses}/show/${courseId}`);
               }, 2000);
@@ -117,7 +113,6 @@ export const CourseWizardStep5: React.FC = () => {
             setSaving(false);
             console.error(errorTexts.saveError, error);
             
-            // Szczegółowa obsługa błędów
             if (error?.code === '42501') {
               toast.error("Brak uprawnień do tworzenia kursów. Sprawdź swoje uprawnienia.");
             } else if (error?.code === '23505') {
@@ -135,7 +130,6 @@ export const CourseWizardStep5: React.FC = () => {
     }
   };
 
-  // Wybór emoji dla różnych typów kursów
   const getDefaultEmoji = () => {
     switch (formData.courseType) {
       case 'matura': return '🎓';
@@ -147,21 +141,20 @@ export const CourseWizardStep5: React.FC = () => {
     }
   };
 
-  // Ustaw domyślne emoji przy pierwszym renderowaniu
   React.useEffect(() => {
     setIconEmoji(getDefaultEmoji());
   }, [formData.courseType]);
 
   return (
     <SubPage>
-      <div className="border rounded-lg bg-white shadow relative">
+      <Card className="border-2 shadow-lg">
         <StepsHero step={5} />
 
-        <div className="p-8">
+        <CardContent className="p-8">
           <StepsHeader
             title={
               <>
-                <Layout className="w-8 h-8 text-indigo-500" />
+                <Layout className="w-8 h-8 text-purple-600" />
                 <span>{steps[5].title}</span>
               </>
             }
@@ -170,6 +163,7 @@ export const CourseWizardStep5: React.FC = () => {
 
           {saved && (
             <Alert className="mb-6 bg-green-50 border-green-200">
+              <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
                 {steps[5].success}
               </AlertDescription>
@@ -183,7 +177,7 @@ export const CourseWizardStep5: React.FC = () => {
               handleSave();
             }}
           >
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="courseName">
                 Nazwa kursu <span className="text-red-500">*</span>
               </Label>
@@ -193,13 +187,12 @@ export const CourseWizardStep5: React.FC = () => {
                 value={courseName}
                 onChange={(e) => setCourseName(e.target.value)}
                 placeholder="np. Matematyka - Kurs maturalny poziom rozszerzony"
-                className="mt-1"
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="iconEmoji">Emoji ikona</Label>
-              <div className="flex gap-2 mt-1">
+              <div className="flex gap-2">
                 <Input
                   id="iconEmoji"
                   type="text"
@@ -217,14 +210,14 @@ export const CourseWizardStep5: React.FC = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => setIconEmoji(emoji)}
-                      className="w-10 h-10"
+                      className="w-10 h-10 hover:bg-purple-50"
                     >
                       {emoji}
                     </Button>
                   ))}
                 </div>
               </div>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-500">
                 Wybierz emoji z listy lub wpisz własne
               </p>
             </div>
@@ -241,28 +234,32 @@ export const CourseWizardStep5: React.FC = () => {
             </div>
 
             {/* Podsumowanie */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-medium mb-3">Co zostanie utworzone:</h4>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600">✓</span>
-                  <span>Kurs "{courseName || formData.courseTitle}" z pełnym opisem</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600">✓</span>
-                  <span>{formData.summary?.totalTopics || 0} tematów rozłożonych na {formData.summary?.totalWeeks || 0} tygodni</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-green-600">✓</span>
-                  <span>Struktura gotowa do wypełnienia materiałami i quizami</span>
-                </li>
-              </ul>
-            </div>
+            <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
+              <CardContent className="p-4">
+                <h4 className="font-medium mb-3">Co zostanie utworzone:</h4>
+                <ul className="space-y-2 text-sm text-gray-700">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
+                    <span>Kurs "{courseName || formData.courseTitle}" z pełnym opisem</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
+                    <span>{formData.summary?.totalTopics || 0} tematów rozłożonych na {formData.summary?.totalWeeks || 0} tygodni</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
+                    <span>Struktura gotowa do wypełnienia materiałami i quizami</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
 
             {/* Informacja o zapisie */}
-            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
-              <p className="text-indigo-800 text-sm">{steps[5].saveInfo}</p>
-            </div>
+            <Alert className="bg-purple-50 border-purple-200">
+              <AlertDescription className="text-purple-800">
+                {steps[5].saveInfo}
+              </AlertDescription>
+            </Alert>
 
             <Separator />
 
@@ -282,7 +279,7 @@ export const CourseWizardStep5: React.FC = () => {
               <Button
                 type="submit"
                 disabled={saving || saved}
-                className="flex items-center gap-2 min-w-[160px]"
+                className="flex items-center gap-2 min-w-[160px] bg-purple-600 hover:bg-purple-700"
               >
                 {saving ? (
                   <>
@@ -298,8 +295,8 @@ export const CourseWizardStep5: React.FC = () => {
               </Button>
             </footer>
           </form>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </SubPage>
   );
 };

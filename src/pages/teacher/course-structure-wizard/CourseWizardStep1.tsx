@@ -1,4 +1,4 @@
-// src/pages/course-structure-wizard/CourseWizardStep1.tsx
+// src/pages/teacher/course-structure-wizard/CourseWizardStep1.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFormSchemaStore, useLLMOperation } from "@/utility/llmFormWizard";
@@ -13,6 +13,10 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
+import { Sparkles, AlertCircle } from "lucide-react";
 import {
   COURSE_STRUCTURE_SCHEMA,
   COURSE_ANALYSIS_OPERATION,
@@ -84,32 +88,33 @@ export const CourseWizardStep1: React.FC = () => {
 
   return (
     <SubPage>
-      <div className="border rounded-lg bg-white shadow relative pb-6">
+      <Card className="border-2 shadow-lg">
         <StepsHero step={1} />
 
-        <div className="p-6">
+        <CardContent className="p-8">
           <StepsHeader
             title={steps[1].title}
             description={steps[1].description}
           />
 
           {llmAnalysis.error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <span className="text-red-800 text-sm">
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
                 {errorTexts.analysisError} {llmAnalysis.error}
-              </span>
-            </div>
+              </AlertDescription>
+            </Alert>
           )}
 
-          <div className="space-y-4">
-            <div>
+          <div className="space-y-6">
+            <div className="space-y-2">
               <Label htmlFor="courseType">Typ kursu</Label>
               <Select
                 value={courseType}
                 onValueChange={setCourseType}
                 disabled={llmAnalysis.loading}
               >
-                <SelectTrigger className={errors.courseType ? "border-red-300" : ""}>
+                <SelectTrigger className={errors.courseType ? "border-red-500" : ""}>
                   <SelectValue placeholder="Wybierz typ kursu..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -121,11 +126,11 @@ export const CourseWizardStep1: React.FC = () => {
                 </SelectContent>
               </Select>
               {errors.courseType && (
-                <p className="text-sm text-red-600 mt-1">{errors.courseType}</p>
+                <p className="text-sm text-red-600">{errors.courseType}</p>
               )}
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="subject">Przedmiot/Dziedzina</Label>
               <Input
                 id="subject"
@@ -134,21 +139,21 @@ export const CourseWizardStep1: React.FC = () => {
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="np. Matematyka, Programowanie Python, Język angielski"
                 disabled={llmAnalysis.loading}
-                className={errors.subject ? "border-red-300" : ""}
+                className={errors.subject ? "border-red-500" : ""}
               />
               {errors.subject && (
-                <p className="text-sm text-red-600 mt-1">{errors.subject}</p>
+                <p className="text-sm text-red-600">{errors.subject}</p>
               )}
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="level">Poziom kursu</Label>
               <Select
                 value={level}
                 onValueChange={setLevel}
                 disabled={llmAnalysis.loading}
               >
-                <SelectTrigger className={errors.level ? "border-red-300" : ""}>
+                <SelectTrigger className={errors.level ? "border-red-500" : ""}>
                   <SelectValue placeholder="Wybierz poziom..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -167,18 +172,18 @@ export const CourseWizardStep1: React.FC = () => {
                 </SelectContent>
               </Select>
               {errors.level && (
-                <p className="text-sm text-red-600 mt-1">{errors.level}</p>
+                <p className="text-sm text-red-600">{errors.level}</p>
               )}
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="duration">Planowany czas trwania</Label>
               <Select
                 value={duration}
                 onValueChange={setDuration}
                 disabled={llmAnalysis.loading}
               >
-                <SelectTrigger className={errors.duration ? "border-red-300" : ""}>
+                <SelectTrigger className={errors.duration ? "border-red-500" : ""}>
                   <SelectValue placeholder="Wybierz czas trwania..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -190,27 +195,31 @@ export const CourseWizardStep1: React.FC = () => {
                 </SelectContent>
               </Select>
               {errors.duration && (
-                <p className="text-sm text-red-600 mt-1">{errors.duration}</p>
+                <p className="text-sm text-red-600">{errors.duration}</p>
               )}
             </div>
 
-            <button
+            <Button
               onClick={handleAnalyze}
               disabled={llmAnalysis.loading}
-              className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white font-medium rounded-lg flex items-center justify-center gap-2"
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+              size="lg"
             >
               {llmAnalysis.loading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                   {steps[1].loading}
                 </>
               ) : (
-                steps[1].button
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {steps[1].button}
+                </>
               )}
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </SubPage>
   );
 };
