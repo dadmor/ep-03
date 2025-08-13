@@ -16,7 +16,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, AlertCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Sparkles, AlertCircle, Info } from "lucide-react";
 import {
   COURSE_STRUCTURE_SCHEMA,
   COURSE_ANALYSIS_OPERATION,
@@ -33,6 +34,7 @@ export const CourseWizardStep1: React.FC = () => {
   const [subject, setSubject] = useState("");
   const [level, setLevel] = useState("");
   const [duration, setDuration] = useState("");
+  const [curriculum, setCurriculum] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const llmAnalysis = useLLMOperation("course-structure-wizard", "analyze-course-requirements");
@@ -76,6 +78,7 @@ export const CourseWizardStep1: React.FC = () => {
         subject: subject.trim(),
         level,
         duration,
+        curriculum: curriculum.trim(),
       };
       
       setData("course-structure-wizard", formData);
@@ -85,6 +88,9 @@ export const CourseWizardStep1: React.FC = () => {
       console.error(errorTexts.analysisError, error);
     }
   };
+
+  // Pokaż pole podstawy programowej tylko dla kursów maturalnych i akademickich
+  const showCurriculum = courseType === 'matura' || courseType === 'academic';
 
   return (
     <SubPage>
@@ -198,6 +204,36 @@ export const CourseWizardStep1: React.FC = () => {
                 <p className="text-sm text-red-600">{errors.duration}</p>
               )}
             </div>
+
+            {showCurriculum && (
+              <div className="space-y-2">
+                <Label htmlFor="curriculum">
+                  Podstawa programowa 
+                  <span className="text-gray-500 text-sm ml-2">(opcjonalnie)</span>
+                </Label>
+                <Textarea
+                  id="curriculum"
+                  value={curriculum}
+                  onChange={(e) => setCurriculum(e.target.value)}
+                  placeholder={courseType === 'matura' 
+                    ? "Wklej fragmenty podstawy programowej MEN, które chcesz uwzględnić w kursie..."
+                    : "Wklej sylabus lub program nauczania..."
+                  }
+                  disabled={llmAnalysis.loading}
+                  rows={4}
+                  className="font-mono text-sm"
+                />
+                <Alert className="bg-blue-50 border-blue-200">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-blue-800 text-sm">
+                    {courseType === 'matura' 
+                      ? "Dodanie podstawy programowej pomoże AI stworzyć kurs zgodny z wymaganiami egzaminacyjnymi."
+                      : "Dodanie sylabusa pomoże AI lepiej dopasować tematy do wymagań uczelni."
+                    }
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
 
             <Button
               onClick={handleAnalyze}

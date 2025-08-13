@@ -1,10 +1,11 @@
 // src/pages/teacher/course-structure-wizard/CourseWizardDashboard.tsx
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lead } from "@/components/reader";
 import { Button } from "@/components/ui/button";
 import { useFormSchemaStore } from "@/utility/llmFormWizard";
 import { FlexBox, GridBox } from "@/components/shared";
+import { useGetIdentity, useList } from "@refinedev/core";
 import { 
   Layout, 
   Check, 
@@ -18,7 +19,8 @@ import {
   Clock,
   Target,
   Users,
-  ArrowRight
+  ArrowRight,
+  Plus
 } from "lucide-react";
 import { COURSE_UI_TEXTS, COURSE_PATHS } from "./courseStructureWizard.constants";
 import { SubPage } from "@/components/layout";
@@ -27,9 +29,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 export const CourseWizardDashboard: React.FC = () => {
   const navigate = useNavigate();
   const { getData } = useFormSchemaStore();
+  const { data: identity } = useGetIdentity<any>();
+  const [showCourses, setShowCourses] = useState(false);
+  
   const courseData = getData("course-structure-wizard");
   const { dashboard } = COURSE_UI_TEXTS;
 
+  const { data: coursesData } = useList({
+    resource: "courses",
+    pagination: { mode: "off" },
+    filters: identity?.vendor_id ? [
+      { field: "vendor_id", operator: "eq", value: identity.vendor_id }
+    ] : []
+  });
+
+  const courses = coursesData?.data || [];
   const hasSavedCourse = courseData && courseData.courseTitle;
 
   return (
@@ -40,53 +54,106 @@ export const CourseWizardDashboard: React.FC = () => {
       />
 
       <div className="space-y-6">
-        {/* Hero Section - Kreator nowego kursu */}
-        <div className="bg-gradient-to-r from-violet-50 to-purple-50 p-6 rounded-lg border-2 border-purple-200">
-          <div className="flex items-start gap-4">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <Layout className="w-8 h-8 text-purple-600" />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">{dashboard.wizardTitle}</h2>
-              <p className="text-gray-600 mb-4">{dashboard.wizardDescription}</p>
-              
-              <div className="flex flex-wrap gap-4 text-sm mb-6">
+        {/* Główne akcje */}
+        <div className="grid md:grid-cols-2 gap-4 mb-6">
+          {/* Nowy kurs */}
+          <Card 
+            className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-purple-400"
+            onClick={() => navigate(COURSE_PATHS.step1)}
+          >
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="p-3 bg-purple-100 rounded-lg">
+                  <Rocket className="w-8 h-8 text-purple-600" />
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400" />
+              </div>
+              <CardTitle>Stwórz nowy kurs</CardTitle>
+              <CardDescription>
+                Wygeneruj kompletną strukturę kursu od podstaw
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-purple-600" />
                   <span>15-20 minut</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Target className="w-4 h-4 text-purple-600" />
-                  <span>Struktura gotowa do wypełnienia</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-purple-600" />
-                  <span>Dla wszystkich poziomów</span>
+                  <BookOpen className="w-4 h-4 text-purple-600" />
+                  <span>Pełna struktura</span>
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
-              <GridBox variant="1-2-2" className="gap-3 mb-6">
-                {dashboard.features.map((feature, index) => (
-                  <FlexBox key={index} variant="start" className="text-sm text-gray-700">
-                    <span className="text-green-500 mt-0.5">•</span>
-                    <span>{feature}</span>
-                  </FlexBox>
-                ))}
-              </GridBox>
-
-              <Button 
-                onClick={() => navigate(COURSE_PATHS.step1)}
-                size="lg"
-                className="bg-purple-600 hover:bg-purple-700 text-white"
-              >
-                <Rocket className="w-4 h-4 mr-2" />
-                Stwórz strukturę kursu
-              </Button>
-            </div>
-          </div>
+          {/* Edytuj istniejący */}
+          <Card 
+            className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-blue-400"
+            onClick={() => setShowCourses(!showCourses)}
+          >
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="p-3 bg-blue-100 rounded-lg">
+                  <Edit3 className="w-8 h-8 text-blue-600" />
+                </div>
+                <ArrowRight className="w-5 h-5 text-gray-400" />
+              </div>
+              <CardTitle>Rozwiń istniejący kurs</CardTitle>
+              <CardDescription>
+                Dodaj nowe tematy do istniejącego kursu z pomocą AI
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <Plus className="w-4 h-4 text-blue-600" />
+                  <span>Dodaj tematy</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-blue-600" />
+                  <span>Rozszerz program</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Ostatni kurs */}
+        {/* Lista kursów do edycji */}
+        {showCourses && courses.length > 0 && (
+          <Card className="border-2 border-blue-200">
+            <CardHeader>
+              <CardTitle>Wybierz kurs do rozszerzenia</CardTitle>
+              <CardDescription>
+                Kliknij na kurs, aby dodać nowe tematy z pomocą AI
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {courses.map((course) => (
+                  <div
+                    key={course.id}
+                    className="p-4 border rounded-lg hover:bg-gray-50 cursor-pointer flex justify-between items-center"
+                    onClick={() => navigate(`/teacher/course-structure/edit/${course.id}`)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{course.icon_emoji}</span>
+                      <div>
+                        <h4 className="font-medium">{course.title}</h4>
+                        <p className="text-sm text-gray-600">
+                          {course.topics_count || 0} tematów
+                        </p>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-gray-400" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Ostatni kurs - oryginalna sekcja */}
         {hasSavedCourse && (
           <Card className="hover:shadow-lg transition-shadow border-2 border-gray-200">
             <CardHeader>

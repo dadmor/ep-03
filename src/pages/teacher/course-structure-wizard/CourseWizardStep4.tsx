@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useFormSchemaStore } from "@/utility/llmFormWizard";
 import StepsHero from "./StepsHero";
-import { Eye, Calendar, BookOpen, HelpCircle, FileText, Clock, Target, Users } from "lucide-react";
+import { Eye, Calendar, BookOpen, Info } from "lucide-react";
 import StepsHeader from "./StepsHeader";
 import { COURSE_UI_TEXTS, COURSE_PATHS } from "./courseStructureWizard.constants";
 import { SubPage } from "@/components/layout";
@@ -18,13 +18,7 @@ export const CourseWizardStep4: React.FC = () => {
   const formData = getData("course-structure-wizard");
   const { steps } = COURSE_UI_TEXTS;
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case "material": return <FileText className="w-4 h-4" />;
-      case "quiz": return <HelpCircle className="w-4 h-4" />;
-      default: return <BookOpen className="w-4 h-4" />;
-    }
-  };
+  const structure = formData.structure || [];
 
   return (
     <SubPage>
@@ -49,88 +43,48 @@ export const CourseWizardStep4: React.FC = () => {
                 <p className="text-gray-600 mb-6">{formData.description}</p>
                 
                 {formData.summary && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
                       <Calendar className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
-                      <div className="text-2xl font-bold text-indigo-600">{formData.summary.totalWeeks}</div>
+                      <div className="text-2xl font-bold text-indigo-600">
+                        {structure.length || formData.summary.totalWeeks}
+                      </div>
                       <div className="text-sm text-gray-600">tygodni</div>
                     </div>
                     <div className="text-center">
                       <BookOpen className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                      <div className="text-2xl font-bold text-purple-600">{formData.summary.totalTopics}</div>
+                      <div className="text-2xl font-bold text-purple-600">
+                      {structure.reduce((sum: number, week: { topics: { length: number }[] }) => sum + week.topics.length, 0)}
+                      </div>
                       <div className="text-sm text-gray-600">tematów</div>
-                    </div>
-                    <div className="text-center">
-                      <Target className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                      <div className="text-2xl font-bold text-blue-600">{formData.summary.totalActivities}</div>
-                      <div className="text-sm text-gray-600">aktywności</div>
-                    </div>
-                    <div className="text-center">
-                      <HelpCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                      <div className="text-2xl font-bold text-green-600">{formData.summary.totalQuizzes}</div>
-                      <div className="text-sm text-gray-600">quizów</div>
                     </div>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Struktura kursu */}
+            <h4 className="font-semibold text-lg">Struktura kursu - podgląd</h4>
+            
+            {/* Struktura kursu - TYLKO PODGLĄD */}
             <div className="space-y-4">
-              <h4 className="font-semibold text-lg">Struktura kursu</h4>
-              
-              {formData.structure?.map((week: any, weekIndex: number) => (
-                <Card key={weekIndex} className="overflow-hidden hover:shadow-md transition-shadow">
-                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-4 py-3 flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-indigo-600" />
-                    <h5 className="font-medium">Tydzień {week.weekNumber}</h5>
-                    <Badge variant="secondary" className="ml-auto">
-                      {week.topics.length} {week.topics.length === 1 ? "temat" : "tematów"}
-                    </Badge>
+              {structure?.map((week: any, weekIndex: number) => (
+                <Card key={weekIndex} className="overflow-hidden">
+                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-indigo-600" />
+                      <h5 className="font-medium">Tydzień {week.weekNumber}</h5>
+                      <Badge variant="secondary">
+                        {week.topics.length} {week.topics.length === 1 ? "temat" : "tematów"}
+                      </Badge>
+                    </div>
                   </div>
                   
-                  <CardContent className="p-4 space-y-4">
+                  <CardContent className="p-4 space-y-3">
                     {week.topics.map((topic: any, topicIndex: number) => (
                       <div key={topicIndex} className="p-4 bg-gray-50 rounded-lg border-l-4 border-purple-200">
                         <h6 className="font-medium text-gray-900 mb-2">{topic.title}</h6>
-                        <p className="text-sm text-gray-600 mb-3">{topic.description}</p>
-                        
-                        {topic.objectives && topic.objectives.length > 0 && (
-                          <div className="mb-3">
-                            <p className="text-xs font-medium text-gray-700 mb-1">Cele:</p>
-                            <ul className="text-xs text-gray-600 space-y-1">
-                              {topic.objectives.map((obj: string, i: number) => (
-                                <li key={i} className="flex items-start gap-1">
-                                  <span className="text-green-500 mt-0.5">•</span>
-                                  <span>{obj}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        
-                        {topic.activities && topic.activities.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mb-3">
-                            {topic.activities.map((activity: any, actIndex: number) => (
-                              <div key={actIndex} className="flex items-center gap-1 px-3 py-1 bg-white rounded-full border text-xs">
-                                {getActivityIcon(activity.type)}
-                                <span>{activity.title}</span>
-                                {activity.duration && (
-                                  <span className="text-gray-500">({activity.duration} min)</span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {topic.keywords && topic.keywords.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {topic.keywords.map((keyword: string, i: number) => (
-                              <Badge key={i} variant="outline" className="text-xs">
-                                {keyword}
-                              </Badge>
-                            ))}
-                          </div>
+                        {topic.description && (
+                          <p className="text-sm text-gray-600">{topic.description}</p>
                         )}
                       </div>
                     ))}
@@ -139,9 +93,10 @@ export const CourseWizardStep4: React.FC = () => {
               ))}
             </div>
 
-            <Alert className="bg-purple-50 border-purple-200">
-              <AlertDescription className="text-purple-800">
-                {steps[4].info}
+            <Alert className="bg-blue-50 border-blue-200">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                Po utworzeniu kursu będziesz mógł dodawać nowe tematy w dowolnym momencie korzystając z generatora AI.
               </AlertDescription>
             </Alert>
 
@@ -153,7 +108,7 @@ export const CourseWizardStep4: React.FC = () => {
                 onClick={() => navigate(COURSE_PATHS.step5)}
                 className="bg-purple-600 hover:bg-purple-700"
               >
-                Utwórz kurs
+                Przejdź do utworzenia kursu
               </Button>
             </div>
           </div>

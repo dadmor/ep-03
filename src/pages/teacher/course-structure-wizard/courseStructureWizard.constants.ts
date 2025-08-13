@@ -1,4 +1,4 @@
-// src/pages/course-structure-wizard/courseStructureWizard.constants.ts
+// src/pages/teacher/course-structure-wizard/courseStructureWizard.constants.ts
 
 import { LLMOperation } from "@/utility/llmFormWizard";
 
@@ -10,6 +10,7 @@ export interface CourseFormData {
   subject?: string;
   level?: string;
   duration?: string;
+  curriculum?: string;
   courseTitle?: string;
   description?: string;
   objectives?: string[];
@@ -18,15 +19,10 @@ export interface CourseFormData {
   estimatedHours?: number;
   topicsCount?: number;
   topicsPerWeek?: number;
-  includeExercises?: boolean;
-  includeQuizzes?: boolean;
-  quizFrequency?: string;
   structure?: any[];
   summary?: {
     totalWeeks: number;
     totalTopics: number;
-    totalActivities: number;
-    totalQuizzes: number;
   };
 }
 
@@ -77,6 +73,11 @@ export const COURSE_STRUCTURE_SCHEMA = {
             { value: "2years", label: "2 lata" },
           ],
         },
+        curriculum: {
+          type: "textarea",
+          title: "Podstawa programowa",
+          placeholder: "Opcjonalnie - wklej podstawę programową",
+        },
       },
       required: ["courseType", "subject", "level", "duration"],
     },
@@ -112,25 +113,6 @@ export const COURSE_STRUCTURE_SCHEMA = {
           title: "Liczba tematów na tydzień",
           min: 1,
           max: 7,
-        },
-        includeExercises: {
-          type: "checkbox",
-          title: "Dodaj ćwiczenia do każdego tematu",
-        },
-        includeQuizzes: {
-          type: "checkbox",
-          title: "Dodaj quizy sprawdzające",
-        },
-        quizFrequency: {
-          type: "select",
-          title: "Częstotliwość quizów",
-          options: [
-            { value: "after_each", label: "Po każdym temacie" },
-            { value: "weekly", label: "Co tydzień" },
-            { value: "biweekly", label: "Co dwa tygodnie" },
-            { value: "monthly", label: "Co miesiąc" },
-            { value: "chapter_end", label: "Na koniec działu" },
-          ],
         },
       },
       required: ["courseTitle", "description", "topicsPerWeek"],
@@ -180,6 +162,10 @@ Typ: {{courseType}}
 Przedmiot: {{subject}}
 Poziom: {{level}}
 Czas trwania: {{duration}}
+{{#if curriculum}}
+Podstawa programowa/Sylabus:
+{{curriculum}}
+{{/if}}
 
 Wygeneruj JSON:
 {
@@ -193,7 +179,11 @@ Wygeneruj JSON:
 }
 
 Wymagania:
-- Dla kursów maturalnych: zgodność z podstawą programową
+{{#if curriculum}}
+- ŚCIŚLE przestrzegaj podanej podstawy programowej/sylabusa
+- Uwzględnij wszystkie wymagania szczegółowe
+{{/if}}
+- Dla kursów maturalnych: zgodność z wymaganiami egzaminacyjnymi
 - CourseTitle: profesjonalny i opisowy
 - Description: zawiera zakres materiału i metodykę
 - Objectives: 5-8 konkretnych, mierzalnych celów
@@ -208,6 +198,7 @@ Wymagania:
     subject: data.subject,
     level: data.level,
     duration: data.duration,
+    curriculum: data.curriculum || "",
   }),
   outputMapping: (llmResult, currentData) => ({
     ...currentData,
@@ -230,25 +221,27 @@ export const STRUCTURE_GENERATION_OPERATION: LLMOperation = {
     endpoint: "https://diesel-power-backend.onrender.com/api/chat",
   },
   prompt: {
-    system: "Jesteś ekspertem od tworzenia szczegółowych programów nauczania. Tworzysz logiczną, progresywną strukturę kursu.",
+    system: "Jesteś ekspertem od tworzenia programów nauczania. Tworzysz TYLKO listę tematów z tytułami i krótkimi opisami.",
     user: `
-    Stwórz szczegółową strukturę kursu:
+    Stwórz listę tematów dla kursu:
     
     Tytuł: {{courseTitle}}
     Opis: {{description}}
     Przedmiot: {{subject}}
     Poziom: {{level}}
     Typ: {{courseType}}
-    Cele: {{objectives}}
-    Liczba tematów: {{topicsCount}}
     Tematy na tydzień: {{topicsPerWeek}}
-    Ćwiczenia: {{includeExercises}}
-    Quizy: {{includeQuizzes}}
-    Częstotliwość quizów: {{quizFrequency}}
+    {{#if curriculum}}
+    Podstawa programowa:
+    {{curriculum}}
+    {{/if}}
     
-    WAŻNE: Wygeneruj KOMPLETNY JSON dla pierwszych 4 tygodni kursu. NIE UŻYWAJ komentarzy w JSON. NIE UŻYWAJ "...". Każdy tydzień musi być w pełni wypełniony.
+    Wygeneruj TYLKO TEMATY - sam tytuł i krótki opis. NIE dodawaj ćwiczeń, quizów, materiałów.
+    {{#if curriculum}}
+    MUSISZ uwzględnić wszystkie zagadnienia z podstawy programowej.
+    {{/if}}
     
-    Wygeneruj JSON ze strukturą:
+    Wygeneruj JSON:
     {
       "structure": [
         {
@@ -256,43 +249,20 @@ export const STRUCTURE_GENERATION_OPERATION: LLMOperation = {
           "topics": [
             {
               "title": "<tytuł tematu>",
-              "description": "<opis tematu>",
-              "objectives": ["cel1", "cel2"],
-              "activities": [
-                {
-                  "type": "material",
-                  "title": "<tytuł materiału>",
-                  "duration": <czas w minutach>
-                },
-                {
-                  "type": "quiz",
-                  "title": "<tytuł quizu>",
-                  "questionsCount": <liczba pytań>
-                }
-              ],
-              "keywords": ["słowo1", "słowo2"]
+              "description": "<krótki opis tematu - max 2 zdania>"
             }
           ]
         }
       ],
       "summary": {
-        "totalWeeks": 4,
-        "totalTopics": <liczba tematów w 4 tygodniach>,
-        "totalActivities": <suma wszystkich aktywności>,
-        "totalQuizzes": <suma wszystkich quizów>
+        "totalWeeks": <liczba>,
+        "totalTopics": <liczba>
       }
     }
     
-    Wymagania:
-    - Wygeneruj DOKŁADNIE 4 tygodnie
-    - Każdy tydzień ma {{topicsPerWeek}} tematów
-    - Logiczna progresja trudności
-    - Dla kursów maturalnych: zgodność z wymaganiami egzaminacyjnymi
-    - Każdy temat ma jasno określone cele
-    - Realistyczne czasy trwania (30-90 min na materiał)
-    - Quizy dostosowane do poziomu (5-15 pytań)
-    - NIE UŻYWAJ komentarzy ani "..." w JSON
-        `,
+    Wygeneruj 4-8 tygodni w zależności od kursu. Każdy tydzień ma {{topicsPerWeek}} tematów.
+    Tematy powinny tworzyć logiczną progresję od podstaw do zaawansowanych.
+    `,
     responseFormat: "json",
   },
   inputMapping: (data) => ({
@@ -301,12 +271,8 @@ export const STRUCTURE_GENERATION_OPERATION: LLMOperation = {
     subject: data.subject,
     level: data.level,
     courseType: data.courseType,
-    objectives: Array.isArray(data.objectives) ? data.objectives.join(", ") : data.objectives,
-    topicsCount: data.topicsCount,
     topicsPerWeek: data.topicsPerWeek,
-    includeExercises: data.includeExercises ? "tak" : "nie",
-    includeQuizzes: data.includeQuizzes ? "tak" : "nie",
-    quizFrequency: data.quizFrequency || "chapter_end",
+    curriculum: data.curriculum || "",
   }),
   outputMapping: (llmResult, currentData) => ({
     ...currentData,
@@ -361,24 +327,23 @@ export const COURSE_UI_TEXTS = {
       success: "✓ Analiza zakończona pomyślnie",
     },
     3: {
-      title: "Dostosuj strukturę kursu",
-      description:
-        "Określ tempo nauki i dodatkowe elementy kursu",
-      button: "Generuj strukturę",
-      loading: "Generuję strukturę...",
-      loadingInfo: "⚡ AI tworzy szczegółowy plan kursu z podziałem na tygodnie...",
+      title: "Podstawowe informacje o kursie",
+      description: "Podaj tytuł, opis i tempo nauki",
+      button: "Generuj tematy",
+      loading: "Generuję tematy...",
+      loadingInfo: "⚡ AI tworzy listę tematów kursu...",
     },
     4: {
-      title: "Podgląd struktury kursu",
-      description: "AI przygotowała kompletną strukturę z harmonogramem",
-      info: "💡 Po zapisaniu będziesz mógł dodawać materiały do utworzonych tematów.",
+      title: "Edycja struktury kursu",
+      description: "Możesz dodać lub usunąć tematy przed utworzeniem kursu",
+      info: "💡 Możesz dodawać i usuwać tematy. Po zapisaniu kursu będziesz mógł dodać materiały do każdego tematu.",
     },
     5: {
       title: "Tworzenie kursu",
       description:
         "Ostatnie poprawki przed utworzeniem kursu",
       saveInfo:
-        "💾 Zostanie utworzony kurs z pełną strukturą tematów. Materiały i quizy możesz dodać później.",
+        "💾 Zostanie utworzony kurs z listą tematów. Materiały i quizy możesz dodać później.",
       button: "Utwórz kurs",
       loading: "Tworzę kurs...",
       success:
@@ -393,9 +358,9 @@ export const COURSE_UI_TEXTS = {
       "Stwórz pełną strukturę kursu w 5 krokach",
     features: [
       "Automatyczna analiza wymagań",
-      "Generowanie harmonogramu",
-      "Podział na tygodnie i tematy",
-      "Sugestie materiałów i quizów",
+      "Generowanie listy tematów",
+      "Podział na tygodnie",
+      "Możliwość edycji struktury",
       "Zgodność z podstawą programową",
       "Progresja poziomu trudności",
     ],
@@ -422,42 +387,21 @@ export const COURSE_PATHS = {
 
 // ===== COURSE TYPE CONFIGS =====
 export const COURSE_TYPE_CONFIG: Record<CourseType, {
-  defaultTopics?: string[];
-  defaultQuizFrequency: string;
-  includeExercises: boolean;
-  includeQuizzes: boolean;
+  defaultTopicsPerWeek?: number;
 }> = {
   matura: {
-    defaultTopics: [
-      "Wprowadzenie i powtórka",
-      "Podstawowe zagadnienia",
-      "Zagadnienia rozszerzone",
-      "Zadania typu maturalnego",
-      "Próbne egzaminy",
-      "Powtórka przedegzaminacyjna",
-    ],
-    defaultQuizFrequency: "weekly",
-    includeExercises: true,
-    includeQuizzes: true,
+    defaultTopicsPerWeek: 3,
   },
   academic: {
-    defaultQuizFrequency: "biweekly",
-    includeExercises: true,
-    includeQuizzes: true,
+    defaultTopicsPerWeek: 2,
   },
   professional: {
-    defaultQuizFrequency: "chapter_end",
-    includeExercises: true,
-    includeQuizzes: true,
+    defaultTopicsPerWeek: 2,
   },
   hobby: {
-    defaultQuizFrequency: "monthly",
-    includeExercises: true,
-    includeQuizzes: false,
+    defaultTopicsPerWeek: 1,
   },
   certification: {
-    defaultQuizFrequency: "after_each",
-    includeExercises: true,
-    includeQuizzes: true,
+    defaultTopicsPerWeek: 3,
   },
 };

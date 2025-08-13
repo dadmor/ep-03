@@ -5,14 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useFormSchemaStore, useLLMOperation } from "@/utility/llmFormWizard";
 import StepsHero from "./StepsHero";
 import StepsHeader from "./StepsHeader";
@@ -24,9 +16,7 @@ import {
   COURSE_UI_TEXTS,
   COURSE_PATHS,
   COURSE_VALIDATION,
-  COURSE_TYPE_CONFIG,
   CourseFormData,
-  CourseType,
 } from "./courseStructureWizard.constants";
 import { SubPage } from "@/components/layout";
 
@@ -38,9 +28,6 @@ export const CourseWizardStep3: React.FC = () => {
   const [courseTitle, setCourseTitle] = useState(formData.courseTitle || "");
   const [description, setDescription] = useState(formData.description || "");
   const [topicsPerWeek, setTopicsPerWeek] = useState(2);
-  const [includeExercises, setIncludeExercises] = useState(true);
-  const [includeQuizzes, setIncludeQuizzes] = useState(true);
-  const [quizFrequency, setQuizFrequency] = useState("weekly");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const llmGeneration = useLLMOperation(
@@ -51,15 +38,6 @@ export const CourseWizardStep3: React.FC = () => {
 
   useEffect(() => {
     llmGeneration.registerOperation(STRUCTURE_GENERATION_OPERATION);
-
-    if (formData.courseType && formData.courseType in COURSE_TYPE_CONFIG) {
-      const courseType = formData.courseType as CourseType;
-      const config = COURSE_TYPE_CONFIG[courseType];
-      setIncludeExercises(config.includeExercises);
-      setIncludeQuizzes(config.includeQuizzes);
-      setQuizFrequency(config.defaultQuizFrequency);
-    }
-
     return () => {
       llmGeneration.unregisterOperation();
     };
@@ -101,9 +79,6 @@ export const CourseWizardStep3: React.FC = () => {
         courseTitle: courseTitle.trim(),
         description: description.trim(),
         topicsPerWeek,
-        includeExercises,
-        includeQuizzes,
-        quizFrequency,
       };
 
       setData("course-structure-wizard", updatedData);
@@ -181,52 +156,6 @@ export const CourseWizardStep3: React.FC = () => {
                 Określa tempo realizacji kursu
               </p>
             </div>
-
-            <Card className="bg-purple-50 border-purple-200">
-              <CardContent className="p-4 space-y-4">
-                <h4 className="font-medium text-gray-900">Opcje dodatkowe</h4>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="includeExercises"
-                    checked={includeExercises}
-                    onCheckedChange={(checked) => setIncludeExercises(checked as boolean)}
-                  />
-                  <label htmlFor="includeExercises" className="text-sm cursor-pointer">
-                    Dodaj ćwiczenia do każdego tematu
-                  </label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="includeQuizzes"
-                    checked={includeQuizzes}
-                    onCheckedChange={(checked) => setIncludeQuizzes(checked as boolean)}
-                  />
-                  <label htmlFor="includeQuizzes" className="text-sm cursor-pointer">
-                    Dodaj quizy sprawdzające
-                  </label>
-                </div>
-
-                {includeQuizzes && (
-                  <div className="ml-6 space-y-2">
-                    <Label htmlFor="quizFrequency">Częstotliwość quizów</Label>
-                    <Select value={quizFrequency} onValueChange={setQuizFrequency}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="after_each">Po każdym temacie</SelectItem>
-                        <SelectItem value="weekly">Co tydzień</SelectItem>
-                        <SelectItem value="biweekly">Co dwa tygodnie</SelectItem>
-                        <SelectItem value="monthly">Co miesiąc</SelectItem>
-                        <SelectItem value="chapter_end">Na koniec działu</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
 
             {llmGeneration.loading && (
               <Alert className="bg-purple-50 border-purple-200">
