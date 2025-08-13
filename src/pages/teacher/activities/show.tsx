@@ -198,7 +198,7 @@ export const ActivitiesShow = () => {
           questionsData={questionsData?.data}
           questionsLoading={questionsLoading}
           onNavigateToQuestions={(activityId) => 
-            handleNavigateWithState(`/questions/manage/${activityId}`)
+            handleNavigateWithState(`/teacher/questions/manage/${activityId}`)
           }
         />
       )}

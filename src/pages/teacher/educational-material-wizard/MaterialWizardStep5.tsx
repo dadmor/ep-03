@@ -126,7 +126,7 @@ export const MaterialWizardStep5: React.FC = () => {
               } else {
                 navigate(`${MATERIAL_PATHS.courses}/show/${formData.courseId}?expanded=${formData.topicId}`);
               }
-            }, 2000);
+            }, 1000);
           },
           onError: (error: any) => {
             setSaving(false);

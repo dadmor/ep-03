@@ -151,9 +151,17 @@ export const QuizWizardStep5: React.FC = () => {
               setSaving(false);
               setSaved(true);
  
+              const returnUrl = sessionStorage.getItem('returnUrl');
+
               setTimeout(() => {
-                navigate(`${QUIZ_PATHS.questions}/${activityId}`);
-              }, 2000);
+                sessionStorage.removeItem('wizardContext');
+                if (returnUrl) {
+                  sessionStorage.removeItem('returnUrl');
+                  navigate(returnUrl);
+                } else {
+                  navigate(`/teacher/courses/show/${formData.courseId}?expanded=${formData.topicId}`);
+                }
+              }, 1000);
             } catch (error) {
               setSaving(false);
               setSaved(false);
