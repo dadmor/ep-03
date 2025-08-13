@@ -127,14 +127,14 @@ export const ReportUsersSummary: React.FC = () => {
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       refetchOnMount: false,
-      refetchInterval: false,
+      refetchInterval: 10000, // Refetch every 10 seconds
       retry: 0,
     }),
     []
   );
 
   // Stabilny zakres dat – liczone TYLKO przy zmianie timeRange
-  const { startISO, endISO } = useMemo(() => {
+  const { startISO } = useMemo(() => {
     const end = new Date();
     const start = new Date(end);
     switch (timeRange) {
@@ -228,7 +228,7 @@ export const ReportUsersSummary: React.FC = () => {
 
     return usersData.data.map(user => {
       const stats = statsMap.get(user.id);
-      const activities = activityMap.get(user.id) || [];
+      const activities = activityMap.get(user.id as string) || [];
       
       let segment: keyof typeof SEGMENT_COLORS;
       const daysSinceLastActive = stats?.last_active 
@@ -1014,7 +1014,7 @@ export const ReportUsersSummary: React.FC = () => {
                       </div>
                       <Avatar>
                         <AvatarFallback className="text-xs">
-                          {user.full_name?.split(' ').map(n => n[0]).join('') || 
+                        {user.full_name?.split(' ').map((n: string) => n[0]).join('') || 
                           user.email.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
