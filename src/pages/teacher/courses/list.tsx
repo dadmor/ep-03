@@ -381,30 +381,7 @@ export const CoursesList = () => {
         itemName="kursów"
       />
 
-      {/* Floating Action Button dla AI */}
-      {data?.data && data.data.length > 0 && (
-        <div className="fixed bottom-6 right-6">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="lg"
-                  className="rounded-full shadow-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                  onClick={() =>
-                    handleNavigateToWizard("/course-structure/step1")
-                  }
-                >
-                  <Layout className="w-5 h-5 mr-2" />
-                  <Sparkles className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">
-                <p>Stwórz nowy kurs z pomocą AI</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      )}
+    
     </SubPage>
   );
 };
