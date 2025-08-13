@@ -15,9 +15,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, BookOpen, FileText } from "lucide-react";
+import { Info, BookOpen, FileText, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   QUIZ_WIZARD_SCHEMA,
   QUIZ_ANALYSIS_OPERATION,
@@ -40,6 +41,13 @@ interface Topic extends BaseRecord {
   title: string;
   position: number;
   course_id: number;
+}
+
+interface Material extends BaseRecord {
+  id: number;
+  title: string;
+  position: number;
+  content?: string;
 }
 
 interface WizardContext {
@@ -65,6 +73,8 @@ export const QuizWizardStep1: React.FC = () => {
     "single",
     "multiple",
   ]);
+  const [quizSource, setQuizSource] = useState<"general" | "material">("general");
+  const [selectedMaterialId, setSelectedMaterialId] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [contextInfo, setContextInfo] = useState<WizardContext | null>(null);
 
@@ -94,6 +104,32 @@ export const QuizWizardStep1: React.FC = () => {
     },
   });
 
+  // Pobierz materiały dla wybranego tematu
+  const { data: materialsData, isLoading: materialsLoading } = useList<Material>({
+    resource: "activities",
+    filters: [
+      {
+        field: "topic_id",
+        operator: "eq",
+        value: topicId ? parseInt(topicId) : undefined,
+      },
+      {
+        field: "type",
+        operator: "eq",
+        value: "material",
+      },
+    ],
+    sorters: [
+      {
+        field: "position",
+        order: "asc",
+      },
+    ],
+    queryOptions: {
+      enabled: !!topicId,
+    },
+  });
+
   // Pobierz tematy dla wybranego kursu
   const selectedCourse = coursesData?.data?.find(c => c.id.toString() === courseId);
   const topics = selectedCourse?.topics || [];
@@ -117,6 +153,10 @@ export const QuizWizardStep1: React.FC = () => {
       }
       if (context.topicTitle) {
         setTopic(context.topicTitle);
+      }
+      if (context.materialId) {
+        setQuizSource("material");
+        setSelectedMaterialId(context.materialId.toString());
       }
     }
 
@@ -160,6 +200,9 @@ export const QuizWizardStep1: React.FC = () => {
     if (questionTypes.length === 0) {
       newErrors.questionTypes = "Wybierz przynajmniej jeden typ pytań";
     }
+    if (quizSource === "material" && !selectedMaterialId) {
+      newErrors.materialId = errorTexts.materialRequired;
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -169,7 +212,7 @@ export const QuizWizardStep1: React.FC = () => {
     if (!validateForm()) return;
 
     try {
-      const formData = {
+      const formData: any = {
         courseId: parseInt(courseId),
         topicId: parseInt(topicId),
         topic: topic.trim(),
@@ -178,12 +221,27 @@ export const QuizWizardStep1: React.FC = () => {
         questionTypes,
         courseTitle: selectedCourse?.title,
         topicTitle: topics.find(t => t.id.toString() === topicId)?.title,
-        // Dodaj informacje o materiale jeśli istnieją
-        materialId: contextInfo?.materialId,
-        materialContent: materialData?.data?.content,
-        materialTitle: materialData?.data?.title,
-        basedOnMaterial: !!contextInfo?.materialId && !!materialData?.data?.content,
+        quizSource,
       };
+
+      // Jeśli wybrano materiał, pobierz jego treść
+      if (quizSource === "material" && selectedMaterialId) {
+        const selectedMaterial = materialsData?.data?.find(
+          m => m.id.toString() === selectedMaterialId
+        );
+        if (selectedMaterial) {
+          formData.materialContent = selectedMaterial.content;
+          formData.materialTitle = selectedMaterial.title;
+          formData.materialId = parseInt(selectedMaterialId);
+          formData.basedOnMaterial = true;
+        }
+      } else if (contextInfo?.materialId && materialData?.data) {
+        // Jeśli przyszliśmy z kontekstu materiału
+        formData.materialContent = materialData.data.content;
+        formData.materialTitle = materialData.data.title;
+        formData.materialId = contextInfo.materialId;
+        formData.basedOnMaterial = true;
+      }
 
       setData("quiz-wizard", formData);
       await llmAnalysis.executeOperation(formData);
@@ -266,6 +324,7 @@ export const QuizWizardStep1: React.FC = () => {
                       onValueChange={(value) => {
                         setCourseId(value);
                         setTopicId(""); // Reset topic selection
+                        setSelectedMaterialId(""); // Reset material selection
                       }}
                       disabled={llmAnalysis.loading || coursesLoading || !!contextInfo?.courseId}
                     >
@@ -294,7 +353,10 @@ export const QuizWizardStep1: React.FC = () => {
                     </Label>
                     <Select
                       value={topicId}
-                      onValueChange={setTopicId}
+                      onValueChange={(value) => {
+                        setTopicId(value);
+                        setSelectedMaterialId(""); // Reset material selection
+                      }}
                       disabled={!courseId || llmAnalysis.loading || !!contextInfo?.topicId}
                     >
                       <SelectTrigger className={errors.topicId ? "border-red-300" : ""}>
@@ -320,6 +382,79 @@ export const QuizWizardStep1: React.FC = () => {
 
             <Separator />
 
+            {/* Wybór źródła quizu */}
+            {topicId && !contextInfo?.materialId && (
+              <div>
+                <Label>Źródło pytań</Label>
+                <Tabs value={quizSource} onValueChange={(v) => setQuizSource(v as "general" | "material")}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="general">Wiedza ogólna</TabsTrigger>
+                    <TabsTrigger value="material">Z materiału</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="general">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <p className="text-sm text-muted-foreground">
+                          Pytania będą generowane na podstawie ogólnej wiedzy z wybranego tematu
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="material">
+                    <Card>
+                      <CardContent className="pt-6">
+                        {materialsLoading ? (
+                          <div className="flex justify-center py-4">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                          </div>
+                        ) : materialsData?.data?.length === 0 ? (
+                          <Alert>
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>
+                              Brak materiałów w tym temacie. Najpierw dodaj materiał edukacyjny.
+                            </AlertDescription>
+                          </Alert>
+                        ) : (
+                          <div>
+                            <Label htmlFor="materialId">
+                              Wybierz materiał <span className="text-red-500">*</span>
+                            </Label>
+                            <Select
+                              value={selectedMaterialId}
+                              onValueChange={setSelectedMaterialId}
+                              disabled={llmAnalysis.loading}
+                            >
+                              <SelectTrigger className={errors.materialId ? "border-red-300" : ""}>
+                                <SelectValue placeholder="Wybierz materiał..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {materialsData?.data?.map((material) => (
+                                  <SelectItem key={material.id} value={material.id.toString()}>
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="w-4 h-4" />
+                                      <span>{material.position}. {material.title}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {errors.materialId && (
+                              <p className="text-sm text-red-600 mt-1">{errors.materialId}</p>
+                            )}
+                            <p className="text-sm text-muted-foreground mt-2">
+                              Pytania będą tworzone WYŁĄCZNIE z treści wybranego materiału
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            )}
+
             {/* Szczegóły quizu */}
             <div>
               <Label htmlFor="topic">Temat quizu</Label>
@@ -338,7 +473,7 @@ export const QuizWizardStep1: React.FC = () => {
                 <p className="text-sm text-red-600 mt-1">{errors.topic}</p>
               )}
               <p className="text-sm text-muted-foreground mt-1">
-                {contextInfo?.materialId 
+                {contextInfo?.materialId || quizSource === "material"
                   ? "Quiz będzie generowany z treści materiału"
                   : "Możesz dostosować temat quizu lub pozostawić sugerowany"}
               </p>
@@ -440,7 +575,7 @@ export const QuizWizardStep1: React.FC = () => {
               {llmAnalysis.loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  {contextInfo?.materialId ? "Analizuję materiał..." : steps[1].loading}
+                  {contextInfo?.materialId || quizSource === "material" ? "Analizuję materiał..." : steps[1].loading}
                 </>
               ) : (
                 steps[1].button

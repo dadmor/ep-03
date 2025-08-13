@@ -143,6 +143,9 @@ Przeanalizuj temat dla quizu:
 Temat: {{topic}}
 Poziom trudności: {{difficulty}}
 Liczba pytań: {{questionsCount}}
+{{#if basedOnMaterial}}
+Quiz będzie generowany z materiału: {{materialTitle}}
+{{/if}}
 
 Wygeneruj JSON:
 {
@@ -159,6 +162,9 @@ Wymagania:
 - LearningObjectives: konkretne umiejętności do weryfikacji (50-150 słów)
 - SuggestedTime: 1-3 minuty na pytanie
 - PassingScore: 60-80% w zależności od trudności
+{{#if basedOnMaterial}}
+- Dla quizu z materiału: tytuł powinien zawierać "Quiz: " + nazwa materiału
+{{/if}}
     `,
     responseFormat: "json",
   },
@@ -166,6 +172,8 @@ Wymagania:
     topic: data.topic,
     difficulty: data.difficulty,
     questionsCount: data.questionsCount,
+    basedOnMaterial: data.basedOnMaterial || false,
+    materialTitle: data.materialTitle || '',
   }),
   outputMapping: (llmResult: any, currentData: any) => ({
     ...currentData,
@@ -238,6 +246,72 @@ Wymagania:
       ? data.keyTopics.join(", ")
       : data.keyTopics,
     learningObjectives: data.learningObjectives,
+  }),
+  outputMapping: (llmResult: any, currentData: any) => ({
+    ...currentData,
+    questions: llmResult.questions,
+  }),
+  validation: (result: any) =>
+    !!(result.questions && Array.isArray(result.questions) && result.questions.length > 0),
+};
+
+export const QUIZ_FROM_MATERIAL_OPERATION: LLMOperation = {
+  id: "generate-quiz-from-material",
+  name: "Generowanie pytań z materiału",
+  config: {
+    endpoint: "https://diesel-power-backend.onrender.com/api/chat",
+  },
+  prompt: {
+    system: "Jesteś ekspertem od tworzenia pytań testowych. Tworzysz pytania WYŁĄCZNIE na podstawie dostarczonego materiału.",
+    user: `
+Stwórz pytania quizowe TYLKO I WYŁĄCZNIE na podstawie poniższego materiału:
+
+MATERIAŁ ŹRÓDŁOWY:
+{{materialContent}}
+
+PARAMETRY QUIZU:
+Tytuł: {{quizTitle}}
+Poziom trudności: {{difficulty}}
+Liczba pytań: {{questionsCount}}
+Typy pytań: {{questionTypes}}
+
+Wygeneruj JSON z tablicą pytań:
+{
+  "questions": [
+    {
+      "question": "<treść pytania>",
+      "type": "single|multiple|truefalse",
+      "options": [
+        {"text": "<treść opcji>", "is_correct": true/false},
+        {"text": "<treść opcji>", "is_correct": true/false}
+      ],
+      "explanation": "<wyjaśnienie poprawnej odpowiedzi>",
+      "points": <liczba punktów 1-5>
+    }
+  ]
+}
+
+WAŻNE WYMAGANIA:
+- WSZYSTKIE pytania muszą być oparte WYŁĄCZNIE na treści materiału
+- NIE dodawaj pytań o rzeczach nieopisanych w materiale
+- Cytuj lub parafrazuj fragmenty materiału w pytaniach
+- Wyjaśnienia muszą odwoływać się do konkretnych fragmentów materiału
+- Jeśli materiał nie zawiera wystarczających informacji dla {{questionsCount}} pytań, wygeneruj mniej pytań
+- Pytania muszą sprawdzać zrozumienie treści z materiału
+- 4 opcje dla single/multiple, 2 dla true/false
+- Dokładnie jedna poprawna dla single, 1-3 dla multiple
+- Punkty: łatwe=1-2, średnie=2-3, trudne=3-5
+    `,
+    responseFormat: "json",
+  },
+  inputMapping: (data: any) => ({
+    materialContent: data.materialContent,
+    quizTitle: data.quizTitle || '',
+    difficulty: data.difficulty,
+    questionsCount: data.questionsCount,
+    questionTypes: Array.isArray(data.questionTypes) 
+      ? data.questionTypes.join(", ") 
+      : data.questionTypes || "single, multiple, truefalse",
   }),
   outputMapping: (llmResult: any, currentData: any) => ({
     ...currentData,
@@ -349,6 +423,7 @@ export const QUIZ_UI_TEXTS = {
     noCourses: "Nie znaleziono żadnych kursów",
     noTopics: "Wybierz najpierw kurs",
     noQuestions: "Brak pytań do zapisania",
+    materialRequired: "Wybierz materiał źródłowy",
   },
 };
 
