@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFormSchemaStore, useLLMOperation } from "@/utility/llmFormWizard";
-import { useList, BaseRecord } from "@refinedev/core";
+import { useList, useOne, BaseRecord } from "@refinedev/core";
 import StepsHero from "./StepsHero";
 import StepsHeader from "./StepsHeader";
 import {
@@ -16,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, BookOpen } from "lucide-react";
+import { Info, BookOpen, FileText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -43,6 +42,15 @@ interface Topic extends BaseRecord {
   course_id: number;
 }
 
+interface WizardContext {
+  courseId?: number;
+  topicId?: number;
+  topicTitle?: string;
+  courseTitle?: string;
+  materialId?: number;
+  materialTitle?: string;
+}
+
 export const QuizWizardStep1: React.FC = () => {
   const navigate = useNavigate();
   const { register, setData } = useFormSchemaStore();
@@ -58,7 +66,7 @@ export const QuizWizardStep1: React.FC = () => {
     "multiple",
   ]);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [contextInfo, setContextInfo] = useState<any>(null);
+  const [contextInfo, setContextInfo] = useState<WizardContext | null>(null);
 
   const llmAnalysis = useLLMOperation("quiz-wizard", "analyze-quiz-topic");
   const { steps, errors: errorTexts } = QUIZ_UI_TEXTS;
@@ -66,13 +74,6 @@ export const QuizWizardStep1: React.FC = () => {
   // Pobierz listę kursów z tematami
   const { data: coursesData, isLoading: coursesLoading } = useList<Course>({
     resource: "courses",
-    filters: [
-      {
-        field: "is_published",
-        operator: "eq",
-        value: true,
-      },
-    ],
     meta: {
       select: "*, topics(*)",
     },
@@ -82,6 +83,15 @@ export const QuizWizardStep1: React.FC = () => {
         order: "desc",
       },
     ],
+  });
+
+  // Pobierz dane materiału jeśli materialId jest w kontekście
+  const { data: materialData, isLoading: materialLoading } = useOne({
+    resource: "activities",
+    id: contextInfo?.materialId || 0,
+    queryOptions: {
+      enabled: !!contextInfo?.materialId,
+    },
   });
 
   // Pobierz tematy dla wybranego kursu
@@ -95,7 +105,7 @@ export const QuizWizardStep1: React.FC = () => {
     // Sprawdź kontekst z sesji
     const contextStr = sessionStorage.getItem('wizardContext');
     if (contextStr) {
-      const context = JSON.parse(contextStr);
+      const context: WizardContext = JSON.parse(contextStr);
       setContextInfo(context);
       
       // Ustaw wartości z kontekstu
@@ -168,6 +178,11 @@ export const QuizWizardStep1: React.FC = () => {
         questionTypes,
         courseTitle: selectedCourse?.title,
         topicTitle: topics.find(t => t.id.toString() === topicId)?.title,
+        // Dodaj informacje o materiale jeśli istnieją
+        materialId: contextInfo?.materialId,
+        materialContent: materialData?.data?.content,
+        materialTitle: materialData?.data?.title,
+        basedOnMaterial: !!contextInfo?.materialId && !!materialData?.data?.content,
       };
 
       setData("quiz-wizard", formData);
@@ -195,7 +210,24 @@ export const QuizWizardStep1: React.FC = () => {
             description={steps[1].description}
           />
 
-          {contextInfo && (
+          {/* Alert o kontekście materiału */}
+          {contextInfo?.materialId && materialData && (
+            <Alert className="mb-4 bg-blue-50 border-blue-200">
+              <FileText className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Generujesz quiz na podstawie materiału:</strong>
+                <br />
+                <span className="text-sm">{materialData.data.title}</span>
+                <br />
+                <span className="text-xs text-muted-foreground mt-1">
+                  Pytania będą generowane z treści tego materiału
+                </span>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Standardowy alert o kontekście kursu */}
+          {contextInfo && !contextInfo.materialId && (
             <Alert className="mb-4">
               <Info className="h-4 w-4" />
               <AlertDescription>
@@ -306,7 +338,9 @@ export const QuizWizardStep1: React.FC = () => {
                 <p className="text-sm text-red-600 mt-1">{errors.topic}</p>
               )}
               <p className="text-sm text-muted-foreground mt-1">
-                Możesz dostosować temat quizu lub pozostawić sugerowany
+                {contextInfo?.materialId 
+                  ? "Quiz będzie generowany z treści materiału"
+                  : "Możesz dostosować temat quizu lub pozostawić sugerowany"}
               </p>
             </div>
 
@@ -400,13 +434,13 @@ export const QuizWizardStep1: React.FC = () => {
 
             <button
               onClick={handleAnalyze}
-              disabled={llmAnalysis.loading}
+              disabled={llmAnalysis.loading || (materialLoading && !!contextInfo?.materialId)}
               className="w-full h-12 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg flex items-center justify-center gap-2"
             >
               {llmAnalysis.loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  {steps[1].loading}
+                  {contextInfo?.materialId ? "Analizuję materiał..." : steps[1].loading}
                 </>
               ) : (
                 steps[1].button

@@ -69,7 +69,7 @@ export const QuizWizardDashboard: React.FC = () => {
 
           <div className="mt-6">
             <Button 
-              onClick={() => navigate(`/teacher${QUIZ_PATHS.step1}`)}
+              onClick={() => navigate(`${QUIZ_PATHS.step1}`)}
               className="w-full md:w-auto"
               size="lg"
             >

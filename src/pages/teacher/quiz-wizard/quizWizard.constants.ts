@@ -1,4 +1,3 @@
-
 import { LLMOperation } from "@/utility/llmFormWizard";
 
 // ===== FORM SCHEMA =====
@@ -147,6 +146,7 @@ Liczba pytań: {{questionsCount}}
 
 Wygeneruj JSON:
 {
+  "quizTitle": "<sugerowany tytuł quizu>",
   "keyTopics": ["zagadnienie1", "zagadnienie2", "zagadnienie3"],
   "learningObjectives": "<cele sprawdzające - co quiz ma zweryfikować>",
   "suggestedTime": <liczba minut>,
@@ -154,6 +154,7 @@ Wygeneruj JSON:
 }
 
 Wymagania:
+- QuizTitle: krótki, opisowy tytuł quizu (max 80 znaków)
 - KeyTopics: 5-10 kluczowych zagadnień do sprawdzenia
 - LearningObjectives: konkretne umiejętności do weryfikacji (50-150 słów)
 - SuggestedTime: 1-3 minuty na pytanie
@@ -161,20 +162,21 @@ Wymagania:
     `,
     responseFormat: "json",
   },
-  inputMapping: (data) => ({
+  inputMapping: (data: any) => ({
     topic: data.topic,
     difficulty: data.difficulty,
     questionsCount: data.questionsCount,
   }),
-  outputMapping: (llmResult, currentData) => ({
+  outputMapping: (llmResult: any, currentData: any) => ({
     ...currentData,
+    quizTitle: llmResult.quizTitle,
     keyTopics: llmResult.keyTopics,
     learningObjectives: llmResult.learningObjectives,
     suggestedTime: llmResult.suggestedTime,
     passingScore: llmResult.passingScore,
   }),
-  validation: (result) =>
-    !!(result.keyTopics && result.learningObjectives && result.suggestedTime && result.passingScore),
+  validation: (result: any) =>
+    !!(result.quizTitle && result.keyTopics && result.learningObjectives && result.suggestedTime && result.passingScore),
 };
 
 export const QUIZ_GENERATION_OPERATION: LLMOperation = {
@@ -186,9 +188,9 @@ export const QUIZ_GENERATION_OPERATION: LLMOperation = {
   prompt: {
     system: "Jesteś ekspertem od tworzenia pytań testowych. Tworzysz rzetelne, dobrze sformułowane pytania sprawdzające wiedzę.",
     user: `
-Stwórz pytania quizowe:
+Stwórz pytania quizowe dla tematu: {{topic}}
 
-Temat: {{topic}}
+Tytuł quizu: {{quizTitle}}
 Poziom trudności: {{difficulty}}
 Liczba pytań: {{questionsCount}}
 Typy pytań: {{questionTypes}}
@@ -197,7 +199,6 @@ Cele: {{learningObjectives}}
 
 Wygeneruj JSON z tablicą pytań:
 {
-  "quizTitle": "<tytuł quizu>",
   "questions": [
     {
       "question": "<treść pytania>",
@@ -213,18 +214,21 @@ Wygeneruj JSON z tablicą pytań:
 }
 
 Wymagania:
-- Pytania jasne i jednoznaczne
+- Pytania oparte na wiedzy ogólnej z danego tematu
+- Pytania jasne i jednoznaczne  
 - 4 opcje dla single/multiple, 2 dla true/false
 - Dokładnie jedna poprawna dla single, 1-3 dla multiple
 - Wyjaśnienia edukacyjne (30-100 słów)
 - Punkty: łatwe=1-2, średnie=2-3, trudne=3-5
 - Różnorodność typów pytań
 - Pokrycie wszystkich kluczowych zagadnień
+- GENERUJ PRAWDZIWE PYTANIA Z PODANEGO TEMATU
     `,
     responseFormat: "json",
   },
-  inputMapping: (data) => ({
+  inputMapping: (data: any) => ({
     topic: data.topic,
+    quizTitle: data.quizTitle || '',
     difficulty: data.difficulty,
     questionsCount: data.questionsCount,
     questionTypes: Array.isArray(data.questionTypes) 
@@ -235,13 +239,12 @@ Wymagania:
       : data.keyTopics,
     learningObjectives: data.learningObjectives,
   }),
-  outputMapping: (llmResult, currentData) => ({
+  outputMapping: (llmResult: any, currentData: any) => ({
     ...currentData,
-    quizTitle: llmResult.quizTitle,
     questions: llmResult.questions,
   }),
-  validation: (result) =>
-    !!(result.quizTitle && result.questions && Array.isArray(result.questions) && result.questions.length > 0),
+  validation: (result: any) =>
+    !!(result.questions && Array.isArray(result.questions) && result.questions.length > 0),
 };
 
 // ===== VALIDATION RULES =====
@@ -355,7 +358,6 @@ export const QUIZ_API_CONFIG = {
   saveTimeout: 2000,
 };
 
-// ===== NAVIGATION PATHS =====
 // ===== NAVIGATION PATHS =====
 export const QUIZ_PATHS = {
   dashboard: "/teacher/quiz-wizard",
