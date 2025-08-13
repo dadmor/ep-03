@@ -28,6 +28,7 @@ const aiTools = [
     borderColor: "border-indigo-200",
     iconBg: "bg-indigo-100",
     iconColor: "text-indigo-600",
+    buttonBg: "bg-indigo-600 hover:bg-indigo-700",
     features: [
       "Automatyczna analiza wymagań",
       "Generowanie harmonogramu",
@@ -47,6 +48,7 @@ const aiTools = [
     borderColor: "border-purple-200",
     iconBg: "bg-purple-100",
     iconColor: "text-purple-600",
+    buttonBg: "bg-purple-600 hover:bg-purple-700",
     features: [
       "Materiały dostosowane do wieku",
       "Ćwiczenia praktyczne",
@@ -66,6 +68,7 @@ const aiTools = [
     borderColor: "border-blue-200",
     iconBg: "bg-blue-100",
     iconColor: "text-blue-600",
+    buttonBg: "bg-blue-600 hover:bg-blue-700",
     features: [
       "Różne typy pytań",
       "Automatyczne wyjaśnienia",
@@ -161,7 +164,7 @@ export const AiToolsDashboard: React.FC = () => {
                     </div>
                     <Button 
                       size="sm" 
-                      className={`${tool.iconColor.replace('text-', 'bg-')} hover:opacity-90 text-white`}
+                      className={`${tool.buttonBg} text-white`}
                     >
                       <Wand className="w-3 h-3 mr-1" />
                       Rozpocznij
