@@ -1,4 +1,3 @@
-
 import { useNavigate, useLocation } from "react-router-dom";
 import { useOne, useList, useUpdate, useInvalidate } from "@refinedev/core";
 import { toast } from "sonner";
@@ -186,7 +185,7 @@ export const useCourseData = (courseId: string | undefined) => {
     },
   });
 
-  // Pobierz tematy
+  // Pobierz tematy - POPRAWKA: dodanie paginacji
   const {
     data: topicsData,
     isLoading: topicsLoading,
@@ -206,6 +205,9 @@ export const useCourseData = (courseId: string | undefined) => {
         order: "asc",
       },
     ],
+    pagination: {
+      mode: "off", // Pobierz wszystkie tematy bez limitu
+    },
     meta: {
       select: "*, activities(count)",
     },
@@ -233,6 +235,9 @@ export const useCourseData = (courseId: string | undefined) => {
         order: "asc",
       },
     ],
+    pagination: {
+      mode: "off", // Pobierz wszystkie aktywności bez limitu
+    },
     meta: {
       select: "*, questions(count)",
     },
