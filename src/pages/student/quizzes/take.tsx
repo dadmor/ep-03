@@ -1,4 +1,4 @@
-// src/pages/student/components/StudentQuiz.tsx
+// src/pages/student/quizzes/take.tsx
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useOne } from "@refinedev/core";
@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn, supabaseClient } from "@/utility";
 import { invalidateRPCCache } from "../hooks/useRPC";
+import { useStudentStats } from "../hooks";
 
 interface QuizQuestion {
   id: number;
@@ -21,6 +22,7 @@ interface QuizQuestion {
 export const QuizTake = () => {
   const { courseId, quizId } = useParams();
   const navigate = useNavigate();
+  const { refetch: refetchStats } = useStudentStats();
   const [currentQuestion, setCurrentQuestion] = React.useState(0);
   const [answers, setAnswers] = React.useState<Record<number, number>>({});
   const [timeLeft, setTimeLeft] = React.useState<number | null>(null);
@@ -92,59 +94,81 @@ export const QuizTake = () => {
     setAnswers(prev => ({ ...prev, [questionId]: optionId }));
   };
 
-// W handleSubmit dodaj przekierowanie do wyniku:
-const handleSubmit = async () => {
-  setIsSubmitting(true);
-  try {
-    const answersArray = Object.entries(answers).map(([questionId, optionId]) => ({
-      question_id: parseInt(questionId),
-      option_id: optionId
-    }));
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      const answersArray = Object.entries(answers).map(([questionId, optionId]) => ({
+        question_id: parseInt(questionId),
+        option_id: optionId
+      }));
 
-    const { data: result, error } = await supabaseClient.rpc('finish_quiz', {
-      p_activity_id: parseInt(quizId!),
-      p_answers: answersArray
-    });
+      console.log('Submitting quiz answers...');
 
-    if (error) throw error;
-
-    if (result) {
-      // Zamiast toasta i prostego przekierowania:
-      navigate(`/student/courses/${courseId}/quiz/${quizId}/result`, {
-        state: {
-          courseId,
-          quizId,
-          result: {
-            ...result,
-            passing_score: quiz?.passing_score || 70,
-            max_attempts: quiz?.max_attempts,
-            attempts_used: quiz?.attempts || 1
-          }
-        }
+      const { data: result, error } = await supabaseClient.rpc('finish_quiz', {
+        p_activity_id: parseInt(quizId!),
+        p_answers: answersArray
       });
+
+      if (error) throw error;
+
+      if (result) {
+        console.log('Quiz finished successfully:', result);
+        
+        // Invaliduj cache - tak jak w lekcjach
+        invalidateRPCCache("get_course_structure");
+        invalidateRPCCache("get_my_courses");
+        invalidateRPCCache("get_my_stats");
+        
+        // Wymuś odświeżenie statystyk z opóźnieniem
+        setTimeout(() => {
+          console.log('Forcing stats refresh...');
+          refetchStats();
+        }, 500);
+
+        // Dodatkowe sprawdzenie po chwili (dla debugowania)
+        setTimeout(async () => {
+          console.log('Manually checking updated stats...');
+          const { data: newStats, error: statsError } = await supabaseClient.rpc('get_my_stats');
+          console.log('New stats after quiz:', newStats, 'Error:', statsError);
+        }, 1000);
+
+        // Przekieruj do wyniku
+        navigate(`/student/courses/${courseId}/quiz/${quizId}/result`, {
+          state: {
+            courseId,
+            quizId,
+            result: {
+              ...result,
+              passing_score: quiz?.passing_score || 70,
+              max_attempts: quiz?.max_attempts,
+              attempts_used: quiz?.attempts || 1
+            }
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Failed to submit quiz:', error);
+      toast.error("Nie udało się przesłać odpowiedzi");
+    } finally {
+      setIsSubmitting(false);
     }
-  } catch (error) {
-    toast.error("Nie udało się przesłać odpowiedzi");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  };
 
   if (quizLoading || questionsLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-300"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="container mx-auto px-4 py-6 sm:py-8 max-w-3xl">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <button
           onClick={() => navigate(`/student/courses/${courseId}`)}
-          className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors"
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm">Zakończ quiz</span>
@@ -153,7 +177,7 @@ const handleSubmit = async () => {
         {timeLeft !== null && (
           <div className={cn(
             "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium",
-            timeLeft < 60 ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"
+            timeLeft < 60 ? "bg-red-100 text-red-700" : "bg-muted text-foreground"
           )}>
             <Clock className="w-4 h-4" />
             {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
@@ -163,8 +187,8 @@ const handleSubmit = async () => {
 
       {/* Quiz Info */}
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2">{quiz?.title}</h1>
-        <div className="flex items-center gap-4 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold mb-2">{quiz?.title}</h1>
+        <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span>Pytanie {currentQuestion + 1} z {questions.length}</span>
           <span>•</span>
           <span>{currentQ?.points} pkt</span>
@@ -172,11 +196,11 @@ const handleSubmit = async () => {
       </div>
 
       {/* Progress */}
-      <div className="h-1 bg-gray-100 rounded-full overflow-hidden mb-8">
+      <div className="h-1 bg-muted rounded-full overflow-hidden mb-8">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
-          className="h-full bg-gray-900"
+          className="h-full bg-primary"
         />
       </div>
 
@@ -190,8 +214,8 @@ const handleSubmit = async () => {
             exit={{ opacity: 0, x: -10 }}
             transition={{ duration: 0.2 }}
           >
-            <div className="bg-white rounded-2xl border border-gray-100 p-8 mb-8">
-              <h2 className="text-lg font-medium text-gray-900 mb-6">
+            <div className="bg-card rounded-2xl border p-8 mb-8">
+              <h2 className="text-lg font-medium mb-6">
                 {currentQ.question}
               </h2>
               
@@ -202,8 +226,8 @@ const handleSubmit = async () => {
                     className={cn(
                       "block p-4 rounded-xl border-2 cursor-pointer transition-all",
                       answers[currentQ.id] === option.id
-                        ? "border-gray-900 bg-gray-50"
-                        : "border-gray-200 hover:border-gray-300"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-muted-foreground"
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -218,11 +242,11 @@ const handleSubmit = async () => {
                       <div className={cn(
                         "w-5 h-5 rounded-full border-2 flex items-center justify-center",
                         answers[currentQ.id] === option.id
-                          ? "border-gray-900"
-                          : "border-gray-300"
+                          ? "border-primary"
+                          : "border-muted-foreground"
                       )}>
                         {answers[currentQ.id] === option.id && (
-                          <div className="w-2.5 h-2.5 rounded-full bg-gray-900" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-primary" />
                         )}
                       </div>
                       <span className="flex-1">{option.text}</span>
@@ -243,8 +267,8 @@ const handleSubmit = async () => {
           className={cn(
             "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all",
             currentQuestion === 0
-              ? "text-gray-400 cursor-not-allowed"
-              : "text-gray-700 hover:bg-gray-100"
+              ? "text-muted-foreground cursor-not-allowed"
+              : "text-foreground hover:bg-muted"
           )}
         >
           <ArrowLeft className="w-4 h-4" />
@@ -260,10 +284,10 @@ const handleSubmit = async () => {
               className={cn(
                 "w-2 h-2 rounded-full transition-all",
                 index === currentQuestion
-                  ? "bg-gray-900 w-8"
+                  ? "bg-primary w-8"
                   : answers[questions[index]?.id]
-                  ? "bg-gray-600"
-                  : "bg-gray-300"
+                  ? "bg-muted-foreground"
+                  : "bg-muted"
               )}
             />
           ))}
@@ -276,8 +300,8 @@ const handleSubmit = async () => {
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all",
               !answers[currentQ?.id]
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-gray-900 text-white hover:bg-gray-800"
+                ? "bg-muted text-muted-foreground cursor-not-allowed"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
             )}
           >
             Następne
@@ -290,7 +314,7 @@ const handleSubmit = async () => {
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all",
               isSubmitting || Object.keys(answers).length < questions.length
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                ? "bg-muted text-muted-foreground cursor-not-allowed"
                 : "bg-green-500 text-white hover:bg-green-600"
             )}
           >
