@@ -2,12 +2,13 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useOne } from "@refinedev/core";
-import { ArrowLeft, ArrowRight, Clock, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock, Check, CheckCircle, ListChecks, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn, supabaseClient } from "@/utility";
 import { invalidateRPCCache } from "../hooks/useRPC";
 import { useStudentStats } from "../hooks";
+import { Badge } from "@/components/ui/badge";
 
 interface QuizQuestion {
   id: number;
@@ -16,15 +17,18 @@ interface QuizQuestion {
   options: Array<{
     id: number;
     text: string;
+    is_correct?: boolean; // Dodajemy to pole do analizy typu
   }>;
 }
+
+type QuestionType = 'single' | 'multiple' | 'true_false';
 
 export const QuizTake = () => {
   const { courseId, quizId } = useParams();
   const navigate = useNavigate();
   const { refetch: refetchStats } = useStudentStats();
   const [currentQuestion, setCurrentQuestion] = React.useState(0);
-  const [answers, setAnswers] = React.useState<Record<number, number>>({});
+  const [answers, setAnswers] = React.useState<Record<number, number | number[]>>({});
   const [timeLeft, setTimeLeft] = React.useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [questions, setQuestions] = React.useState<QuizQuestion[]>([]);
@@ -90,19 +94,71 @@ export const QuizTake = () => {
   const currentQ = questions[currentQuestion];
   const progress = questions.length > 0 ? ((currentQuestion + 1) / questions.length) * 100 : 0;
 
-  const handleAnswer = (questionId: number, optionId: number) => {
-    setAnswers(prev => ({ ...prev, [questionId]: optionId }));
+  // Funkcja do określenia typu pytania na podstawie opcji
+  const getQuestionType = (question: QuizQuestion): QuestionType => {
+    if (!question.options || question.options.length === 0) return 'single';
+    
+    // Sprawdź czy to pytanie prawda/fałsz
+    if (question.options.length === 2) {
+      const optionTexts = question.options.map(opt => opt.text.toLowerCase());
+      if (
+        (optionTexts.includes('prawda') && optionTexts.includes('fałsz')) ||
+        (optionTexts.includes('tak') && optionTexts.includes('nie')) ||
+        (optionTexts.includes('true') && optionTexts.includes('false'))
+      ) {
+        return 'true_false';
+      }
+    }
+    
+    // Sprawdź ile opcji jest oznaczonych jako poprawne (jeśli mamy te dane z backendu)
+    const correctCount = question.options.filter(opt => opt.is_correct).length;
+    return correctCount > 1 ? 'multiple' : 'single';
+  };
+
+  const getQuestionTypeLabel = (type: QuestionType) => {
+    switch (type) {
+      case 'single':
+        return { label: 'Jednokrotny wybór', icon: CheckCircle };
+      case 'multiple':
+        return { label: 'Wielokrotny wybór', icon: ListChecks };
+      case 'true_false':
+        return { label: 'Prawda/Fałsz', icon: AlertCircle };
+    }
+  };
+
+  const handleAnswer = (questionId: number, optionId: number, isMultiple: boolean) => {
+    if (isMultiple) {
+      const currentAnswers = (answers[questionId] as number[]) || [];
+      const newAnswers = currentAnswers.includes(optionId)
+        ? currentAnswers.filter(id => id !== optionId)
+        : [...currentAnswers, optionId];
+      setAnswers(prev => ({ ...prev, [questionId]: newAnswers }));
+    } else {
+      setAnswers(prev => ({ ...prev, [questionId]: optionId }));
+    }
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const answersArray = Object.entries(answers).map(([questionId, optionId]) => ({
-        question_id: parseInt(questionId),
-        option_id: optionId
-      }));
+      // Przygotuj odpowiedzi w formacie oczekiwanym przez backend
+      const answersArray = Object.entries(answers).flatMap(([questionId, answer]) => {
+        if (Array.isArray(answer)) {
+          // Dla pytań wielokrotnego wyboru - wysyłamy każdą zaznaczoną opcję
+          return answer.map(optionId => ({
+            question_id: parseInt(questionId),
+            option_id: optionId
+          }));
+        } else {
+          // Dla pytań jednokrotnego wyboru
+          return [{
+            question_id: parseInt(questionId),
+            option_id: answer as number
+          }];
+        }
+      });
 
-      console.log('Submitting quiz answers...');
+      console.log('Submitting quiz answers:', answersArray);
 
       const { data: result, error } = await supabaseClient.rpc('finish_quiz', {
         p_activity_id: parseInt(quizId!),
@@ -114,23 +170,16 @@ export const QuizTake = () => {
       if (result) {
         console.log('Quiz finished successfully:', result);
         
-        // Invaliduj cache - tak jak w lekcjach
+        // Invaliduj cache
         invalidateRPCCache("get_course_structure");
         invalidateRPCCache("get_my_courses");
         invalidateRPCCache("get_my_stats");
         
-        // Wymuś odświeżenie statystyk z opóźnieniem
+        // Wymuś odświeżenie statystyk
         setTimeout(() => {
           console.log('Forcing stats refresh...');
           refetchStats();
         }, 500);
-
-        // Dodatkowe sprawdzenie po chwili (dla debugowania)
-        setTimeout(async () => {
-          console.log('Manually checking updated stats...');
-          const { data: newStats, error: statsError } = await supabaseClient.rpc('get_my_stats');
-          console.log('New stats after quiz:', newStats, 'Error:', statsError);
-        }, 1000);
 
         // Przekieruj do wyniku
         navigate(`/student/courses/${courseId}/quiz/${quizId}/result`, {
@@ -162,6 +211,18 @@ export const QuizTake = () => {
     );
   }
 
+  if (!currentQ) return null;
+
+  const questionType = getQuestionType(currentQ);
+  const typeInfo = getQuestionTypeLabel(questionType);
+  const isMultiple = questionType === 'multiple';
+  const currentAnswer = answers[currentQ.id];
+
+  // Sprawdź czy pytanie ma odpowiedź (dla nawigacji)
+  const hasAnswer = isMultiple 
+    ? Array.isArray(currentAnswer) && currentAnswer.length > 0
+    : currentAnswer !== undefined;
+
   return (
     <div className="container mx-auto px-4 py-6 sm:py-8 max-w-3xl">
       {/* Header */}
@@ -191,7 +252,12 @@ export const QuizTake = () => {
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span>Pytanie {currentQuestion + 1} z {questions.length}</span>
           <span>•</span>
-          <span>{currentQ?.points} pkt</span>
+          <span>{currentQ.points} pkt</span>
+          <span>•</span>
+          <Badge variant="outline" className="text-xs">
+            <typeInfo.icon className="w-3 h-3 mr-1" />
+            {typeInfo.label}
+          </Badge>
         </div>
       </div>
 
@@ -206,57 +272,80 @@ export const QuizTake = () => {
 
       {/* Question */}
       <AnimatePresence mode="wait">
-        {currentQ && (
-          <motion.div
-            key={currentQ.id}
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -10 }}
-            transition={{ duration: 0.2 }}
-          >
-            <div className="bg-card rounded-2xl border p-8 mb-8">
-              <h2 className="text-lg font-medium mb-6">
-                {currentQ.question}
-              </h2>
-              
-              <div className="space-y-3">
-                {currentQ.options.map((option) => (
+        <motion.div
+          key={currentQ.id}
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          transition={{ duration: 0.2 }}
+        >
+          <div className="bg-card rounded-2xl border p-8 mb-8">
+            <h2 className="text-lg font-medium mb-6">
+              {currentQ.question}
+            </h2>
+            
+            {isMultiple && (
+              <p className="text-sm text-muted-foreground mb-4">
+                ⚠️ Zaznacz wszystkie poprawne odpowiedzi
+              </p>
+            )}
+            
+            <div className="space-y-3">
+              {currentQ.options.map((option) => {
+                const isSelected = isMultiple
+                  ? Array.isArray(currentAnswer) && currentAnswer.includes(option.id)
+                  : currentAnswer === option.id;
+
+                return (
                   <label
                     key={option.id}
                     className={cn(
                       "block p-4 rounded-xl border-2 cursor-pointer transition-all",
-                      answers[currentQ.id] === option.id
+                      isSelected
                         ? "border-primary bg-primary/5"
                         : "border-border hover:border-muted-foreground"
                     )}
                   >
                     <div className="flex items-center gap-3">
                       <input
-                        type="radio"
+                        type={isMultiple ? "checkbox" : "radio"}
                         name={`question-${currentQ.id}`}
                         value={option.id}
-                        checked={answers[currentQ.id] === option.id}
-                        onChange={() => handleAnswer(currentQ.id, option.id)}
+                        checked={isSelected}
+                        onChange={() => handleAnswer(currentQ.id, option.id, isMultiple)}
                         className="sr-only"
                       />
                       <div className={cn(
-                        "w-5 h-5 rounded-full border-2 flex items-center justify-center",
-                        answers[currentQ.id] === option.id
-                          ? "border-primary"
-                          : "border-muted-foreground"
+                        "flex items-center justify-center flex-shrink-0",
+                        isMultiple
+                          ? cn(
+                              "w-5 h-5 rounded border-2",
+                              isSelected
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-muted-foreground"
+                            )
+                          : cn(
+                              "w-5 h-5 rounded-full border-2",
+                              isSelected
+                                ? "border-primary"
+                                : "border-muted-foreground"
+                            )
                       )}>
-                        {answers[currentQ.id] === option.id && (
+                        {isMultiple && isSelected && (
+                          <Check className="w-3 h-3" />
+                        )}
+                        {!isMultiple && isSelected && (
                           <div className="w-2.5 h-2.5 rounded-full bg-primary" />
                         )}
                       </div>
                       <span className="flex-1">{option.text}</span>
                     </div>
                   </label>
-                ))}
-              </div>
+                );
+              })}
             </div>
-          </motion.div>
-        )}
+          </div>
+        </motion.div>
       </AnimatePresence>
 
       {/* Navigation */}
@@ -277,29 +366,36 @@ export const QuizTake = () => {
 
         {/* Question Dots */}
         <div className="flex gap-2">
-          {questions.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentQuestion(index)}
-              className={cn(
-                "w-2 h-2 rounded-full transition-all",
-                index === currentQuestion
-                  ? "bg-primary w-8"
-                  : answers[questions[index]?.id]
-                  ? "bg-muted-foreground"
-                  : "bg-muted"
-              )}
-            />
-          ))}
+          {questions.map((_, index) => {
+            const questionAnswer = answers[questions[index]?.id];
+            const hasAnyAnswer = Array.isArray(questionAnswer) 
+              ? questionAnswer.length > 0 
+              : questionAnswer !== undefined;
+
+            return (
+              <button
+                key={index}
+                onClick={() => setCurrentQuestion(index)}
+                className={cn(
+                  "w-2 h-2 rounded-full transition-all",
+                  index === currentQuestion
+                    ? "bg-primary w-8"
+                    : hasAnyAnswer
+                    ? "bg-muted-foreground"
+                    : "bg-muted"
+                )}
+              />
+            );
+          })}
         </div>
 
         {currentQuestion < questions.length - 1 ? (
           <button
             onClick={() => setCurrentQuestion(currentQuestion + 1)}
-            disabled={!answers[currentQ?.id]}
+            disabled={!hasAnswer}
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all",
-              !answers[currentQ?.id]
+              !hasAnswer
                 ? "bg-muted text-muted-foreground cursor-not-allowed"
                 : "bg-primary text-primary-foreground hover:bg-primary/90"
             )}
