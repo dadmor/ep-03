@@ -115,6 +115,9 @@ export const CourseDetailView = () => {
       (a: any, b: any) => a.position - b.position
     ) as Topic[];
 
+    // Znajdź globalnie pierwszy nieukończony materiał
+    let globalFirstIncompleteFound = false;
+
     return topics.map((topic: any, index: number) => {
       const isCompleted =
         topic.activities.length > 0 &&
@@ -127,6 +130,25 @@ export const CourseDetailView = () => {
 
       // posortuj aktywności po pozycji
       topic.activities.sort((a: any, b: any) => a.position - b.position);
+
+      // Oznacz które aktywności są odblokowane
+      topic.activities = topic.activities.map((activity: any) => {
+        let activityUnlocked = false;
+
+        if (activity.completed) {
+          // Ukończone zawsze odblokowane
+          activityUnlocked = true;
+        } else if (isUnlocked && !globalFirstIncompleteFound) {
+          // Pierwszy nieukończony globalnie
+          activityUnlocked = true;
+          globalFirstIncompleteFound = true;
+        }
+
+        return {
+          ...activity,
+          isUnlocked: activityUnlocked,
+        };
+      });
 
       return {
         ...topic,
@@ -149,11 +171,10 @@ export const CourseDetailView = () => {
 
   const course = courseData?.[0];
 
-  // wyznacz "kontynuuj"
+  // wyznacz "kontynuuj" - znajdź pierwszy odblokowany nieukończony
   const nextActivity = React.useMemo(() => {
     for (const topic of topicsWithActivities) {
-      if (!topic.isUnlocked) break;
-      const a = topic.activities.find((x: any) => !x.completed);
+      const a = topic.activities.find((x: any) => !x.completed && x.isUnlocked);
       if (a) {
         return {
           topicId: topic.id,
@@ -405,16 +426,16 @@ export const CourseDetailView = () => {
                 return (
                   <motion.button
                     key={activity.id}
-                    whileHover={topic.isUnlocked ? { x: 2 } : {}}
-                    whileTap={topic.isUnlocked ? { scale: 0.98 } : {}}
+                    whileHover={activity.isUnlocked ? { x: 2 } : {}}
+                    whileTap={activity.isUnlocked ? { scale: 0.98 } : {}}
                     onClick={() => {
-                      if (!topic.isUnlocked) return;
+                      if (!activity.isUnlocked) return;
                       navigate(path);
                     }}
-                    disabled={!topic.isUnlocked}
+                    disabled={!activity.isUnlocked}
                     className={cn(
                       "w-full flex items-center justify-between p-4 rounded-xl border transition-colors focus-ring",
-                      topic.isUnlocked
+                      activity.isUnlocked
                         ? "bg-background/60 hover:bg-primary/5"
                         : "bg-muted/40 cursor-not-allowed"
                     )}
@@ -423,36 +444,50 @@ export const CourseDetailView = () => {
                       <div
                         className={cn(
                           "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                          isQuiz ? "bg-purple-100" : "bg-blue-100"
+                          isQuiz 
+                            ? activity.isUnlocked 
+                              ? "bg-purple-100" 
+                              : "bg-muted"
+                            : activity.isUnlocked 
+                              ? "bg-blue-100" 
+                              : "bg-muted"
                         )}
                       >
-                        {isQuiz ? (
+                        {!activity.isUnlocked ? (
+                          <Lock className="w-4 h-4 text-muted-foreground" />
+                        ) : isQuiz ? (
                           <Zap className="w-4 h-4 text-purple-600" />
                         ) : (
                           <Clock className="w-4 h-4 text-blue-600" />
                         )}
                       </div>
                       <div className="text-left">
-                        <div className="font-medium text-foreground">
+                        <div className={cn(
+                          "font-medium",
+                          activity.isUnlocked ? "text-foreground" : "text-muted-foreground"
+                        )}>
                           {activity.title}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           {isQuiz ? "Quiz" : "Materiał"}
                           {activity.score !== null && ` • ${activity.score}%`}
+                          {!activity.isUnlocked && " • Zablokowane"}
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3">
-                      {!activity.completed && topic.isUnlocked && (
+                      {!activity.completed && activity.isUnlocked && (
                         <span className="hidden sm:inline text-xs text-muted-foreground">
                           Przejdź
                         </span>
                       )}
                       {activity.completed ? (
                         <Check className="w-5 h-5 text-green-600" />
-                      ) : (
+                      ) : activity.isUnlocked ? (
                         <ArrowRight className="w-5 h-5 text-muted-foreground" />
+                      ) : (
+                        <Lock className="w-4 h-4 text-muted-foreground" />
                       )}
                     </div>
                   </motion.button>
