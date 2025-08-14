@@ -128,7 +128,7 @@ export const StudentMenu: React.FC<StudentMenuProps> = ({ onClose, variant = "si
               <Zap className="w-4 h-4 text-primary" />
               <span className="text-xs text-muted-foreground">Punkty</span>
             </div>
-            <p className="text-lg font-bold">{stats.points}</p>
+            <p className="text-lg font-bold">{Math.floor(stats.points)}</p>
             <p className="text-xs text-primary">+{stats.idle_rate}/h</p>
           </article>
           <article className="rounded-xl border p-3 bg-destructive/5 border-destructive/10">
@@ -178,7 +178,7 @@ export const StudentMenu: React.FC<StudentMenuProps> = ({ onClose, variant = "si
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
             <div
               className="h-full rounded-full bg-gradient-to-r from-primary via-secondary to-accent"
-              style={{ width: `${Math.max(0, Math.min(100, stats.points % 100))}%` }}
+              style={{ width: `${Math.max(0, Math.min(100, (stats.points % 100)))}%` }}
             />
           </div>
         </div>

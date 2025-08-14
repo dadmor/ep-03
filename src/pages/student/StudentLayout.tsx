@@ -1,3 +1,4 @@
+// src/pages/student/StudentLayout.tsx
 import type { PropsWithChildren } from "react";
 import { useState, useEffect } from "react";
 import { StudentMenu } from "./StudentMenu";
@@ -6,7 +7,6 @@ import { Menu } from "lucide-react";
 import { useStudentStats } from "./hooks";
 import { Background } from "./student-layout/Background";
 import { TopBar } from "./student-layout/TopBar";
-
 
 export const StudentLayout: React.FC<PropsWithChildren> = ({ children }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -89,7 +89,6 @@ export const StudentLayout: React.FC<PropsWithChildren> = ({ children }) => {
       <nav
         aria-label="Nawigacja dolna"
         className="fixed py-3.5 bottom-0 z-40 left-0 right-0 lg:left-72 bg-card/95 backdrop-blur-xl border-t"
-        
       >
         <StudentMenu variant="bottom" />
       </nav>

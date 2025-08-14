@@ -1,54 +1,66 @@
-// src/pages/student/hooks/useIdlePoints.ts - ZOPTYMALIZOWANA WERSJA
-import { useEffect, useRef } from "react";
+// src/pages/student/hooks/useIdlePoints.ts
+import { useCallback } from "react";
 import { supabaseClient } from "@/utility";
-import { useStudentStats } from "./useStudentStats";
+import { toast } from "sonner";
 
 export const useIdlePoints = () => {
-  const { stats, setStats } = useStudentStats();
-  const animationFrameRef = useRef<number>();
-  const lastUpdateRef = useRef<number>(Date.now());
-
-  // Używamy requestAnimationFrame zamiast setInterval dla płynniejszej animacji
-  useEffect(() => {
-    if (stats.idle_rate <= 0) return;
-    
-    const animate = () => {
-      const now = Date.now();
-      const deltaTime = (now - lastUpdateRef.current) / 1000; // sekundy
-      
-      if (deltaTime >= 1) {
-        setStats(prev => ({
-          ...prev,
-          points: prev.points + Math.floor(prev.idle_rate / 3600)
-        }));
-        lastUpdateRef.current = now;
-      }
-      
-      animationFrameRef.current = requestAnimationFrame(animate);
-    };
-    
-    animationFrameRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [stats.idle_rate, setStats]);
-
   // Odbierz nagrody z backendu
-  const claimDailyRewards = async () => {
+  const claimDailyRewards = useCallback(async () => {
     try {
       const { data, error } = await supabaseClient.rpc('claim_daily_rewards');
       
       if (error) throw error;
       
+      // Wyświetl powiadomienie o nagrodach
+      if (data) {
+        const totalEarned = (data.idle_points || 0) + (data.daily_points || 0);
+        
+        if (totalEarned > 0) {
+          toast.success(`Nagrody zebrane! 🎉`, {
+            description: `Otrzymałeś ${totalEarned} punktów`
+          });
+        }
+        
+        if (data.streak > 1) {
+          toast.success(`Seria ${data.streak} dni! 🔥`, {
+            description: "Kontynuuj codzienne logowanie!"
+          });
+        }
+      }
+      
       return data;
     } catch (error) {
       console.error("Failed to claim rewards:", error);
+      toast.error("Nie udało się zebrać nagród");
       throw error;
     }
-  };
+  }, []);
 
-  return { claimDailyRewards };
+  // Funkcja do kupowania ulepszeń idle
+  const buyIdleUpgrade = useCallback(async (upgradeId: number) => {
+    try {
+      const { data, error } = await supabaseClient.rpc('buy_idle_upgrade', {
+        p_upgrade_id: upgradeId
+      });
+      
+      if (error) throw error;
+      
+      if (data) {
+        toast.success("Ulepszenie kupione! 💎", {
+          description: `Nowy poziom: ${data.new_level}, Idle rate: +${data.new_idle_rate}/h`
+        });
+      }
+      
+      return data;
+    } catch (error: any) {
+      console.error("Failed to buy upgrade:", error);
+      toast.error(error.message || "Nie udało się kupić ulepszenia");
+      throw error;
+    }
+  }, []);
+
+  return { 
+    claimDailyRewards,
+    buyIdleUpgrade
+  };
 };
