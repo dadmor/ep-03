@@ -60,8 +60,10 @@ export const StudentLayout: React.FC<PropsWithChildren> = ({ children }) => {
 
         {/* Main Content */}
         <main className="flex-1 lg:ml-72 min-w-0 relative z-10">
-          {/* Top Bar - Desktop */}
-          <TopBar stats={stats} theme={theme} onToggleTheme={toggleTheme} />
+          {/* Top Bar - Desktop - ZMIANA: fixed zamiast sticky */}
+          <div className="fixed top-0 left-72 right-0 z-30 hidden lg:block">
+            <TopBar stats={stats} theme={theme} onToggleTheme={toggleTheme} />
+          </div>
 
           {/* Mobile Header */}
           <div className="sticky top-0 z-30 flex h-16 items-center border-b bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60 px-4 lg:hidden">
@@ -78,8 +80,8 @@ export const StudentLayout: React.FC<PropsWithChildren> = ({ children }) => {
             </span>
           </div>
 
-          {/* Content with bottom padding for mobile nav */}
-          <div className="min-h-[calc(100vh-4rem)] pb-32 lg:pb-24">
+          {/* Content with bottom padding for mobile nav - ZMIANA: dodanie pt-16 na desktop */}
+          <div className="min-h-[calc(100vh-4rem)] pb-32 lg:pb-24 lg:pt-16">
             {children}
           </div>
         </main>
