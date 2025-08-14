@@ -156,36 +156,59 @@ class GenericLLMService {
     return cleaned.trim();
   }
 
-  private static parseJsonResponse(text: string): any {
-    // Najpierw spróbuj wyczyścić markdown code blocks
-    const cleaned = this.cleanJsonResponse(text);
+// W pliku llmFormWizard.ts, zamień metodę parseJsonResponse na:
+
+private static parseJsonResponse(text: string): any {
+  // Najpierw spróbuj wyczyścić markdown code blocks
+  const cleaned = this.cleanJsonResponse(text);
+  
+  // Spróbuj sparsować oczyszczony tekst
+  try {
+    return JSON.parse(cleaned);
+  } catch (e: any) {
+    // Jeśli się nie udało, spróbuj z różnymi poprawkami
     
-    // Spróbuj sparsować oczyszczony tekst
+    // Poprawka 1: Napraw problematyczne escape'y w numerowanych listach
     try {
-      return JSON.parse(cleaned);
-    } catch (e: any) {
-      // Jeśli się nie udało, spróbuj z poprawkami dla błędnych escape'ów
+      const fixed = cleaned.replace(/\\(\d+)\./g, '$1.');
+      return JSON.parse(fixed);
+    } catch (e2: any) {
+      // Poprawka 2: Usuń podwójne backslashe
       try {
-        // Napraw problematyczne escape'y w numerowanych listach
-        const fixed = cleaned.replace(/\\(\d+)\./g, '$1.');
-        return JSON.parse(fixed);
-      } catch (e2: any) {
-        // Spróbuj znaleźć JSON w tekście
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        const fixedDoubleBackslash = cleaned.replace(/\\\\/g, '\\');
+        return JSON.parse(fixedDoubleBackslash);
+      } catch (e3: any) {
+        // Poprawka 3: Spróbuj znaleźć JSON w tekście
+        const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           try {
-            const fixedMatch = jsonMatch[0].replace(/\\(\d+)\./g, '$1.');
+            const fixedMatch = jsonMatch[0]
+              .replace(/\\(\d+)\./g, '$1.')
+              .replace(/\\\\/g, '\\');
             return JSON.parse(fixedMatch);
-          } catch (e3: any) {
-            console.error("Failed to parse JSON response:", text);
-            throw new Error("Nie udało się przetworzyć odpowiedzi JSON z API");
+          } catch (e4: any) {
+            // Ostatnia próba - usuń wszystkie problematyczne escape'y
+            try {
+              const aggressiveFixed = jsonMatch[0]
+                .replace(/\\"/g, '"')
+                .replace(/\\n/g, '\n')
+                .replace(/\\r/g, '\r')
+                .replace(/\\t/g, '\t')
+                .replace(/\\\\/g, '\\');
+              return JSON.parse(aggressiveFixed);
+            } catch (e5: any) {
+              console.error("Failed to parse JSON response after all attempts:", text);
+              console.error("Cleaned version:", cleaned);
+              throw new Error("Nie udało się przetworzyć odpowiedzi JSON z API");
+            }
           }
         }
-        console.error("Failed to parse JSON response:", text);
-        throw new Error("Nie udało się przetworzyć odpowiedzi JSON z API");
+        console.error("No JSON found in response:", text);
+        throw new Error("Nie znaleziono poprawnego JSON w odpowiedzi");
       }
     }
   }
+}
 }
 
 // ================ STORE IMPLEMENTATION ================

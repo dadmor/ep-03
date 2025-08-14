@@ -28,7 +28,7 @@ export const MaterialWizardStep3: React.FC = () => {
   const { getData, setData } = useFormSchemaStore();
   const formData = getData("educational-material-wizard");
   const [learningObjectives, setLearningObjectives] = useState(formData.learningObjectives || "");
-  const [materialType, setMaterialType] = useState("mixed");
+  const [materialType, setMaterialType] = useState(formData.materialType || "lesson"); // Zmienione z "mixed" na "lesson"
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const llmGeneration = useLLMOperation("educational-material-wizard", "generate-material");
@@ -67,10 +67,23 @@ export const MaterialWizardStep3: React.FC = () => {
       };
       
       setData("educational-material-wizard", updatedData);
-      await llmGeneration.executeOperation(updatedData);
-      navigate(MATERIAL_PATHS.step4);
-    } catch (error) {
-      console.error(errorTexts.generationError, error);
+      
+      // Wykonaj operację i poczekaj na wynik
+      const result = await llmGeneration.executeOperation(updatedData);
+      
+      // Sprawdź czy operacja się powiodła
+      if (result) {
+        console.log("Material generated successfully:", result);
+        navigate(MATERIAL_PATHS.step4);
+      } else {
+        console.error("No result from LLM operation");
+        setErrors({ general: "Nie udało się wygenerować materiału - brak wyniku" });
+      }
+    } catch (error: any) {
+      console.error("Full error details:", error);
+      const errorMessage = error.message || error.toString() || "Nieznany błąd";
+      console.error(errorTexts.generationError, errorMessage);
+      setErrors({ general: `${errorTexts.generationError} ${errorMessage}` });
     }
   };
 
@@ -117,9 +130,9 @@ export const MaterialWizardStep3: React.FC = () => {
                   <SelectValue placeholder="Wybierz typ materiału..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="lesson">Lekcja z teorią</SelectItem>
-                  <SelectItem value="exercise">Ćwiczenia praktyczne</SelectItem>
-                  <SelectItem value="mixed">Teoria + ćwiczenia</SelectItem>
+                  <SelectItem value="lesson">Lekcja z teorią (w kontekscie materiałów źródłowych)</SelectItem>
+                  <SelectItem value="source_material">Materiały źródłowe</SelectItem>
+                  <SelectItem value="context">Dane wejściowe - naprowadzamy na obszar tematu</SelectItem>
                 </SelectContent>
               </Select>
               {errors.materialType && (
@@ -132,6 +145,14 @@ export const MaterialWizardStep3: React.FC = () => {
                 <Info className="h-4 w-4 text-purple-600" />
                 <AlertDescription className="text-purple-800">
                   {steps[3].loadingInfo}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {(llmGeneration.error || errors.general) && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {errors.general || llmGeneration.error}
                 </AlertDescription>
               </Alert>
             )}

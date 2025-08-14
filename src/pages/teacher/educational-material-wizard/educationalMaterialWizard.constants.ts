@@ -1,4 +1,3 @@
-
 import { LLMOperation } from "@/utility/llmFormWizard";
 
 // ===== FORM SCHEMA =====
@@ -41,10 +40,26 @@ export const EDUCATIONAL_MATERIAL_SCHEMA = {
       title: "Analiza tematu",
       type: "object",
       properties: {
-        keyTopics: { type: "tags", title: "Kluczowe zagadnienia", readOnly: true },
-        learningObjectives: { type: "textarea", title: "Cele nauczania", readOnly: true },
-        prerequisites: { type: "tags", title: "Wymagania wstępne", readOnly: true },
-        estimatedDuration: { type: "number", title: "Szacowany czas (min)", readOnly: true },
+        keyTopics: {
+          type: "tags",
+          title: "Kluczowe zagadnienia",
+          readOnly: true,
+        },
+        learningObjectives: {
+          type: "textarea",
+          title: "Cele nauczania",
+          readOnly: true,
+        },
+        prerequisites: {
+          type: "tags",
+          title: "Wymagania wstępne",
+          readOnly: true,
+        },
+        estimatedDuration: {
+          type: "number",
+          title: "Szacowany czas (min)",
+          readOnly: true,
+        },
       },
     },
     step3: {
@@ -61,9 +76,15 @@ export const EDUCATIONAL_MATERIAL_SCHEMA = {
           type: "select",
           title: "Typ materiału",
           options: [
-            { value: "lesson", label: "Lekcja z teorią" },
-            { value: "exercise", label: "Ćwiczenia praktyczne" },
-            { value: "mixed", label: "Teoria + ćwiczenia" },
+            {
+              value: "lesson",
+              label: "Lekcja z teorią (w kontekscie materiałów źródłowych)",
+            },
+            { value: "source_material", label: "Materiały źródłowe" },
+            {
+              value: "context",
+              label: "Dane wejściowe - naprowadzamy na obszar tematu",
+            },
           ],
         },
       },
@@ -75,11 +96,21 @@ export const EDUCATIONAL_MATERIAL_SCHEMA = {
       properties: {
         title: { type: "text", title: "Tytuł materiału", readOnly: true },
         content: { type: "textarea", title: "Treść materiału", readOnly: true },
-        exercises: { type: "textarea", title: "Ćwiczenia", readOnly: true },
-        summary: { type: "textarea", title: "Podsumowanie", readOnly: true },
       },
     },
     step5: {
+      title: "Dodaj pytania kontrolne",
+      type: "object",
+      properties: {
+        addQuizzes: { type: "boolean", title: "Dodać pytania kontrolne?" },
+        quizContent: {
+          type: "textarea",
+          title: "Pytania kontrolne",
+          placeholder: "Tutaj dodasz pytania w formacie YAML...",
+        },
+      },
+    },
+    step6: {
       title: "Finalizacja",
       type: "object",
       properties: {
@@ -118,7 +149,13 @@ export const EDUCATIONAL_MATERIAL_SCHEMA = {
           placeholder: "15",
         },
       },
-      required: ["courseId", "topicId", "activityTitle", "activityType", "content"],
+      required: [
+        "courseId",
+        "topicId",
+        "activityTitle",
+        "activityType",
+        "content",
+      ],
     },
   },
 };
@@ -131,27 +168,9 @@ export const TOPIC_ANALYSIS_OPERATION: LLMOperation = {
     endpoint: "https://diesel-power-backend.onrender.com/api/chat",
   },
   prompt: {
-    system: "Jesteś ekspertem od edukacji i tworzenia materiałów dydaktycznych.",
-    user: `
-Przeanalizuj temat edukacyjny:
-Temat: {{subject}}
-Poziom: {{targetLevel}}
-Grupa wiekowa: {{ageGroup}}
-
-Wygeneruj JSON:
-{
-  "keyTopics": ["temat1", "temat2", "temat3"],
-  "learningObjectives": "<szczegółowe cele nauczania - czego uczeń się nauczy>",
-  "prerequisites": ["wymaganie1", "wymaganie2"],
-  "estimatedDuration": <liczba minut>
-}
-
-Wymagania:
-- KeyTopics: 3-7 kluczowych zagadnień do omówienia
-- LearningObjectives: konkretne, mierzalne cele (100-200 słów)
-- Prerequisites: 2-5 wymagań wstępnych (może być puste dla początkujących)
-- EstimatedDuration: realistyczny czas w minutach (15-90)
-    `,
+    system:
+      "Jesteś ekspertem od edukacji i tworzenia materiałów dydaktycznych w metodyce ODKRYWCZEJ. Analizujesz tematy pod kątem tworzenia interaktywnych materiałów z pytaniami kontrolnymi.",
+    user: 'Przeanalizuj temat edukacyjny i zaplanuj strukturę materiału w metodyce ODKRYWCZEJ:\n\nTemat: {{subject}}\nPoziom: {{targetLevel}}\nGrupa wiekowa: {{ageGroup}}\n\nWygeneruj JSON z planem materiału:\n{\n  "keyTopics": ["temat1", "temat2", "temat3", "temat4", "temat5"],\n  "learningObjectives": "<szczegółowe cele nauczania - co dokładnie uczeń będzie umiał po przejściu materiału>",\n  "prerequisites": ["wymaganie1", "wymaganie2"],\n  "estimatedDuration": <liczba minut>\n}\n\nWAŻNE WYMAGANIA:\n1. KeyTopics (5-7 tematów):\n   - Każdy temat = osobna sekcja w materiale\n   - Uporządkuj od podstaw do zaawansowanych\n   - Każdy temat musi być na tyle konkretny, aby można było stworzyć pytanie kontrolne\n   \n2. LearningObjectives (150-250 słów):\n   - Konkretne, mierzalne umiejętności\n   - Użyj czasowników: "będzie potrafił", "zrozumie", "nauczy się"\n   - Uwzględnij zarówno wiedzę teoretyczną jak i praktyczne zastosowanie\n   \n3. Prerequisites:\n   - Dla początkujących: może być puste []\n   - Dla średniozaawansowanych: 2-3 wymagania\n   - Dla zaawansowanych: 3-5 wymagań\n   \n4. EstimatedDuration:\n   - Początkujący: 20-40 minut\n   - Średniozaawansowany: 30-60 minut  \n   - Zaawansowany: 45-90 minut\n   - Uwzględnij czas na przemyślenie pytań kontrolnych',
     responseFormat: "json",
   },
   inputMapping: (data) => ({
@@ -167,7 +186,13 @@ Wymagania:
     estimatedDuration: llmResult.estimatedDuration,
   }),
   validation: (result) =>
-    !!(result.keyTopics && result.learningObjectives && result.estimatedDuration),
+    !!(
+      result.keyTopics &&
+      Array.isArray(result.keyTopics) &&
+      result.keyTopics.length >= 3 &&
+      result.learningObjectives &&
+      result.estimatedDuration
+    ),
 };
 
 export const MATERIAL_GENERATION_OPERATION: LLMOperation = {
@@ -177,33 +202,54 @@ export const MATERIAL_GENERATION_OPERATION: LLMOperation = {
     endpoint: "https://diesel-power-backend.onrender.com/api/chat",
   },
   prompt: {
-    system: "Jesteś doświadczonym nauczycielem tworzącym angażujące materiały edukacyjne.",
-    user: `
-Stwórz materiał edukacyjny:
+    system:
+      "Jesteś doświadczonym nauczycielem tworzącym angażujące materiały edukacyjne w metodzie ODKRYWCZEJ. Nie używaj metodyki podawczej!!!, bazując na technice Feynmana.",
+    user: `Wygeneruj materiał edukacyjny na podstawie danych:
 
-Temat: {{subject}}
-Poziom: {{targetLevel}}
-Grupa wiekowa: {{ageGroup}}
-Cele nauczania: {{learningObjectives}}
-Typ materiału: {{materialType}}
-Kluczowe zagadnienia: {{keyTopics}}
+Dane wejściowe:
+- Temat: {{subject}}
+- Poziom: {{targetLevel}}
+- Grupa wiekowa: {{ageGroup}}
+- Cele nauczania: {{learningObjectives}}
+- Typ materiału: {{materialType}}
+- Kluczowe zagadnienia: {{keyTopics}}
 
-Wygeneruj JSON:
+TYPY MATERIAŁÓW:
+
+1. Jeśli materialType = "lesson" (Lekcja z teorią w kontekscie materiałów źródłowych):
+   - Wyjaśnij teorię odwołując się do praktycznych źródeł
+   - Pokazuj jak teoria łączy się z rzeczywistymi materiałami
+   - Używaj przykładów z dokumentacji, książek, artykułów
+
+2. Jeśli materialType = "source_material" (Materiały źródłowe):
+   - Skoncentruj się na analizie konkretnych materiałów
+   - Omów fragmenty kodu, dokumentacji, przykłady
+   - Wyjaśnij jak czytać i interpretować źródła
+
+3. Jeśli materialType = "context" (Dane wejściowe - naprowadzanie):
+   - Używaj przykładów z dokumentacji, książek, artykułów
+   - Wprowadź ucznia w temat od podstaw
+   - Wyjaśnij kontekst i tło zagadnienia z wykorzystaniem metodyki ODKRYWCZEJ,
+   - Przygotuj grunt pod głębsze zrozumienie
+
+STRUKTURA MATERIAŁU:
+1. Użyj nagłówków ## dla każdej sekcji (NIE #, tylko ##)
+2. Stwórz 4-6 sekcji odpowiadających kluczowym zagadnieniom
+3. Każda sekcja powinna mieć 200-400 słów, wprowadzenie i podsumowanie max 100-150 słow
+4. Używaj list, przykładów, pogrubień dla lepszej czytelności
+5. NIE DODAWAJ sekcji z ćwiczeniami - to osobne moduły w systemie
+
+KRYTYCZNE: Zwróć TYLKO czysty JSON bez żadnych dodatkowych znaków, bez bloków kodu markdown:
 {
-  "title": "<atrakcyjny tytuł materiału>",
-  "content": "<treść materiału w formacie Markdown - teoria, przykłady, wyjaśnienia>",
-  "exercises": "<ćwiczenia praktyczne w formacie Markdown>",
-  "summary": "<podsumowanie najważniejszych punktów>"
+  "title": "<atrakcyjny tytuł max 80 znaków>",
+  "content": "<cały materiał w Markdown z sekcjami ##>"
 }
 
-Wymagania:
-- Title: kreatywny i zachęcający do nauki
-- Content: dostosowany do wieku, z przykładami, min. 500 słów
-- Exercises: 3-5 ćwiczeń praktycznych z instrukcjami
-- Summary: bullet points z najważniejszymi informacjami
-- Używaj formatowania Markdown (nagłówki, listy, kod)
-- Język dostosowany do grupy wiekowej
-    `,
+DOSTOSOWANIE DO WIEKU:
+- 7-10 lat: Prosty język, dużo przykładów, krótkie zdania
+- 11-14 lat: Średni poziom, ciekawostki, przystępne wyjaśnienia
+- 15-18 lat: Bardziej złożony język, praktyczne zastosowania
+- 18+: Profesjonalny język, głęboka analiza`,
     responseFormat: "json",
   },
   inputMapping: (data) => ({
@@ -216,15 +262,61 @@ Wymagania:
       ? data.keyTopics.join(", ")
       : data.keyTopics,
   }),
-  outputMapping: (llmResult, currentData) => ({
-    ...currentData,
-    title: llmResult.title,
-    content: llmResult.content,
-    exercises: llmResult.exercises,
-    summary: llmResult.summary,
-  }),
-  validation: (result) =>
-    !!(result.title && result.content && result.exercises && result.summary),
+  outputMapping: (llmResult, currentData) => {
+    console.log("Output mapping - received llmResult:", llmResult);
+
+    // Usuń sekcje z ćwiczeniami i podsumowaniem jeśli się pojawią
+    let content = llmResult.content;
+    if (content) {
+      // Usuń sekcje ćwiczeń
+      content = content.replace(/##\s*Ćwiczenia[\s\S]*?(?=##|$)/gi, '');
+      content = content.replace(/##\s*Zadania[\s\S]*?(?=##|$)/gi, '');
+      content = content.replace(/##\s*Sprawdź swoją wiedzę[\s\S]*?(?=##|$)/gi, '');
+      
+      // Usuń sekcje podsumowania
+      content = content.replace(/##\s*Podsumowanie[\s\S]*?(?=##|$)/gi, '');
+      content = content.replace(/##\s*Zakończenie[\s\S]*?(?=##|$)/gi, '');
+      
+      // Usuń końcowe białe znaki
+      content = content.trim();
+    }
+
+    const mappedData = {
+      ...currentData,
+      title: llmResult.title,
+      content: content,
+    };
+
+    console.log("Output mapping - mapped data:", mappedData);
+    return mappedData;
+  },
+  validation: (result) => {
+    console.log("Validating LLM result:", result);
+
+    // Sprawdź obecność wszystkich pól
+    if (!result.title) {
+      console.error("Validation failed: missing title");
+      return false;
+    }
+    if (!result.content) {
+      console.error("Validation failed: missing content");
+      return false;
+    }
+
+    // Sprawdź nagłówki sekcji
+    const headerMatches = result.content.match(/^##\s+/gm);
+    if (!headerMatches || headerMatches.length < 4) {
+      console.error(
+        `Validation failed: not enough sections (found ${
+          headerMatches?.length || 0
+        }, need at least 4)`
+      );
+      return false;
+    }
+
+    console.log("Validation passed!");
+    return true;
+  },
 };
 
 // ===== VALIDATION RULES =====
@@ -266,7 +358,8 @@ export const MATERIAL_UI_TEXTS = {
     },
     2: {
       title: "Analiza tematu",
-      description: "AI przeanalizowała temat i zaproponowała strukturę materiału",
+      description:
+        "AI przeanalizowała temat i zaproponowała strukturę materiału",
       success: "✓ Analiza zakończona pomyślnie",
     },
     3: {
@@ -280,9 +373,16 @@ export const MATERIAL_UI_TEXTS = {
     4: {
       title: "Podgląd wygenerowanego materiału",
       description: "AI przygotowała kompletny materiał edukacyjny",
-      info: "💡 W następnym kroku wybierzesz kurs i temat, do którego dodasz materiał.",
+      info: "💡 W następnym kroku możesz dodać pytania kontrolne.",
     },
     5: {
+      title: "Dodaj pytania kontrolne",
+      description:
+        "Możesz opcjonalnie dodać pytania kontrolne do wybranych sekcji materiału",
+      info: "📝 Pytania kontrolne pomagają uczniom lepiej zrozumieć materiał",
+      button: "Przejdź dalej",
+    },
+    6: {
       title: "Zapisz materiał w kursie",
       description:
         "Wybierz kurs i temat, następnie dostosuj materiał przed zapisaniem",
@@ -298,13 +398,11 @@ export const MATERIAL_UI_TEXTS = {
     title: "Kreator materiałów edukacyjnych",
     description: "Twórz angażujące materiały z pomocą AI",
     wizardTitle: "Kreator materiałów AI",
-    wizardDescription:
-      "Stwórz materiał edukacyjny w 5 prostych krokach",
+    wizardDescription: "Stwórz materiał edukacyjny w 6 prostych krokach",
     features: [
       "Automatyczna analiza tematu",
       "Dostosowanie do wieku uczniów",
       "Generowanie celów nauczania",
-      "Tworzenie ćwiczeń praktycznych",
       "Formatowanie Markdown",
       "Integracja z kursami",
     ],
@@ -334,5 +432,6 @@ export const MATERIAL_PATHS = {
   step3: "/teacher/educational-material/step3",
   step4: "/teacher/educational-material/step4",
   step5: "/teacher/educational-material/step5",
+  step6: "/teacher/educational-material/step6",
   courses: "/teacher/courses",
 };

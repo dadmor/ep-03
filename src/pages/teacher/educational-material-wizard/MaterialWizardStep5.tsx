@@ -1,308 +1,308 @@
-import React, { useState} from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useFormSchemaStore } from "@/utility/llmFormWizard";
-import { useCreate, useList } from "@refinedev/core";
-import { Save, ArrowLeft, FileText, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { useFormSchemaStore } from "@/utility/llmFormWizard";
+import StepsHero from "./StepsHero";
+import StepsHeader from "./StepsHeader";
 import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Info, HelpCircle, Plus, Trash2 } from "lucide-react";
 import {
-  MATERIAL_VALIDATION,
   MATERIAL_UI_TEXTS,
   MATERIAL_PATHS,
 } from "./educationalMaterialWizard.constants";
-import StepsHero from "./StepsHero";
-import StepsHeader from "./StepsHeader";
 import { SubPage } from "@/components/layout";
-import { toast } from "sonner";
+
+interface QuizQuestion {
+  sectionIndex: number;
+  sectionTitle: string;
+  question: string;
+  options: string[];
+  answerIndex: number;
+}
 
 export const MaterialWizardStep5: React.FC = () => {
   const navigate = useNavigate();
   const { getData, setData } = useFormSchemaStore();
-  const { mutate: createActivity } = useCreate();
   const formData = getData("educational-material-wizard");
+  const { steps } = MATERIAL_UI_TEXTS;
 
-  const [activityTitle, setActivityTitle] = useState(formData.title || "");
-  const [content, setContent] = useState(
-    formData.content + 
-    (formData.exercises ? `\n\n## Ćwiczenia\n\n${formData.exercises}` : "") +
-    (formData.summary ? `\n\n## Podsumowanie\n\n${formData.summary}` : "")
-  );
-  const [duration, setDuration] = useState(formData.estimatedDuration || 30);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [addQuizzes, setAddQuizzes] = useState(false);
+  const [quizzes, setQuizzes] = useState<QuizQuestion[]>([]);
 
-  const { steps, errors: errorTexts } = MATERIAL_UI_TEXTS;
+  // Wyciągnij sekcje z content
+  const sections = React.useMemo(() => {
+    if (!formData.content) return [];
+    const matches = formData.content.match(/^##\s+(.+)$/gm);
+    return matches ? matches.map((m: string) => m.replace(/^##\s+/, "")) : [];
+  }, [formData.content]);
 
-  const { data: activitiesData } = useList({
-    resource: "activities",
-    filters: [
-      {
-        field: "topic_id",
-        operator: "eq",
-        value: formData.topicId,
-      },
-    ],
-    sorters: [
-      {
-        field: "position",
-        order: "desc",
-      },
-    ],
-    pagination: {
-      pageSize: 1,
-    },
-    queryOptions: {
-      enabled: !!formData.topicId,
-    },
-  });
-
-  const nextPosition = activitiesData?.data?.[0]?.position 
-    ? activitiesData.data[0].position + 1 
-    : 1;
-
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!activityTitle.trim() || activityTitle.length < MATERIAL_VALIDATION.activityTitle.minLength) {
-      newErrors.activityTitle = MATERIAL_VALIDATION.activityTitle.errorMessage;
-    }
-    if (!content.trim() || content.length < MATERIAL_VALIDATION.content.minLength) {
-      newErrors.content = MATERIAL_VALIDATION.content.errorMessage;
-    }
-    if (!duration || duration < MATERIAL_VALIDATION.duration.min || duration > MATERIAL_VALIDATION.duration.max) {
-      newErrors.duration = MATERIAL_VALIDATION.duration.errorMessage;
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const addQuiz = () => {
+    const newQuiz: QuizQuestion = {
+      sectionIndex: 0,
+      sectionTitle: sections[0] || "",
+      question: "",
+      options: ["", "", "", ""],
+      answerIndex: 0,
+    };
+    setQuizzes([...quizzes, newQuiz]);
   };
 
-  const handleSave = async () => {
-    if (!validateForm()) return;
+  const removeQuiz = (index: number) => {
+    setQuizzes(quizzes.filter((_, i) => i !== index));
+  };
 
-    setSaving(true);
-    setSaved(false);
+  const updateQuiz = (index: number, field: keyof QuizQuestion, value: any) => {
+    const updated = [...quizzes];
+    updated[index] = { ...updated[index], [field]: value };
+    setQuizzes(updated);
+  };
 
-    try {
-      createActivity(
-        {
-          resource: "activities",
-          values: {
-            topic_id: formData.topicId,
-            type: "material",
-            title: activityTitle.trim(),
-            content: content.trim(),
-            position: nextPosition,
-            duration_min: duration,
-            is_published: false,
-          },
-        },
-        {
-          onSuccess: (data) => {
-            setData("educational-material-wizard", {
-              ...formData,
-              activityTitle: activityTitle.trim(),
-              content: content.trim(),
-              activityId: data.data.id,
-              saved: true,
-            });
+  const updateOption = (
+    quizIndex: number,
+    optionIndex: number,
+    value: string
+  ) => {
+    const updated = [...quizzes];
+    updated[quizIndex].options[optionIndex] = value;
+    setQuizzes(updated);
+  };
 
-            setSaving(false);
-            setSaved(true);
+  const generateQuizContent = () => {
+    if (!addQuizzes || quizzes.length === 0) return formData.content;
 
-            const returnUrl = sessionStorage.getItem('returnUrl');
-            
-            setTimeout(() => {
-              sessionStorage.removeItem('wizardContext');
-              if (returnUrl) {
-                sessionStorage.removeItem('returnUrl');
-                navigate(returnUrl);
-              } else {
-                navigate(`${MATERIAL_PATHS.courses}/show/${formData.courseId}?expanded=${formData.topicId}`);
-              }
-            }, 1000);
-          },
-          onError: (error: any) => {
-            setSaving(false);
-            console.error(errorTexts.saveError, error);
-            
-            if (error?.code === '42501') {
-              toast.error("Brak uprawnień do tworzenia materiałów. Sprawdź swoje uprawnienia.");
-            } else if (error?.code === '23505') {
-              toast.error("Materiał o takiej nazwie już istnieje.");
-            } else {
-              toast.error(errorTexts.saveError);
-            }
-          },
+    let content = formData.content;
+
+    // Sortuj quizy według indeksu sekcji (od końca)
+    const sortedQuizzes = [...quizzes].sort(
+      (a, b) => b.sectionIndex - a.sectionIndex
+    );
+
+    sortedQuizzes.forEach((quiz) => {
+      if (quiz.question && quiz.options.every((opt) => opt)) {
+        const quizYaml = `\n\n\`\`\`quiz\nquestion: "${
+          quiz.question
+        }"\noptions:\n${quiz.options
+          .map((opt) => `  - "${opt}"`)
+          .join("\n")}\nanswerIndex: ${quiz.answerIndex}\n\`\`\``;
+
+        // Znajdź koniec sekcji
+        const sectionHeader = `## ${sections[quiz.sectionIndex]}`;
+        const sectionStart = content.indexOf(sectionHeader);
+        if (sectionStart !== -1) {
+          // Znajdź następną sekcję lub koniec content
+          const nextSectionMatch = content.indexOf("\n##", sectionStart + 1);
+          const sectionEnd =
+            nextSectionMatch !== -1 ? nextSectionMatch : content.length;
+
+          // Wstaw quiz przed końcem sekcji
+          content =
+            content.slice(0, sectionEnd) + quizYaml + content.slice(sectionEnd);
         }
-      );
-    } catch (error) {
-      setSaving(false);
-      console.error(errorTexts.unexpectedError, error);
-      toast.error(errorTexts.unexpectedError);
-    }
+      }
+    });
+
+    return content;
+  };
+
+  const handleNext = () => {
+    const updatedContent = generateQuizContent();
+    setData("educational-material-wizard", {
+      ...formData,
+      content: updatedContent,
+      quizzesAdded: addQuizzes && quizzes.length > 0,
+    });
+    navigate(MATERIAL_PATHS.step6);
   };
 
   return (
     <SubPage>
       <Card className="border-2 shadow-lg">
         <StepsHero step={5} />
-
         <CardContent className="p-8">
           <StepsHeader
-            title={
-              <>
-                <FileText className="w-8 h-8 text-purple-600" />
-                <span>{steps[5].title}</span>
-              </>
-            }
+            title={steps[5].title}
             description={steps[5].description}
           />
 
-          {saved && (
-            <Alert className="mb-6 bg-green-50 border-green-200">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
-                {steps[5].success}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <form
-            className="space-y-6"
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSave();
-            }}
-          >
-            {/* Informacja o miejscu docelowym */}
-            <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
-              <CardContent className="p-4">
-                <h4 className="font-medium mb-3">Miejsce docelowe materiału:</h4>
-                <ul className="space-y-2 text-sm text-gray-700">
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
-                    <span><strong>Kurs:</strong> {formData.courseTitle}</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
-                    <span><strong>Temat:</strong> {formData.topicTitle}</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
-                    <span><strong>Pozycja:</strong> {nextPosition}</span>
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
-
-            {/* Tytuł aktywności */}
-            <div className="space-y-2">
-              <Label htmlFor="activityTitle">
-                Tytuł aktywności <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="activityTitle"
-                type="text"
-                value={activityTitle}
-                onChange={(e) => setActivityTitle(e.target.value)}
-                placeholder="np. Wprowadzenie do zmiennych"
-                maxLength={MATERIAL_VALIDATION.activityTitle.maxLength}
-                className={errors.activityTitle ? "border-red-500" : ""}
-              />
-              {errors.activityTitle && (
-                <p className="text-sm text-red-600">{errors.activityTitle}</p>
-              )}
-            </div>
-
-            {/* Czas trwania */}
-            <div className="space-y-2">
-              <Label htmlFor="duration">
-                Czas trwania (min) <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="duration"
-                type="number"
-                value={duration}
-                onChange={(e) => setDuration(parseInt(e.target.value) || 0)}
-                min={MATERIAL_VALIDATION.duration.min}
-                max={MATERIAL_VALIDATION.duration.max}
-                className={`w-24 ${errors.duration ? "border-red-500" : ""}`}
-              />
-              {errors.duration && (
-                <p className="text-sm text-red-600">{errors.duration}</p>
-              )}
-              <p className="text-sm text-gray-500">Określ przewidywany czas realizacji materiału</p>
-            </div>
-
-            {/* Treść materiału */}
-            <div className="space-y-2">
-              <Label htmlFor="content">
-                Treść materiału <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Treść materiału w formacie Markdown..."
-                rows={15}
-                className={`font-mono text-sm ${errors.content ? "border-red-500" : ""}`}
-              />
-              {errors.content && (
-                <p className="text-sm text-red-600">{errors.content}</p>
-              )}
-              <p className="text-sm text-gray-500">
-                {content.length} znaków (minimum {MATERIAL_VALIDATION.content.minLength})
-              </p>
-            </div>
-
-            {/* Informacja o zapisie */}
-            <Alert className="bg-purple-50 border-purple-200">
-              <AlertDescription className="text-purple-800">
-                {steps[5].saveInfo}
+          <div className="space-y-6">
+            <Alert className="bg-blue-50 border-blue-200">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                {steps[5].info}
               </AlertDescription>
             </Alert>
 
-            <Separator />
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+              <div className="flex items-center gap-3">
+                <HelpCircle className="w-5 h-5 text-purple-600" />
+                <Label
+                  htmlFor="add-quizzes"
+                  className="text-base font-medium cursor-pointer"
+                >
+                  Dodać pytania kontrolne do materiału?
+                </Label>
+              </div>
+              <Switch
+                id="add-quizzes"
+                checked={addQuizzes}
+                onCheckedChange={setAddQuizzes}
+              />
+            </div>
 
-            {/* Przyciski nawigacji */}
-            <footer className="flex justify-between gap-4">
+            {addQuizzes && (
+              <>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-semibold">Pytania kontrolne</h4>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addQuiz}
+                      disabled={quizzes.length >= 3}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Dodaj pytanie
+                    </Button>
+                  </div>
+
+                  {quizzes.length === 0 ? (
+                    <Card className="border-dashed">
+                      <CardContent className="p-8 text-center text-gray-500">
+                        Kliknij "Dodaj pytanie" aby stworzyć pierwsze pytanie
+                        kontrolne
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="space-y-6">
+                      {quizzes.map((quiz, index) => (
+                        <Card key={index} className="border-purple-200">
+                          <CardContent className="p-6 space-y-4">
+                            <div className="flex justify-between items-start">
+                              <h5 className="font-medium text-purple-700">
+                                Pytanie {index + 1}
+                              </h5>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeQuiz(index)}
+                              >
+                                <Trash2 className="w-4 h-4 teaxt-red-500" />
+                              </Button>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Sekcja</Label>
+                              <select
+                                className="w-full p-2 border rounded"
+                                value={quiz.sectionIndex}
+                                onChange={(e) =>
+                                  updateQuiz(
+                                    index,
+                                    "sectionIndex",
+                                    parseInt(e.target.value)
+                                  )
+                                }
+                              >
+                                {sections.map((section: string, idx: number) => (
+                                  <option key={idx} value={idx}>
+                                    {section}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Pytanie</Label>
+                              <Textarea
+                                placeholder="Wpisz treść pytania..."
+                                value={quiz.question}
+                                onChange={(e) =>
+                                  updateQuiz(index, "question", e.target.value)
+                                }
+                                rows={2}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Opcje odpowiedzi</Label>
+                              {quiz.options.map((option, optIdx) => (
+                                <div
+                                  key={optIdx}
+                                  className="flex items-center gap-2"
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`correct-${index}`}
+                                    checked={quiz.answerIndex === optIdx}
+                                    onChange={() =>
+                                      updateQuiz(index, "answerIndex", optIdx)
+                                    }
+                                  />
+                                  <input
+                                    type="text"
+                                    className="flex-1 p-2 border rounded"
+                                    placeholder={`Opcja ${optIdx + 1}`}
+                                    value={option}
+                                    onChange={(e) =>
+                                      updateOption(
+                                        index,
+                                        optIdx,
+                                        e.target.value
+                                      )
+                                    }
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {quizzes.length > 0 && (
+                  <Alert className="bg-green-50 border-green-200">
+                    <AlertTitle className="text-green-800">
+                      Format YAML
+                    </AlertTitle>
+                    <AlertDescription className="text-green-700 font-mono text-xs whitespace-pre">
+                      {`\`\`\`quiz
+question: "Treść pytania?"
+options:
+  - "Opcja 1"
+  - "Opcja 2"
+  - "Opcja 3"
+  - "Opcja 4"
+answerIndex: 0
+\`\`\``}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </>
+            )}
+
+            <div className="flex justify-between pt-6">
               <Button
-                type="button"
                 variant="outline"
                 onClick={() => navigate(MATERIAL_PATHS.step4)}
-                disabled={saving}
-                className="flex items-center gap-2"
               >
-                <ArrowLeft className="w-4 h-4" />
                 Wstecz
               </Button>
-
               <Button
-                type="submit"
-                disabled={saving || saved}
-                className="flex items-center gap-2 min-w-[160px] bg-purple-600 hover:bg-purple-700"
+                onClick={handleNext}
+                className="bg-purple-600 hover:bg-purple-700"
               >
-                {saving ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    {steps[5].loading}
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    {steps[5].button}
-                  </>
-                )}
+                {steps[5].button}
               </Button>
-            </footer>
-          </form>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </SubPage>

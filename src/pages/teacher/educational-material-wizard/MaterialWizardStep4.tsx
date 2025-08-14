@@ -43,8 +43,8 @@ export const MaterialWizardStep4: React.FC = () => {
                     <FileText className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
                     <div className="text-2xl font-bold text-indigo-600">
                       {formData.materialType === 'lesson' ? 'Lekcja' : 
-                       formData.materialType === 'exercise' ? 'Ćwiczenia' : 
-                       'Teoria + Ćwiczenia'}
+                       formData.materialType === 'source_material' ? 'Materiały źródłowe' : 
+                       'Kontekst'}
                     </div>
                     <div className="text-sm text-gray-600">typ materiału</div>
                   </div>
@@ -79,42 +79,6 @@ export const MaterialWizardStep4: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Ćwiczenia */}
-            {formData.exercises && (
-              <Card className="overflow-hidden">
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-green-600" />
-                    <h5 className="font-medium">Ćwiczenia</h5>
-                  </div>
-                </div>
-                
-                <CardContent className="p-4">
-                  <div className="prose prose-sm max-w-none max-h-64 overflow-y-auto">
-                    <ReactMarkdown>{formData.exercises}</ReactMarkdown>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Podsumowanie */}
-            {formData.summary && (
-              <Card className="overflow-hidden">
-                <div className="bg-gradient-to-r from-blue-50 to-sky-50 px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                    <h5 className="font-medium">Podsumowanie</h5>
-                  </div>
-                </div>
-                
-                <CardContent className="p-4">
-                  <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown>{formData.summary}</ReactMarkdown>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             <Alert className="bg-blue-50 border-blue-200">
               <Info className="h-4 w-4 text-blue-600" />
