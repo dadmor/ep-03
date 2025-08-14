@@ -35,7 +35,7 @@ export const LessonSummary: React.FC<LessonSummaryProps> = ({
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      className="fixed inset-0 z-20 flex items-center justify-center p-4 bg-black/50"
     >
       <div className="w-full max-w-md rounded-2xl border bg-card p-6 shadow-2xl">
         {/* Ikona sukcesu */}

@@ -132,7 +132,7 @@ export const GamificationUpgrades = () => {
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Pasywne tempo zdobywania punktów.
+                 Premia za obecność.
                 </p>
               </div>
 

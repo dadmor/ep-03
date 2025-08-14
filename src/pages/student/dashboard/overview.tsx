@@ -197,7 +197,7 @@ export const DashboardOverview = () => {
                 <div className="rounded-xl border bg-card p-4 shadow-soft">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Tempo
+                      Premia
                     </span>
                     <TrendingUp className="h-4 w-4 text-accent" />
                   </div>
@@ -290,7 +290,7 @@ export const DashboardOverview = () => {
                 <div className="rounded-xl border bg-card p-5 shadow-soft">
                   <div className="flex items-center justify-between">
                     <span className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Tempo
+                      Premia
                     </span>
                     <TrendingUp className="h-4 w-4 text-accent" />
                   </div>

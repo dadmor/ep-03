@@ -14,10 +14,10 @@ interface QuizQuestion {
   id: number;
   question: string;
   points: number;
+  type?: 'single_choice' | 'multiple_choice' | 'true_false'; // DODANE: type z backendu
   options: Array<{
     id: number;
     text: string;
-    is_correct?: boolean; // Dodajemy to pole do analizy typu
   }>;
 }
 
@@ -94,25 +94,19 @@ export const QuizTake = () => {
   const currentQ = questions[currentQuestion];
   const progress = questions.length > 0 ? ((currentQuestion + 1) / questions.length) * 100 : 0;
 
-  // Funkcja do określenia typu pytania na podstawie opcji
+  // ZMIENIONA FUNKCJA - używa typu z backendu
   const getQuestionType = (question: QuizQuestion): QuestionType => {
-    if (!question.options || question.options.length === 0) return 'single';
-    
-    // Sprawdź czy to pytanie prawda/fałsz
-    if (question.options.length === 2) {
-      const optionTexts = question.options.map(opt => opt.text.toLowerCase());
-      if (
-        (optionTexts.includes('prawda') && optionTexts.includes('fałsz')) ||
-        (optionTexts.includes('tak') && optionTexts.includes('nie')) ||
-        (optionTexts.includes('true') && optionTexts.includes('false'))
-      ) {
-        return 'true_false';
+    // Użyj typu z backendu jeśli dostępny
+    if (question.type) {
+      switch (question.type) {
+        case 'single_choice': return 'single';
+        case 'multiple_choice': return 'multiple';
+        case 'true_false': return 'true_false';
       }
     }
     
-    // Sprawdź ile opcji jest oznaczonych jako poprawne (jeśli mamy te dane z backendu)
-    const correctCount = question.options.filter(opt => opt.is_correct).length;
-    return correctCount > 1 ? 'multiple' : 'single';
+    // Fallback na single choice jeśli brak typu
+    return 'single';
   };
 
   const getQuestionTypeLabel = (type: QuestionType) => {
