@@ -1,6 +1,4 @@
 // src/pages/auth/login/LoginPage.tsx
-// prosty redirect po zalogowaniu wg roli
-
 import React from "react";
 import { useIsAuthenticated, useGetIdentity } from "@refinedev/core";
 import { useSearchParams, Navigate } from "react-router-dom";
@@ -29,8 +27,11 @@ const LoginPage: React.FC = () => {
   }
 
   if (isAuthenticated && user) {
+    // Poprawione przekierowania
     const redirectPath =
-      user.role === "teacher" || user.role === "admin"
+      user.role === "admin"
+        ? "/admin/dashboard/overview"
+        : user.role === "teacher"
         ? "/teacher/dashboard/overview"
         : user.role === "student"
         ? "/student/dashboard"

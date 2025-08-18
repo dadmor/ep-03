@@ -1,6 +1,4 @@
 // src/pages/auth/login/services/loginService.ts
-// zwraca redirect zgodny z rolą
-
 import { supabaseClient } from "@/utility";
 
 const LOGIN_ERRORS: Record<string, string> = {
@@ -58,8 +56,11 @@ export const loginService = {
         .eq("id", data.user.id)
         .single();
 
+      // Poprawione przekierowania
       const redirectTo =
-        userData?.role === "teacher" || userData?.role === "admin"
+        userData?.role === "admin"
+          ? "/admin/dashboard/overview"
+          : userData?.role === "teacher"
           ? "/teacher/dashboard/overview"
           : userData?.role === "student"
           ? "/student/dashboard"
