@@ -1,7 +1,8 @@
 // src/pages/admin/users/list.tsx
-import { useTable, useUpdate, useNavigation } from "@refinedev/core";  // DODAJ useNavigation
+import { useTable, useUpdate, useNavigation } from "@refinedev/core";
+import type { CrudFilter } from "@refinedev/core"; // To jest nowy import
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Mail, Calendar, Shield, UserCheck, Edit, Power, Eye } from "lucide-react";  // DODAJ Eye
+import { Users, Mail, Calendar, Shield, UserCheck, Edit, Power, Eye } from "lucide-react";
 import { FlexBox, GridBox } from "@/components/shared";
 import { PaginationSwith } from "@/components/navigation";
 import { Lead } from "@/components/reader";
@@ -21,7 +22,7 @@ interface User {
 
 export const UsersList = () => {
   const { mutate: updateUser } = useUpdate();
-  const { create, edit, show } = useNavigation();  // DODAJ show i edit
+  const { create, edit, show } = useNavigation();
   
   const {
     tableQuery: { data, isLoading, isError },
@@ -82,7 +83,7 @@ export const UsersList = () => {
           title="Użytkownicy"
           description="Zarządzaj wszystkimi użytkownikami w systemie"
         />
-        <Button onClick={() => create("users")}>  {/* DODAJ onClick */}
+        <Button onClick={() => create("users")}>
           <Users className="w-4 h-4 mr-2" />
           Dodaj użytkownika
         </Button>
@@ -94,23 +95,27 @@ export const UsersList = () => {
           className="max-w-sm"
           onChange={(e) => {
             const existingFilters = filters || [];
-            const roleFilter = existingFilters.find(f => f.field === 'role');
             
-            const newFilters = [];
+            // Bezpieczne sprawdzanie typu
+            const roleFilter = existingFilters.find((f): f is CrudFilter & { field: string } => 
+              'field' in f && f.field === 'role'
+            );
+            
+            const newFilters: CrudFilter[] = [];
             if (roleFilter) newFilters.push(roleFilter);
             
             if (e.target.value) {
               newFilters.push({
-                operator: "or" as const,
+                operator: "or",
                 value: [
                   {
                     field: "full_name",
-                    operator: "contains" as const,
+                    operator: "contains",
                     value: e.target.value,
                   },
                   {
                     field: "email",
-                    operator: "contains" as const,
+                    operator: "contains",
                     value: e.target.value,
                   },
                 ],
@@ -123,11 +128,14 @@ export const UsersList = () => {
         
         <Select
           onValueChange={(value) => {
-            const newFilters = filters?.filter(f => f.field !== 'role') || [];
+            const newFilters = filters?.filter((f): f is CrudFilter & { field: string } => 
+              'field' in f && f.field !== 'role'
+            ) || [];
+            
             if (value !== 'all') {
               newFilters.push({
                 field: 'role',
-                operator: 'eq' as const,
+                operator: 'eq',
                 value: value,
               });
             }
@@ -155,7 +163,6 @@ export const UsersList = () => {
                   {getRoleIcon(user.role)}
                   {user.full_name}
                 </CardTitle>
-                {/* ZAMIEŃ TĘ CZĘŚĆ - ZAMIAST starej wersji */}
                 <FlexBox variant="start" className="gap-2">
                   <Button 
                     variant="ghost" 

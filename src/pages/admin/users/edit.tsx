@@ -181,7 +181,7 @@ export const UsersEdit = () => {
             </FormControl>
 
             {watch("role") !== user?.role && (
-              <Alert variant="warning">
+              <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
                   <strong>Uwaga:</strong> Zmiana roli użytkownika może wpłynąć na jego dostęp do systemu.
