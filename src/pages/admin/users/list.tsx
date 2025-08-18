@@ -1,7 +1,7 @@
 // src/pages/admin/users/list.tsx
-import { useTable, useUpdate } from "@refinedev/core";
+import { useTable, useUpdate, useNavigation } from "@refinedev/core";  // DODAJ useNavigation
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Mail, Calendar, Shield, UserCheck, Edit, Power } from "lucide-react";
+import { Users, Mail, Calendar, Shield, UserCheck, Edit, Power, Eye } from "lucide-react";  // DODAJ Eye
 import { FlexBox, GridBox } from "@/components/shared";
 import { PaginationSwith } from "@/components/navigation";
 import { Lead } from "@/components/reader";
@@ -21,6 +21,8 @@ interface User {
 
 export const UsersList = () => {
   const { mutate: updateUser } = useUpdate();
+  const { create, edit, show } = useNavigation();  // DODAJ show i edit
+  
   const {
     tableQuery: { data, isLoading, isError },
     current,
@@ -29,6 +31,7 @@ export const UsersList = () => {
     setFilters,
     filters,
   } = useTable<User>({
+    resource: "users",
     sorters: {
       initial: [
         {
@@ -79,7 +82,7 @@ export const UsersList = () => {
           title="Użytkownicy"
           description="Zarządzaj wszystkimi użytkownikami w systemie"
         />
-        <Button>
+        <Button onClick={() => create("users")}>  {/* DODAJ onClick */}
           <Users className="w-4 h-4 mr-2" />
           Dodaj użytkownika
         </Button>
@@ -91,7 +94,7 @@ export const UsersList = () => {
           className="max-w-sm"
           onChange={(e) => {
             const existingFilters = filters || [];
-            const roleFilter = existingFilters.find(f => 'field' in f && f.field === 'role');
+            const roleFilter = existingFilters.find(f => f.field === 'role');
             
             const newFilters = [];
             if (roleFilter) newFilters.push(roleFilter);
@@ -120,7 +123,7 @@ export const UsersList = () => {
         
         <Select
           onValueChange={(value) => {
-            const newFilters = filters?.filter((f: any) => f.field !== 'role') || [];
+            const newFilters = filters?.filter(f => f.field !== 'role') || [];
             if (value !== 'all') {
               newFilters.push({
                 field: 'role',
@@ -152,14 +155,26 @@ export const UsersList = () => {
                   {getRoleIcon(user.role)}
                   {user.full_name}
                 </CardTitle>
+                {/* ZAMIEŃ TĘ CZĘŚĆ - ZAMIAST starej wersji */}
                 <FlexBox variant="start" className="gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => show("users", user.id)}
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => edit("users", user.id)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
                   <Switch
                     checked={user.is_active}
                     onCheckedChange={() => handleToggleActive(user)}
                   />
-                  <Button variant="ghost" size="sm">
-                    <Edit className="w-4 h-4" />
-                  </Button>
                 </FlexBox>
               </FlexBox>
             </CardHeader>
