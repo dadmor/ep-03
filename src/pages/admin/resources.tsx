@@ -5,6 +5,7 @@ import { usersResource } from "./users";
 import { coursesResource } from "./courses";
 import { systemSettingsResource } from "./system-settings";
 import { reportsResource } from "./reports";
+import { permissionsResource, permissionsAssignResource } from "./permissions";
 
 export const adminResources: IResourceItem[] = [
   {
@@ -18,6 +19,8 @@ export const adminResources: IResourceItem[] = [
   vendorsResource,
   usersResource,
   coursesResource,
+  permissionsResource,         // <-- rodzic: "Uprawnienia" (Lista uprawnień)
+  permissionsAssignResource,   // <-- jedyne dziecko: "Nadawanie dostępu"
   systemSettingsResource,
   reportsResource,
 ];

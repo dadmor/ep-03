@@ -12,9 +12,11 @@ import { vendorsRoutes } from "./vendors";
 import { usersRoutes } from "./users";
 import { systemSettingsRoutes } from "./system-settings";
 import { reportsRoutes } from "./reports";
+import { permissionsRoutes } from "./permissions"; // ⬅️ NOWE
 
 const allAdminRoutes = [
   ...dashboardRoutes,
+  ...permissionsRoutes, // ⬅️ NOWE
   ...coursesRoutes,
   ...vendorsRoutes,
   ...usersRoutes,
@@ -49,7 +51,6 @@ const LoadingFallback = ({ text, colorClass }: { text: string; colorClass: strin
   </div>
 );
 
-// Guard: wpuszcza tylko admin
 const AdminAccessGuard = ({ children }: { children: React.ReactNode }) => {
   const { data: identity, isLoading } = useGetIdentity<any>();
 
@@ -58,17 +59,13 @@ const AdminAccessGuard = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (identity.role !== "admin") {
-    // Przekieruj zgodnie z rolą
-    const redirectPath = identity.role === "teacher" 
-      ? "/teacher/dashboard" 
-      : "/student/dashboard";
+    const redirectPath = identity.role === "teacher" ? "/teacher/dashboard" : "/student/dashboard";
     return <Navigate to={redirectPath} replace />;
   }
 
   return <>{children}</>;
 };
 
-// EKSPORT MODUŁU - TO JEST WAŻNE!
 export const AdminModule = (
   <Route
     path="/admin/*"

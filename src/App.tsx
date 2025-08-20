@@ -15,7 +15,7 @@ import { dataProvider } from "@refinedev/supabase";
 import { supabaseClient } from "./utility";
 import { authProvider } from "./utility/auth/authProvider";
 
-import LandingPage from "./pages/landing/Landing";
+
 
 // Auth
 import { LoginModule, RegisterModule, ForgotPasswordModule, UpdatePasswordModule } from "./pages/auth";
@@ -29,6 +29,7 @@ import { StudentModule } from "./pages/student";
 import { adminResources } from "./pages/admin/resources";
 import { teacherResources } from "./pages/teacher/resources";
 import { studentResources } from "./pages/student/resources";
+import LandingPage from "./pages/landing/Landing";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: false, staleTime: 5 * 60 * 1000 } },
