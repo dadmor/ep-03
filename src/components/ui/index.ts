@@ -19,3 +19,4 @@ export * from "./tabs";
 export * from "./checkbox";
 export * from "./switch";
 export * from "./tooltip";
+export * from "./dialog";

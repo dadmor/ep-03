@@ -1,3 +1,4 @@
+// src/pages/admin/resources.tsx
 import type { IResourceItem } from "@refinedev/core";
 import { LayoutDashboard } from "lucide-react";
 import { vendorsResource } from "./vendors";
@@ -5,7 +6,13 @@ import { usersResource } from "./users";
 import { coursesResource } from "./courses";
 import { systemSettingsResource } from "./system-settings";
 import { reportsResource } from "./reports";
-import { permissionsResource, permissionsAssignResource } from "./permissions";
+import { 
+  permissionsResource,
+  usersManagementResource,
+  vendorManagementResource,
+  groupManagementResource,
+  coursePermissionsResource
+} from "./permissions";
 
 export const adminResources: IResourceItem[] = [
   {
@@ -19,8 +26,14 @@ export const adminResources: IResourceItem[] = [
   vendorsResource,
   usersResource,
   coursesResource,
-  permissionsResource,         // <-- rodzic: "Uprawnienia" (Lista uprawnień)
-  permissionsAssignResource,   // <-- jedyne dziecko: "Nadawanie dostępu"
+  
+  // Moduł uprawnień z podmenu
+  permissionsResource,              // Rodzic: "Zarządzanie dostępem"
+  usersManagementResource,          // Podmenu: "Użytkownicy"
+  vendorManagementResource,         // Podmenu: "Vendorzy"
+  groupManagementResource,          // Podmenu: "Grupy"
+  coursePermissionsResource,        // Podmenu: "Dostęp do kursów"
+  
   systemSettingsResource,
   reportsResource,
 ];

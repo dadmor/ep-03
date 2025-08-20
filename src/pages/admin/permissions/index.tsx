@@ -1,45 +1,79 @@
+// src/pages/admin/permissions/index.tsx
 import { Route } from "react-router-dom";
-import { ShieldCheck, KeyRound, List } from "lucide-react";
+import { ShieldCheck, Building2, Users, BookOpen, UserCog } from "lucide-react";
 
-import { AssignPermissions } from "./assign";
-import { PermissionsList } from "./list";
+import { VendorManagement } from "./vendors";
+import { GroupManagement } from "./groups";
+import { CoursePermissions } from "./courses";
+import { UserManagement } from "./users";
 
-// Główny zasób - rodzic
+// Główny zasób
 export const permissionsResource = {
   name: "permissions",
   list: "/admin/permissions",
   meta: {
-    label: "Uprawnienia",
+    label: "Zarządzanie dostępem",
     icon: <ShieldCheck className="h-4 w-4" />,
   },
 };
 
-// Podmenu 1 - Lista uprawnień
-export const permissionsListResource = {
-  name: "permissions-list",
-  list: "/admin/permissions",
+// Podmenu - Użytkownicy
+export const usersManagementResource = {
+  name: "permissions-users",
+  list: "/admin/permissions/users",
   meta: {
-    label: "Lista uprawnień",
-    icon: <List className="h-4 w-4" />,
-    parent: "permissions", // To sprawia, że będzie widoczne jako dziecko
+    label: "Użytkownicy",
+    icon: <UserCog className="h-4 w-4" />,
+    parent: "permissions",
   },
 };
 
-// Podmenu 2 - Nadawanie dostępu
-export const permissionsAssignResource = {
-  name: "permissions-assign",
-  list: "/admin/permissions/assign",
+// Podmenu - Vendorzy
+export const vendorManagementResource = {
+  name: "permissions-vendors",
+  list: "/admin/permissions/vendors",
   meta: {
-    label: "Nadawanie dostępu",
-    icon: <KeyRound className="h-4 w-4" />,
-    parent: "permissions", // To sprawia, że będzie widoczne jako dziecko
+    label: "Vendorzy",
+    icon: <Building2 className="h-4 w-4" />,
+    parent: "permissions",
+  },
+};
+
+// Podmenu - Grupy
+export const groupManagementResource = {
+  name: "permissions-groups",
+  list: "/admin/permissions/groups",
+  meta: {
+    label: "Grupy",
+    icon: <Users className="h-4 w-4" />,
+    parent: "permissions",
+  },
+};
+
+// Podmenu - Kursy
+export const coursePermissionsResource = {
+  name: "permissions-courses",
+  list: "/admin/permissions/courses",
+  meta: {
+    label: "Dostęp do kursów",
+    icon: <BookOpen className="h-4 w-4" />,
+    parent: "permissions",
   },
 };
 
 export const permissionsRoutes = [
-  <Route key="permissions-root" path="permissions" element={<PermissionsList />} />,
-  <Route key="permissions-assign" path="permissions/assign" element={<AssignPermissions />} />,
+  <Route key="permissions-users" path="permissions/users" element={<UserManagement />} />,
+  <Route key="permissions-vendors" path="permissions/vendors" element={<VendorManagement />} />,
+  <Route key="permissions-groups" path="permissions/groups" element={<GroupManagement />} />,
+  <Route key="permissions-courses" path="permissions/courses" element={<CoursePermissions />} />,
+  <Route key="permissions-default" path="permissions" element={<UserManagement />} />,
 ];
 
-export { PermissionsList } from "./list";
-export { AssignPermissions } from "./assign";
+// Eksportuj zasoby do App.tsx
+export const permissionsResources = [
+  permissionsResource,
+  usersManagementResource,
+  vendorManagementResource,
+  groupManagementResource,
+  coursePermissionsResource,
+];
