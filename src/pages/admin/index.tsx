@@ -7,21 +7,14 @@ import { CatchAllNavigate } from "@refinedev/react-router";
 import { AdminLayout } from "./AdminLayout";
 
 import { dashboardRoutes } from "./dashboard";
-import { coursesRoutes } from "./courses";
+import { permissionsRoutes } from "./permissions"; 
 import { vendorsRoutes } from "./vendors";
-import { usersRoutes } from "./users";
-import { systemSettingsRoutes } from "./system-settings";
-import { reportsRoutes } from "./reports";
-import { permissionsRoutes } from "./permissions"; // ⬅️ NOWE
 
 const allAdminRoutes = [
   ...dashboardRoutes,
-  ...permissionsRoutes, // ⬅️ NOWE
-  ...coursesRoutes,
+  ...permissionsRoutes, 
   ...vendorsRoutes,
-  ...usersRoutes,
-  ...systemSettingsRoutes,
-  ...reportsRoutes,
+
 ];
 
 const AdminPanelComponent = () => (

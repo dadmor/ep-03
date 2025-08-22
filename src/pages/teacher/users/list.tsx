@@ -1,29 +1,24 @@
-import { useTable, useNavigation, useDelete } from "@refinedev/core";
-import { Card, CardContent} from "@/components/ui/card";
+// src/pages/teacher/users/list.tsx - POPRAWIONA WERSJA
+import { useTable, useNavigation, useGetIdentity } from "@refinedev/core";
+import { Card, CardContent } from "@/components/ui/card";
 import { 
   Users, 
-  Plus, 
-  Edit, 
-  Trash2, 
   Eye,
-  Shield,
   GraduationCap,
   UserCircle,
-  MoreVertical,
-  Search
+  Search,
+  BookOpen,
+  Trophy,
+  Clock,
+  TrendingUp,
+  AlertCircle
 } from "lucide-react";
-import { FlexBox, GridBox } from "@/components/shared";
+import { FlexBox } from "@/components/shared";
 import { PaginationSwith } from "@/components/navigation";
 import { Lead } from "@/components/reader";
 import { useLoading } from "@/utility";
 import { Badge, Button, Input } from "@/components/ui";
 import { SubPage } from "@/components/layout";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -31,223 +26,315 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabaseClient } from "@/utility";
 
-interface User {
+interface StudentData {
   id: string;
   email: string;
   full_name: string;
-  role: 'student' | 'teacher' | 'admin';
-  is_active: boolean;
-  created_at: string;
-  vendor_id: number;
-  user_stats?: {
-    total_points: number;
-    current_level: number;
-  };
+  groups: any[];
+  user_stats: any;
 }
 
 export const UsersList = () => {
-  const { create, edit, show } = useNavigation();
-  const { mutate: deleteUser } = useDelete();
-  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const { show } = useNavigation();
+  const { data: identity } = useGetIdentity<any>();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [teacherGroups, setTeacherGroups] = useState<any[]>([]);
+  const [students, setStudents] = useState<StudentData[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  const {
-    tableQuery: { data, isLoading, isError },
-    current,
-    setCurrent,
-    pageSize,
-    setFilters,
-  } = useTable<User>({
-    sorters: {
-      initial: [
-        {
-          field: "created_at",
-          order: "desc",
-        },
-      ],
-    },
-    meta: {
-      select: '*, user_stats(total_points, current_level)'
-    }
+  // Pobierz uczniów nauczyciela
+  useEffect(() => {
+    const fetchTeacherStudents = async () => {
+      if (!identity?.id) return;
+      
+      setLoading(true);
+      try {
+        // 1. Najpierw pobierz grupy, które mają kursy prowadzone przez nauczyciela
+        const { data: teacherGroupsData, error: groupsError } = await supabaseClient
+          .from('course_access')
+          .select(`
+            group_id,
+            groups!inner(
+              id,
+              name,
+              academic_year
+            )
+          `)
+          .eq('teacher_id', identity.id)
+          .not('group_id', 'is', null);
+
+        if (groupsError) throw groupsError;
+
+        // Usuń duplikaty grup
+        const uniqueGroups = Array.from(
+          new Map(
+            teacherGroupsData
+              ?.filter(item => item.group_id)
+              .map(item => [item.groups.id, item.groups])
+          ).values()
+        );
+        
+        setTeacherGroups(uniqueGroups);
+
+        // 2. Pobierz ID wszystkich grup nauczyciela
+        const groupIds = uniqueGroups.map(g => g.id);
+
+        if (groupIds.length === 0) {
+          setStudents([]);
+          setLoading(false);
+          return;
+        }
+
+        // 3. Pobierz uczniów z tych grup
+        const { data: studentsData, error: studentsError } = await supabaseClient
+          .from('users')
+          .select(`
+            id,
+            email,
+            full_name,
+            groups:group_members!inner(
+              group_id,
+              groups!inner(
+                id,
+                name,
+                academic_year
+              )
+            ),
+            user_stats!left(
+              total_points,
+              current_level,
+              quizzes_completed,
+              last_active,
+              daily_streak
+            )
+          `)
+          .eq('role', 'student')
+          .in('groups.group_id', groupIds)
+          .order('full_name');
+
+        if (studentsError) throw studentsError;
+
+        // Filtruj tylko uczniów z grup nauczyciela
+        const filteredStudents = studentsData?.filter(student => 
+          student.groups?.some(g => groupIds.includes(g.groups.id))
+        ) || [];
+
+        setStudents(filteredStudents);
+      } catch (error) {
+        console.error('Error fetching students:', error);
+        setStudents([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchTeacherStudents();
+  }, [identity]);
+
+  // Filtrowanie
+  const filteredStudents = students.filter(student => {
+    const matchesSearch = !searchTerm || 
+      student.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.email.toLowerCase().includes(searchTerm.toLowerCase());
+      
+    const matchesGroup = groupFilter === "all" || 
+      student.groups?.some(g => g.groups.id.toString() === groupFilter);
+      
+    return matchesSearch && matchesGroup;
   });
-  
-  const init = useLoading({ isLoading, isError });
-  if (init) return init;
 
-  const handleDelete = (id: string, name: string) => {
-    if (confirm(`Czy na pewno chcesz usunąć użytkownika "${name}"?`)) {
-      deleteUser({
-        resource: "users",
-        id,
-      });
-    }
-  };
-
-  const handleSearch = (value: string) => {
-    const filters: any[] = [];
+  const getActivityStatus = (lastActive: string) => {
+    if (!lastActive) return { color: "text-gray-500", text: "Brak aktywności" };
     
-    if (value) {
-      filters.push({
-        operator: "or",
-        value: [
-          {
-            field: "full_name",
-            operator: "contains",
-            value,
-          },
-          {
-            field: "email",
-            operator: "contains",
-            value,
-          },
-        ],
-      });
-    }
+    const daysSinceActive = Math.floor(
+      (new Date().getTime() - new Date(lastActive).getTime()) / (1000 * 60 * 60 * 24)
+    );
     
-    if (roleFilter !== "all") {
-      filters.push({
-        field: "role",
-        operator: "eq",
-        value: roleFilter,
-      });
-    }
-    
-    setFilters(filters);
+    if (daysSinceActive === 0) return { color: "text-green-600", text: "Dzisiaj" };
+    if (daysSinceActive === 1) return { color: "text-green-600", text: "Wczoraj" };
+    if (daysSinceActive <= 7) return { color: "text-yellow-600", text: `${daysSinceActive} dni temu` };
+    if (daysSinceActive <= 30) return { color: "text-orange-600", text: `${Math.floor(daysSinceActive / 7)} tyg. temu` };
+    return { color: "text-red-600", text: "Ponad miesiąc temu" };
   };
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return <Shield className="w-3 h-3" />;
-      case 'teacher':
-        return <GraduationCap className="w-3 h-3" />;
-      default:
-        return <UserCircle className="w-3 h-3" />;
-    }
-  };
-
-  const getRoleVariant = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'destructive';
-      case 'teacher':
-        return 'default';
-      default:
-        return 'secondary';
-    }
-  };
+  if (loading) {
+    return (
+      <SubPage>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </SubPage>
+    );
+  }
 
   return (
     <SubPage>
       <FlexBox>
         <Lead
-          title="Użytkownicy"
-          description="Zarządzaj użytkownikami systemu"
+          title="Moi uczniowie"
+          description={`Uczniowie z Twoich grup (${teacherGroups.length} ${teacherGroups.length === 1 ? 'grupa' : 'grup'})`}
         />
-        <Button onClick={() => create("users")}>
-          <Plus className="w-4 h-4 mr-2" />
-          Dodaj użytkownika
-        </Button>
       </FlexBox>
 
       <FlexBox className="gap-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
           <Input
-            placeholder="Szukaj po nazwie lub email..."
+            placeholder="Szukaj ucznia..."
             className="pl-10"
-            onChange={(e) => handleSearch(e.target.value)}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         
-        <Select value={roleFilter} onValueChange={(value) => {
-          setRoleFilter(value);
-          handleSearch("");
-        }}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filtruj po roli" />
+        <Select value={groupFilter} onValueChange={setGroupFilter}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Filtruj po grupie" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Wszystkie role</SelectItem>
-            <SelectItem value="student">Studenci</SelectItem>
-            <SelectItem value="teacher">Nauczyciele</SelectItem>
-            <SelectItem value="admin">Administratorzy</SelectItem>
+            <SelectItem value="all">Wszystkie grupy</SelectItem>
+            {teacherGroups.map((group) => (
+              <SelectItem key={group.id} value={group.id.toString()}>
+                {group.name} ({group.academic_year})
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </FlexBox>
 
-      <div className="space-y-4">
-        {data?.data?.map((user) => (
-          <Card key={user.id}>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-                    <Users className="h-6 w-6 text-muted-foreground" />
+      {teacherGroups.length === 0 ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-lg font-medium mb-2">Nie masz przypisanych grup</p>
+            <p className="text-muted-foreground">
+              Poproś administratora o przypisanie Cię do kursów z grupami
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filteredStudents.map((student) => {
+            const stats = student.user_stats?.[0] || {};
+            const activityStatus = getActivityStatus(stats.last_active);
+            
+            return (
+              <Card key={student.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <UserCircle className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-sm">{student.full_name}</h3>
+                        <p className="text-xs text-muted-foreground">{student.email}</p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => show("users", student.id)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
                   </div>
                   
-                  <div>
-                    <h3 className="font-semibold">{user.full_name}</h3>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        Grupa
+                      </span>
+                      <div className="flex gap-1">
+                        {student.groups?.slice(0, 2).map((g: any) => (
+                          <Badge key={g.groups.id} variant="outline" className="text-xs">
+                            {g.groups.name}
+                          </Badge>
+                        ))}
+                        {student.groups?.length > 2 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{student.groups.length - 2}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Trophy className="w-3 h-3" />
+                        Punkty
+                      </span>
+                      <span className="font-medium">
+                        {stats.total_points || 0}
+                        <span className="text-xs text-muted-foreground ml-1">
+                          (poz. {stats.current_level || 1})
+                        </span>
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <GraduationCap className="w-3 h-3" />
+                        Quizy
+                      </span>
+                      <span className="font-medium">
+                        {stats.quizzes_completed || 0}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Aktywność
+                      </span>
+                      <span className={`font-medium ${activityStatus.color}`}>
+                        {activityStatus.text}
+                      </span>
+                    </div>
+                    
+                    {stats.daily_streak > 0 && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground flex items-center gap-1">
+                          <TrendingUp className="w-3 h-3" />
+                          Seria dni
+                        </span>
+                        <span className="font-medium text-orange-600">
+                          🔥 {stats.daily_streak}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   
-                  <Badge variant={getRoleVariant(user.role)}>
-                    {getRoleIcon(user.role)}
-                    <span className="ml-1 capitalize">{user.role}</span>
-                  </Badge>
-                  
-                  <Badge variant={user.is_active ? "outline" : "secondary"}>
-                    {user.is_active ? "Aktywny" : "Nieaktywny"}
-                  </Badge>
-                </div>
-                
-                <div className="flex items-center gap-6">
-                  {user.user_stats && (
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">Punkty</p>
-                      <p className="font-semibold">{user.user_stats.total_points}</p>
+                  {activityStatus.color === "text-red-600" && (
+                    <div className="mt-3 pt-3 border-t">
+                      <div className="flex items-center gap-2 text-xs text-orange-600">
+                        <AlertCircle className="w-3 h-3" />
+                        <span>Uczeń może potrzebować wsparcia</span>
+                      </div>
                     </div>
                   )}
-                  
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => show("users", user.id)}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        Podgląd
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => edit("users", user.id)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edytuj
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => handleDelete(user.id, user.full_name)}
-                        className="text-red-600"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Usuń
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <PaginationSwith
-        current={current}
-        pageSize={pageSize}
-        total={data?.total || 0}
-        setCurrent={setCurrent}
-        itemName="użytkowników"
-      />
+                </CardContent>
+              </Card>
+            );
+          })}
+          
+          {filteredStudents.length === 0 && students.length > 0 && (
+            <Card className="col-span-full">
+              <CardContent className="p-12 text-center">
+                <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">
+                  Nie znaleziono uczniów spełniających kryteria
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
     </SubPage>
   );
 };

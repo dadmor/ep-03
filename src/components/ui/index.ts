@@ -20,3 +20,4 @@ export * from "./checkbox";
 export * from "./switch";
 export * from "./tooltip";
 export * from "./dialog";
+export * from "./progress"

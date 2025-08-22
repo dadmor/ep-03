@@ -13,7 +13,7 @@ import { topicsResource } from "./topics";
 import { activitiesResource } from "./activities";
 import { groupsResource } from "./groups";
 import { usersResource } from "./users";
-import { vendorsResource } from "./vendors";
+
 import {
   reportsResource,
   reportsEngagementResource,
@@ -111,7 +111,7 @@ export const teacherResources: IResourceItem[] = [
 
   // Użytkownicy i organizacje - osobno
   usersResource,
-  vendorsResource,
+
 
   // Raporty - rodzic widoczny w menu
   reportsResource,

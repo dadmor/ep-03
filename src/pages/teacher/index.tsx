@@ -17,7 +17,7 @@ import { topicsRoutes } from "./topics";
 import { activitiesRoutes } from "./activities";
 import { groupsRoutes } from "./groups";
 import { usersRoutes } from "./users";
-import { vendorsRoutes } from "./vendors";
+
 import { reportsRoutes } from "./reports";
 import { courseStructureRoutes } from "./course-structure-wizard";
 import { educationalMaterialRoutes } from "./educational-material-wizard";
@@ -37,7 +37,7 @@ const allTeacherRoutes = [
   ...quizWizardRoutes,
   ...groupsRoutes,
   ...usersRoutes,
-  ...vendorsRoutes,
+
   ...reportsRoutes,
 ];
 
