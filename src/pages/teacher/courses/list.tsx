@@ -1,5 +1,6 @@
+// src/pages/teacher/courses/list.tsx
 
-import { useTable, useNavigation, useDelete } from "@refinedev/core";
+import { useTable, useNavigation, useDelete, useGetIdentity, useList } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BookOpen,
@@ -37,6 +38,7 @@ import {
 } from "@/components/ui/tooltip";
 import { usePublishToggle } from "./hooks";
 import { toast } from "sonner";
+import { useState, useMemo } from "react";
 
 interface Course {
   id: number;
@@ -46,37 +48,93 @@ interface Course {
   is_published: boolean;
   created_at: string;
   vendor_id: number;
-  topics?: Array<{ count: number }>;
-  course_access?: Array<{ count: number }>;
 }
 
 export const CoursesList = () => {
   const { create, edit, show } = useNavigation();
   const { mutate: deleteCourse } = useDelete();
   const { togglePublish } = usePublishToggle("courses");
+  const { data: identity } = useGetIdentity<any>();
+  const [searchQuery, setSearchQuery] = useState("");
 
+  // Pobierz wszystkie kursy
   const {
-    tableQuery: { data, isLoading, isError, refetch },
-    current,
-    setCurrent,
-    pageSize,
-    setFilters,
-  } = useTable<Course>({
-    sorters: {
-      initial: [
-        {
-          field: "created_at",
-          order: "desc",
-        },
-      ],
-    },
-    meta: {
-      select: "*, topics(count), course_access(count)",
+    data: coursesData,
+    isLoading: coursesLoading,
+    isError: coursesError,
+    refetch: refetchCourses,
+  } = useList<Course>({
+    resource: "courses",
+    pagination: { mode: "off" },
+    sorters: [{ field: "created_at", order: "desc" }],
+  });
+
+  // Pobierz course_access dla nauczyciela
+  const {
+    data: accessData,
+    isLoading: accessLoading,
+  } = useList({
+    resource: "course_access",
+    filters: identity?.role === 'teacher' ? [
+      { field: "teacher_id", operator: "eq", value: identity?.id }
+    ] : [],
+    pagination: { mode: "off" },
+    queryOptions: {
+      enabled: !!identity?.id && identity?.role === 'teacher',
     },
   });
 
-  const init = useLoading({ isLoading, isError });
-  if (init) return init;
+  // Pobierz statystyki (topics count)
+  const {
+    data: topicsData,
+  } = useList({
+    resource: "topics",
+    pagination: { mode: "off" },
+    meta: {
+      select: "course_id",
+    },
+  });
+
+  // Pobierz wszystkie course_access dla liczenia
+  const {
+    data: allAccessData,
+  } = useList({
+    resource: "course_access",
+    pagination: { mode: "off" },
+    meta: {
+      select: "course_id",
+    },
+  });
+
+  // Filtruj kursy dla nauczyciela
+  const teacherCourseIds = useMemo(() => {
+    return accessData?.data?.map(access => access.course_id) || [];
+  }, [accessData?.data]);
+  
+  const filteredCourses = useMemo(() => {
+    let courses = coursesData?.data || [];
+    
+    // Filtruj dla nauczyciela
+    if (identity?.role === 'teacher') {
+      courses = courses.filter(course => teacherCourseIds.includes(course.id));
+    }
+    
+    // Filtruj po nazwie
+    if (searchQuery) {
+      courses = courses.filter(course => 
+        course.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    return courses;
+  }, [coursesData?.data, teacherCourseIds, identity?.role, searchQuery]);
+
+  // Policz tematy i dostępy dla każdego kursu
+  const getCourseStats = (courseId: number) => {
+    const topicsCount = topicsData?.data?.filter(t => t.course_id === courseId).length || 0;
+    const accessCount = allAccessData?.data?.filter(a => a.course_id === courseId).length || 0;
+    return { topicsCount, accessCount };
+  };
 
   const handleDelete = (id: number, title: string) => {
     if (confirm(`Czy na pewno chcesz usunąć kurs "${title}"?`)) {
@@ -88,7 +146,7 @@ export const CoursesList = () => {
         {
           onSuccess: () => {
             toast.success("Kurs został usunięty");
-            refetch();
+            refetchCourses();
           },
         }
       );
@@ -112,10 +170,24 @@ export const CoursesList = () => {
     window.location.href = wizardPath;
   };
 
+  // Sprawdzanie ładowania MUSI być PO wszystkich hookach
+  const isLoading = coursesLoading || (identity?.role === 'teacher' && accessLoading);
+  const isError = coursesError;
+
+  const init = useLoading({ isLoading, isError });
+  if (init) return init;
+
   return (
     <SubPage>
       <FlexBox>
-        <Lead title="Kursy" description="Zarządzaj kursami w systemie" />
+        <Lead 
+          title="Moje kursy" 
+          description={
+            identity?.role === 'admin' 
+              ? "Zarządzaj wszystkimi kursami w systemie" 
+              : "Kursy, które prowadzisz"
+          } 
+        />
         <div className="flex gap-2">
           <TooltipProvider>
             <Tooltip>
@@ -147,212 +219,220 @@ export const CoursesList = () => {
         <Input
           placeholder="Szukaj kursów..."
           className="max-w-sm"
-          onChange={(e) => {
-            setFilters([
-              {
-                field: "title",
-                operator: "contains",
-                value: e.target.value,
-              },
-            ]);
-          }}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
+        {identity?.role === 'teacher' && (
+          <Badge variant="outline">
+            Pokazuję tylko kursy, które prowadzisz
+          </Badge>
+        )}
       </FlexBox>
 
       <GridBox>
-        {data?.data?.map((course) => (
-          <Card
-            key={course.id}
-            className={`relative cursor-pointer transition-all duration-200 ${
-              !course.is_published
-                ? "opacity-80 hover:opacity-90 "
-                : "hover:shadow-lg"
-            }`}
-            onClick={(e) => {
-              if (!(e.target as HTMLElement).closest('[role="menu"]')) {
-                show("courses", course.id);
-              }
-            }}
-          >
-            <CardHeader>
-              <FlexBox>
-                <CardTitle className="flex items-center gap-2 min-w-0">
-                  <span className="flex-shrink-0">
-                    {course.icon_emoji ? (
-                      <span className="text-2xl">{course.icon_emoji}</span>
-                    ) : (
-                      <BookOpen className="w-5 h-5" />
-                    )}
-                  </span>
-                  <TooltipProvider delayDuration={200}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="truncate">{course.title}</span>
-                      </TooltipTrigger>
-                      {course.title.length > 30 && (
-                        <TooltipContent>
-                          <p className="max-w-xs">{course.title}</p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
-                </CardTitle>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => show("courses", course.id)}
-                    >
-                      <Eye className="mr-2 h-4 w-4" />
-                      Podgląd
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => edit("courses", course.id)}
-                    >
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edytuj
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() =>
-                        togglePublish(
-                          course.id,
-                          course.is_published,
-                          course.title,
-                          refetch
-                        )
-                      }
-                    >
-                      {course.is_published ? (
-                        <>
-                          <EyeOff className="mr-2 h-4 w-4" />
-                          Ukryj kurs
-                        </>
+        {filteredCourses.map((course) => {
+          const stats = getCourseStats(course.id);
+          
+          return (
+            <Card
+              key={course.id}
+              className={`relative cursor-pointer transition-all duration-200 ${
+                !course.is_published
+                  ? "opacity-80 hover:opacity-90 "
+                  : "hover:shadow-lg"
+              }`}
+              onClick={(e) => {
+                if (!(e.target as HTMLElement).closest('[role="menu"]')) {
+                  show("courses", course.id);
+                }
+              }}
+            >
+              <CardHeader>
+                <FlexBox>
+                  <CardTitle className="flex items-center gap-2 min-w-0">
+                    <span className="flex-shrink-0">
+                      {course.icon_emoji ? (
+                        <span className="text-2xl">{course.icon_emoji}</span>
                       ) : (
-                        <>
-                          <Eye className="mr-2 h-4 w-4" />
-                          Opublikuj kurs
-                        </>
+                        <BookOpen className="w-5 h-5" />
                       )}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() =>
-                        handleNavigateToWizard(
-                          "/teacher/educational-material/step1",
-                          course.id,
-                          course.title
-                        )
-                      }
-                      className="text-purple-600 focus:text-purple-600"
-                    >
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Generuj materiał z AI
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() =>
-                        handleNavigateToWizard(
-                          "/teacher/quiz-wizard/step1",
-                          course.id,
-                          course.title
-                        )
-                      }
-                      className="text-blue-600 focus:text-blue-600"
-                    >
-                      <Brain className="mr-2 h-4 w-4" />
-                      Generuj quiz z AI
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => handleDelete(course.id, course.title)}
-                      className="text-red-600 focus:text-red-600"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Usuń
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </FlexBox>
-            </CardHeader>
-            <CardContent>
-              {course.description && (
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                  {course.description}
-                </p>
-              )}
+                    </span>
+                    <TooltipProvider delayDuration={200}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="truncate">{course.title}</span>
+                        </TooltipTrigger>
+                        {course.title.length > 30 && (
+                          <TooltipContent>
+                            <p className="max-w-xs">{course.title}</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                  </CardTitle>
 
-              <div className="flex items-center justify-between">
-                <div className="flex gap-2">
-                  <Badge
-                    variant={course.is_published ? "default" : "secondary"}
-                    className={course.is_published ? "bg-green-600" : ""}
-                  >
-                    {course.is_published ? "Opublikowany" : "Szkic"}
-                  </Badge>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => show("courses", course.id)}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        Podgląd
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => edit("courses", course.id)}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edytuj
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() =>
+                          togglePublish(
+                            course.id,
+                            course.is_published,
+                            course.title,
+                            refetchCourses
+                          )
+                        }
+                      >
+                        {course.is_published ? (
+                          <>
+                            <EyeOff className="mr-2 h-4 w-4" />
+                            Ukryj kurs
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="mr-2 h-4 w-4" />
+                            Opublikuj kurs
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() =>
+                          handleNavigateToWizard(
+                            "/teacher/educational-material/step1",
+                            course.id,
+                            course.title
+                          )
+                        }
+                        className="text-purple-600 focus:text-purple-600"
+                      >
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Generuj materiał z AI
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          handleNavigateToWizard(
+                            "/teacher/quiz-wizard/step1",
+                            course.id,
+                            course.title
+                          )
+                        }
+                        className="text-blue-600 focus:text-blue-600"
+                      >
+                        <Brain className="mr-2 h-4 w-4" />
+                        Generuj quiz z AI
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => handleDelete(course.id, course.title)}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Usuń
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </FlexBox>
+              </CardHeader>
+              <CardContent>
+                {course.description && (
+                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                    {course.description}
+                  </p>
+                )}
+
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-2">
+                    <Badge
+                      variant={course.is_published ? "default" : "secondary"}
+                      className={course.is_published ? "bg-green-600" : ""}
+                    >
+                      {course.is_published ? "Opublikowany" : "Szkic"}
+                    </Badge>
+                  </div>
+
+                  <div className="flex gap-3 text-sm text-muted-foreground">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="flex items-center gap-1">
+                            <FileText className="w-3 h-3" />
+                            {stats.topicsCount}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Liczba tematów</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            {stats.accessCount}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Liczba przypisań</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
 
-                <div className="flex gap-3 text-sm text-muted-foreground">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="flex items-center gap-1">
-                          <FileText className="w-3 h-3" />
-                          {course.topics?.[0]?.count || 0}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Liczba tematów</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="flex items-center gap-1">
-                          <Users className="w-3 h-3" />
-                          {course.course_access?.[0]?.count || 0}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Liczba uczestników</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              </div>
-
-              {course.created_at && (
-                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                  <Clock className="w-3 h-3" />
-                  <span>
-                    Utworzono:{" "}
-                    {new Date(course.created_at).toLocaleDateString("pl-PL")}
-                  </span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+                {course.created_at && (
+                  <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                    <Clock className="w-3 h-3" />
+                    <span>
+                      Utworzono:{" "}
+                      {new Date(course.created_at).toLocaleDateString("pl-PL")}
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </GridBox>
 
       {/* Karta do tworzenia nowego kursu z AI */}
-      {data?.data?.length === 0 && (
+      {filteredCourses.length === 0 && (
         <Card className="border-dashed border-2 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/20 dark:to-purple-950/20">
           <CardContent className="text-center py-12">
             <Layout className="w-12 h-12 mx-auto mb-4 text-indigo-600" />
-            <h3 className="text-lg font-semibold mb-2">Brak kursów</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {identity?.role === 'teacher' 
+                ? "Nie prowadzisz jeszcze żadnych kursów" 
+                : "Brak kursów"}
+            </h3>
             <p className="text-muted-foreground mb-6">
-              Rozpocznij od stworzenia pierwszego kursu
+              {identity?.role === 'teacher'
+                ? "Poproś administratora o przypisanie Cię do kursu lub utwórz nowy"
+                : "Rozpocznij od stworzenia pierwszego kursu"}
             </p>
             <div className="flex gap-3 justify-center">
               <Button variant="outline" onClick={() => create("courses")}>
@@ -374,14 +454,12 @@ export const CoursesList = () => {
       )}
 
       <PaginationSwith
-        current={current}
-        pageSize={pageSize}
-        total={data?.total || 0}
-        setCurrent={setCurrent}
+        current={1}
+        pageSize={10}
+        total={filteredCourses.length}
+        setCurrent={() => {}}
         itemName="kursów"
       />
-
-    
     </SubPage>
   );
 };
