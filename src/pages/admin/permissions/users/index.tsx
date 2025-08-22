@@ -18,7 +18,7 @@ export const usersResource = {
   edit: "/admin/permissions/users/edit/:id",
   show: "/admin/permissions/users/show/:id",
   meta: {
-    label: "Lista użytkowników",
+    label: "Użytkownicy",
     icon: <Users className="h-4 w-4" />,
     parent: "permissions",
   },
