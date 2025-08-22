@@ -1,6 +1,6 @@
-// src/pages/admin/users/list.tsx
+// src/pages/admin/permissions/users/list.tsx
 import { useTable, useUpdate, useNavigation } from "@refinedev/core";
-import type { CrudFilter } from "@refinedev/core"; // To jest nowy import
+import type { CrudFilter } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Mail, Calendar, Shield, UserCheck, Edit, Power, Eye } from "lucide-react";
 import { FlexBox, GridBox } from "@/components/shared";
@@ -83,7 +83,7 @@ export const UsersList = () => {
           title="Użytkownicy"
           description="Zarządzaj wszystkimi użytkownikami w systemie"
         />
-        <Button onClick={() => create("users")}>
+        <Button onClick={() => create("permissions-users")}>
           <Users className="w-4 h-4 mr-2" />
           Dodaj użytkownika
         </Button>
@@ -167,14 +167,14 @@ export const UsersList = () => {
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={() => show("users", user.id)}
+                    onClick={() => show("permissions-users", user.id)}
                   >
                     <Eye className="w-4 h-4" />
                   </Button>
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={() => edit("users", user.id)}
+                    onClick={() => edit("permissions-users", user.id)}
                   >
                     <Edit className="w-4 h-4" />
                   </Button>

@@ -1,4 +1,4 @@
-// src/pages/admin/users/show.tsx
+// src/pages/admin/permissions/users/show.tsx
 import { useOne, useList, useNavigation } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, Badge } from "@/components/ui";
@@ -73,7 +73,7 @@ export const UsersShow = () => {
 
   return (
     <SubPage>
-      <Button variant="outline" size="sm" onClick={() => list("users")}>
+      <Button variant="outline" size="sm" onClick={() => list("permissions-users")}>
         <ArrowLeft className="w-4 h-4 mr-2" />
         Powrót do listy
       </Button>
@@ -88,7 +88,7 @@ export const UsersShow = () => {
           }
           description={user?.email}
         />
-        <Button onClick={() => edit("users", user?.id ?? "")}>
+        <Button onClick={() => edit("permissions-users", user?.id ?? "")}>
           <Edit className="w-4 h-4 mr-2" />
           Edytuj
         </Button>

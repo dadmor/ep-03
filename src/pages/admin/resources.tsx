@@ -8,26 +8,21 @@ import {
   usersManagementResource,
   vendorManagementResource,
   groupManagementResource,
-  coursePermissionsResource
+  coursePermissionsResource,
+  permissionsResources
 } from "./permissions";
 
-export const adminResources: IResourceItem[] = [
-  {
-    name: "dashboard",
-    list: "/admin/dashboard/overview",
-    meta: {
-      label: "Dashboard",
-      icon: <LayoutDashboard className="h-4 w-4" />
-    },
-  },
-  vendorsResource,
-  
-  // Moduł uprawnień z podmenu
-  permissionsResource,              // Rodzic: "Zarządzanie dostępem"
-  usersManagementResource,          // Podmenu: "Użytkownicy"
-  vendorManagementResource,         // Podmenu: "Vendorzy"
-  groupManagementResource,          // Podmenu: "Grupy"
-  coursePermissionsResource,        // Podmenu: "Dostęp do kursów"
-  
-
-];
+export const adminResources: IResourceItem[] = permissionsResources.includes(vendorsResource) 
+  ? permissionsResources 
+  : [
+      {
+        name: "dashboard",
+        list: "/admin/dashboard/overview",
+        meta: {
+          label: "Dashboard",
+          icon: <LayoutDashboard className="h-4 w-4" />
+        },
+      },
+      vendorsResource,
+      ...permissionsResources,
+    ];

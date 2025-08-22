@@ -1,34 +1,27 @@
-// src/pages/admin/users/edit.tsx
+// src/pages/admin/permissions/users/create.tsx
 import { useForm } from "@refinedev/react-hook-form";
-import { useNavigation, useOne } from "@refinedev/core";
+import { useNavigation, useGetIdentity } from "@refinedev/core";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Switch } from "@/components/ui";
 import { FlexBox } from "@/components/shared";
 import { Lead } from "@/components/reader";
 import { Form, FormActions, FormControl } from "@/components/form";
 import { SubPage } from "@/components/layout";
-import { ArrowLeft, Edit, Mail, User, Shield, AlertTriangle } from "lucide-react";
-import { useParams } from "react-router-dom";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, UserPlus, Mail, User, Shield } from "lucide-react";
+import { User as UserType } from "@/utility/auth/userCache";
 
 interface UserFormData {
   email: string;
   full_name: string;
   role: 'student' | 'teacher' | 'admin';
   is_active: boolean;
+  vendor_id: number;
 }
 
-export const UsersEdit = () => {
+export const UsersCreate = () => {
   const { list } = useNavigation();
-  const { id } = useParams();
-
-  const { data, isLoading } = useOne({
-    resource: "users",
-    id: id as string,
-  });
-
-  const user = data?.data;
-
+  const { data: currentUser } = useGetIdentity<UserType>();
+  
   const {
     refineCore: { onFinish },
     register,
@@ -37,25 +30,31 @@ export const UsersEdit = () => {
     watch,
     formState: { errors, isSubmitting },
   } = useForm<UserFormData>({
+    defaultValues: {
+      role: 'student',
+      is_active: true,
+      vendor_id: currentUser?.vendor_id || 1,
+    },
     refineCoreProps: {
       resource: "users",
-      id: id as string,
       successNotification: () => ({
-        message: "Użytkownik został zaktualizowany",
+        message: "Użytkownik został utworzony",
         type: "success",
       }),
+      errorNotification: (error: any) => {
+        if (error?.message?.includes("duplicate key")) {
+          return {
+            message: "Użytkownik z tym adresem email już istnieje",
+            type: "error",
+          };
+        }
+        return {
+          message: "Błąd podczas tworzenia użytkownika",
+          type: "error",
+        };
+      },
     },
   });
-
-  if (isLoading) {
-    return (
-      <SubPage>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </SubPage>
-    );
-  }
 
   const roleOptions = [
     { value: 'student', label: 'Uczeń', icon: <User className="w-4 h-4" /> },
@@ -68,7 +67,7 @@ export const UsersEdit = () => {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => list("users")}
+        onClick={() => list("permissions-users")}
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Powrót do listy
@@ -76,20 +75,22 @@ export const UsersEdit = () => {
 
       <FlexBox>
         <Lead
-          title="Edytuj użytkownika"
-          description={`Edycja: ${user?.full_name}`}
+          title="Dodaj użytkownika"
+          description="Utwórz nowe konto użytkownika"
         />
       </FlexBox>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Edit className="w-5 h-5" />
+            <UserPlus className="w-5 h-5" />
             Dane użytkownika
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Form onSubmit={handleSubmit(onFinish)}>
+            <input type="hidden" {...register("vendor_id")} />
+            
             <FormControl
               label="Email"
               htmlFor="email"
@@ -180,25 +181,17 @@ export const UsersEdit = () => {
               </FlexBox>
             </FormControl>
 
-            {watch("role") !== user?.role && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>Uwaga:</strong> Zmiana roli użytkownika może wpłynąć na jego dostęp do systemu.
-                  {user?.role === 'admin' && watch("role") !== 'admin' && (
-                    <span className="block mt-1">
-                      Odbierasz uprawnienia administratora!
-                    </span>
-                  )}
-                </AlertDescription>
-              </Alert>
-            )}
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Uwaga:</strong> Po utworzeniu użytkownika otrzyma on email z linkiem do ustawienia hasła.
+              </p>
+            </div>
 
             <FormActions>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => list("users")}
+                onClick={() => list("permissions-users")}
               >
                 Anuluj
               </Button>
@@ -206,26 +199,10 @@ export const UsersEdit = () => {
                 type="submit"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Zapisywanie..." : "Zapisz zmiany"}
+                {isSubmitting ? "Tworzenie..." : "Utwórz użytkownika"}
               </Button>
             </FormActions>
           </Form>
-        </CardContent>
-      </Card>
-
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Dodatkowe akcje</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Button variant="outline" className="w-full justify-start">
-            <Mail className="w-4 h-4 mr-2" />
-            Wyślij link do resetowania hasła
-          </Button>
-          <Button variant="outline" className="w-full justify-start text-destructive hover:text-destructive">
-            <AlertTriangle className="w-4 h-4 mr-2" />
-            Zresetuj wszystkie sesje użytkownika
-          </Button>
         </CardContent>
       </Card>
     </SubPage>

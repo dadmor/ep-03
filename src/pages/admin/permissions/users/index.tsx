@@ -1,4 +1,4 @@
-// src/pages/admin/users/index.tsx
+// src/pages/admin/permissions/users/index.tsx
 import { Route } from "react-router-dom";
 import { Users } from "lucide-react";
 import { UsersList } from "./list";
@@ -12,14 +12,15 @@ export { UsersEdit } from "./edit";
 export { UsersShow } from "./show";
 
 export const usersResource = {
-  name: "users",
-  list: "/admin/users",
-  create: "/admin/users/create",
-  edit: "/admin/users/edit/:id",
-  show: "/admin/users/show/:id",
+  name: "permissions-users",
+  list: "/admin/permissions/users",
+  create: "/admin/permissions/users/create",
+  edit: "/admin/permissions/users/edit/:id",
+  show: "/admin/permissions/users/show/:id",
   meta: {
-    label: "Użytkownicy",
+    label: "Lista użytkowników",
     icon: <Users className="h-4 w-4" />,
+    parent: "permissions",
   },
 };
 

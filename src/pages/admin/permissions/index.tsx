@@ -7,6 +7,9 @@ import { GroupManagement } from "./groups";
 import { CoursePermissions } from "./courses";
 import { UserManagement } from "./users";
 
+// Import z folderu users, nie z pliku users.tsx!
+import { usersResource, usersRoutes } from "./users/index";
+
 // Główny zasób
 export const permissionsResource = {
   name: "permissions",
@@ -17,12 +20,12 @@ export const permissionsResource = {
   },
 };
 
-// Podmenu - Użytkownicy
+// Podmenu - Uprawnienia użytkowników (szybkie zarządzanie)
 export const usersManagementResource = {
-  name: "permissions-users",
-  list: "/admin/permissions/users",
+  name: "permissions-users-management",
+  list: "/admin/permissions/users-management",
   meta: {
-    label: "Użytkownicy",
+    label: "Uprawnienia użytkowników",
     icon: <UserCog className="h-4 w-4" />,
     parent: "permissions",
   },
@@ -62,10 +65,25 @@ export const coursePermissionsResource = {
 };
 
 export const permissionsRoutes = [
-  <Route key="permissions-users" path="permissions/users" element={<UserManagement />} />,
+  // Route dla strony z szybkim zarządzaniem uprawnieniami
+  <Route key="permissions-users-management" path="permissions/users-management" element={<UserManagement />} />,
+  
+  // Routes dla pełnego modułu users - mapujemy i dodajemy prefix do ścieżek
+  ...usersRoutes.map(route => ({
+    ...route,
+    key: `permissions-${route.key}`,
+    props: {
+      ...route.props,
+      path: `permissions/${route.props.path}`
+    }
+  })),
+  
+  // Pozostałe routes
   <Route key="permissions-vendors" path="permissions/vendors" element={<VendorManagement />} />,
   <Route key="permissions-groups" path="permissions/groups" element={<GroupManagement />} />,
   <Route key="permissions-courses" path="permissions/courses" element={<CoursePermissions />} />,
+  
+  // Default route
   <Route key="permissions-default" path="permissions" element={<UserManagement />} />,
 ];
 
@@ -73,6 +91,7 @@ export const permissionsRoutes = [
 export const permissionsResources = [
   permissionsResource,
   usersManagementResource,
+  usersResource,
   vendorManagementResource,
   groupManagementResource,
   coursePermissionsResource,
