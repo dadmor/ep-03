@@ -4,11 +4,6 @@ import { LayoutDashboard } from "lucide-react";
 
 import { vendorsResource } from "./vendors";
 import { 
-  permissionsResource,
-  usersManagementResource,
-  vendorManagementResource,
-  groupManagementResource,
-  coursePermissionsResource,
   permissionsResources
 } from "./permissions";
 
